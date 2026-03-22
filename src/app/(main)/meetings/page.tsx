@@ -117,7 +117,7 @@ export default function MeetingsPage() {
     
     // We update the content with the template
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/documents/${newDoc.id}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com'}/documents/${newDoc.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

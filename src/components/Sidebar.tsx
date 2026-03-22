@@ -251,7 +251,7 @@ export function Sidebar({
       return;
     }
 
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', { auth: { token } });
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com', { auth: { token } });
     socketRef.current = socket;
 
     socket.on('connect', () => {

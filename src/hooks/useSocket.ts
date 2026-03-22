@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com';
 
 export const useSocket = (docId: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
