@@ -1,0 +1,14 @@
+{
+  "/(main)/connections/page": "/connections",
+  "/(main)/documents/[documentId]/page": "/documents/[documentId]",
+  "/(main)/library/page": "/library",
+  "/(main)/meetings/page": "/meetings",
+  "/(main)/page": "/",
+  "/(main)/workspace/[id]/page": "/workspace/[id]",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/login/page": "/login",
+  "/register/page": "/register",
+  "/setup-inicial/page": "/setup-inicial"
+}

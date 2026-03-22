@@ -1,0 +1,47 @@
+{
+  "app": {
+    "[project]/src/app/(main)/connections/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/(main)/documents/[documentId]/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/(main)/library/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/(main)/meetings/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/(main)/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/(main)/workspace/[id]/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/_not-found/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/login/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/register/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ],
+    "[project]/src/app/setup-inicial/page": [
+      "static/media/caa3a2e1cccd8315-s.p.16t1db8_9y2o~.woff2",
+      "static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

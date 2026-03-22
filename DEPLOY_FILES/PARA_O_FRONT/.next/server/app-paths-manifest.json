@@ -1,0 +1,14 @@
+{
+  "/(main)/connections/page": "app/(main)/connections/page.js",
+  "/(main)/documents/[documentId]/page": "app/(main)/documents/[documentId]/page.js",
+  "/(main)/library/page": "app/(main)/library/page.js",
+  "/(main)/meetings/page": "app/(main)/meetings/page.js",
+  "/(main)/page": "app/(main)/page.js",
+  "/(main)/workspace/[id]/page": "app/(main)/workspace/[id]/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/login/page": "app/login/page.js",
+  "/register/page": "app/register/page.js",
+  "/setup-inicial/page": "app/setup-inicial/page.js"
+}
