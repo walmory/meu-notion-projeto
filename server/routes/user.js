@@ -10,6 +10,11 @@ router.get('/test', (_req, res) => {
   res.send('Rota User funcionando!');
 });
 
+// Teste de isolamento: Aceitar qualquer método (GET, POST, PUT)
+router.all('/profile-test', (req, res) => {
+  res.send('OK - Rota Profile Existe');
+});
+
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const userId = req.user?.id ?? req.user_id;

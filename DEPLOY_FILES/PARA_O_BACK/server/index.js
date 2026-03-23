@@ -21,6 +21,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Rota de teste direto de isolamento
+app.get('/teste-direto', (req, res) => res.send('OK - Servidor Lendo Index'));
+
 // Rotas Base / API
 app.use('/user', userRoutes);
 app.use('/auth', authRoutes);
