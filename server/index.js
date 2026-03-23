@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 import pool from './config/db.js';
 
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/user.js';
 import workspaceRoutes from './routes/workspaces.js';
 import teamspaceRoutes from './routes/teamspaces.js';
 import documentRoutes from './routes/documents.js';
@@ -29,6 +30,7 @@ const httpServer = createServer(app);
 
 // Rotas
 app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
 app.use('/workspaces', workspaceRoutes);
 app.use('/workspace', workspaceRoutes); // Alias para a rota usada no frontend
 app.use('/teamspaces', teamspaceRoutes);
