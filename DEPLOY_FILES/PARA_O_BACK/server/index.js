@@ -18,7 +18,13 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Pragma', 'Cache-Control', 'skip-browser-warning', 'x-workspace-id']
+}));
+
 app.use(express.json());
 
 // Rota de teste direto de isolamento

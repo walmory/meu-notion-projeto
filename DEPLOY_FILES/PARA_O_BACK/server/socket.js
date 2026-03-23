@@ -171,7 +171,12 @@ async function processDocQueue(socket, docId) {
 // ─── Socket Server ───────────────────────────────────────────────────────────
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
-    cors: { origin: '*' },
+    cors: { 
+      origin: '*',
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Pragma', 'Cache-Control', 'skip-browser-warning', 'x-workspace-id']
+    },
+    transports: ['websocket', 'polling']
   });
 
   // JWT authentication middleware
