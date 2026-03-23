@@ -4,6 +4,30 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.get('/profile', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT name, email, bio, avatar_url FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+});
+
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
@@ -14,8 +38,18 @@ router.put('/profile', authMiddleware, async (req, res) => {
     }
 
     await pool.query(
-      'UPDATE users SET name = ?, bio = ?, avatar_url = ? WHERE id = ?',
-      [name || null, bio || null, avatar_url || null, userId]
+      `UPDATE users 
+       SET 
+         name = COALESCE(?, name), 
+         bio = COALESCE(?, bio), 
+         avatar_url = COALESCE(?, avatar_url) 
+       WHERE id = ?`,
+      [
+        name !== undefined ? name : null, 
+        bio !== undefined ? bio : null, 
+        avatar_url !== undefined ? avatar_url : null, 
+        userId
+      ]
     );
 
     res.json({ success: true, message: 'Perfil atualizado com sucesso' });

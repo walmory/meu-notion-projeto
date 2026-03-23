@@ -18,17 +18,36 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      const user = getUserFromToken();
-      if (user?.name) {
-        setName(user.name);
-      }
       setSuccessMessage('');
       setErrorMessage('');
+      
+      const fetchProfile = async () => {
+        setFetching(true);
+        try {
+          const response = await axios.get('https://apinotion.andrekehrer.com/user/profile', {
+            headers: getAuthHeaders()
+          });
+          const data = response.data;
+          if (data.name) setName(data.name);
+          if (data.bio) setBio(data.bio);
+          if (data.avatar_url) setAvatarUrl(data.avatar_url);
+        } catch (error) {
+          console.error('Failed to fetch profile', error);
+          // Fallback para o token caso a API falhe (ex: 404)
+          const user = getUserFromToken();
+          if (user?.name) setName(user.name);
+        } finally {
+          setFetching(false);
+        }
+      };
+      
+      fetchProfile();
     }
   }, [isOpen]);
 
@@ -120,7 +139,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
             </Button>
             <Button
               type="submit"
-              disabled={loading || !name.trim()}
+              disabled={loading || fetching || !name.trim()}
               className="bg-white text-black hover:bg-gray-200"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
