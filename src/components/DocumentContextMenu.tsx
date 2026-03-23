@@ -64,7 +64,15 @@ export function DocumentContextMenu({
   const { openSidePeek } = useSidePeek();
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/documents/${doc.id}`;
+    let baseUrl = window.location.origin;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost && window.location.hostname.includes('vercel.app')) {
+      // Se estiver no Vercel, o link base será mantido no Vercel (Frontend),
+      // a menos que você queira o link do backend. Geralmente o link de cópia é do frontend.
+      // Caso seja necessário, altere aqui.
+      baseUrl = window.location.origin; 
+    }
+    const url = `${baseUrl}/documents/${doc.id}`;
     navigator.clipboard.writeText(url);
     alert('Link copied to clipboard!');
   };

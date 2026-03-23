@@ -252,11 +252,29 @@ export function Sidebar({
       return;
     }
 
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com', { auth: { token } });
+    const getSocketUrl = () => {
+      if (typeof window !== 'undefined') {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocalhost) {
+          return 'https://apinotion.andrekehrer.com';
+        }
+      }
+      return process.env.NEXT_PUBLIC_API_URL || 'https://apinotion.andrekehrer.com';
+    };
+
+    const socketUrl = getSocketUrl();
+    const socket = io(socketUrl, { auth: { token } });
     socketRef.current = socket;
 
     socket.on('connect', () => {
       socket.emit('join-workspace', activeWorkspaceId);
+    });
+
+    // Escutando eventos de título e conteúdo para atualizar a Sidebar (AAA)
+    socket.on('title-change', (payload: { docId?: string; title?: string }) => {
+      if (payload?.docId && payload?.title) {
+        window.dispatchEvent(new CustomEvent('mutate-documents'));
+      }
     });
 
     socket.on('document_moved', () => {

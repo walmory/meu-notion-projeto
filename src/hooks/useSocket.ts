@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com';
+const getSocketUrl = () => {
+  if (typeof window !== 'undefined') {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost) {
+      // Força apontar para o domínio do backend correto (Alemanha) ao invés do Vercel
+      return 'https://apinotion.andrekehrer.com';
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://apinotion.andrekehrer.com';
+};
 
 export const useSocket = (docId: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -11,7 +20,8 @@ export const useSocket = (docId: string) => {
   useEffect(() => {
     if (!token) return;
 
-    const socketInstance = io(SOCKET_BASE_URL, {
+    const socketUrl = getSocketUrl();
+    const socketInstance = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
