@@ -2,6 +2,8 @@ import express from 'express';
 import pool from '../config/db.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
+console.log("👉 Rota de Usuário Carregada com Sucesso");
+
 const router = express.Router();
 
 router.get('/test', (_req, res) => {

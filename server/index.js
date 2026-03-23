@@ -25,17 +25,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'ngrok-skip-browser-warning', 'skip-browser-warning']
 }));
 app.use(express.json());
-const httpServer = createServer(app);
 
-// Rotas
-app.use('/auth', authRoutes);
+// Rotas Base / API
 app.use('/user', userRoutes);
+app.use('/auth', authRoutes);
 app.use('/workspaces', workspaceRoutes);
 app.use('/workspace', workspaceRoutes); // Alias para a rota usada no frontend
 app.use('/teamspaces', teamspaceRoutes);
 app.use('/documents', documentRoutes);
 app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
+
+const httpServer = createServer(app);
+
+// Rotas Estáticas
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 app.get('/health', async (_req, res) => {
