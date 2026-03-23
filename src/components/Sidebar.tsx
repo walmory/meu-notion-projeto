@@ -115,6 +115,7 @@ import { Switch } from '@/components/ui/switch';
 import { WorkspaceInviteModal } from './WorkspaceInviteModal';
 import { WorkspaceSettingsModal } from './WorkspaceSettingsModal';
 import { WorkspaceCreateModal } from './WorkspaceCreateModal';
+import { useUser } from '@/contexts/UserContext';
 
 export function Sidebar({ 
   documents, 
@@ -157,8 +158,8 @@ export function Sidebar({
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
   const activeWorkspaceId = selectedWorkspaceId || (workspaces.length > 0 ? workspaces[0].id : null);
   const selectedWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
-  const user = getUserFromToken();
-  const rawWorkspaceName = selectedWorkspace?.name || `João Victor`;
+  const { user } = useUser();
+  const rawWorkspaceName = selectedWorkspace?.name || `Workspace do ${user?.name || 'User'}`;
   const workspaceDisplayName = isWorkspacesLoading ? 'Loading...' : rawWorkspaceName;
   const workspaceInitial = workspaceDisplayName.charAt(0).toUpperCase();
   const { data: pendingInvites } = useSWR<{ count: number }>(

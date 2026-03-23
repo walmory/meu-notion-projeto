@@ -7,6 +7,7 @@ import { Editor } from '@/components/Editor';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import { DocumentContextMenu } from '@/components/DocumentContextMenu';
+import { useUser } from '@/contexts/UserContext';
 
 interface DashboardProps {
   documents: Document[];
@@ -21,7 +22,7 @@ interface DashboardProps {
 
 export function Dashboard({ documents, onSelectDocument, createDocument, onUpdate, onUpdateDocument, onToggleFavorite, onDeleteDocument, onDuplicateDocument }: DashboardProps) {
   const [greeting, setGreeting] = useState('Bem-vindo');
-  const user = getUserFromToken();
+  const { user } = useUser();
   const [quickNotesDoc, setQuickNotesDoc] = useState<Document | null>(null);
   const isCreatingRef = useRef(false);
 
@@ -122,7 +123,7 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                 {greeting}, {user?.name || 'User'}
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
-             <p className="text-white text-base font-semibold tracking-wide">João Victor</p>
+             <p className="text-white text-base font-semibold tracking-wide">{user?.name || 'User'}</p>
              <p className="text-[#a3a3a3] text-lg">Pronto para capturar suas melhores ideias hoje?</p>
           </div>
 

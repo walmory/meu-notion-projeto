@@ -18,7 +18,7 @@ const signToken = (user) => {
 
 const mapWorkspace = (workspace, ownerEmail, ownerName) => ({
   id: workspace.id,
-  name: workspace.name.includes('João Victor') ? `Workspace do ${ownerName || 'User'}` : workspace.name,
+  name: workspace.name,
   owner_id: workspace.owner_id,
   owner: ownerEmail
 });

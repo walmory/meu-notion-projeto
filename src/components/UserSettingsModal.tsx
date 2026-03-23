@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { getAuthHeaders, getUserFromToken } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { useUser } from '@/contexts/UserContext';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -14,7 +15,8 @@ interface UserSettingsModalProps {
 }
 
 export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
-  const [name, setName] = useState('Victor Walmory');
+  const { user, refreshUser } = useUser();
+  const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,11 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     if (isOpen) {
       setSuccessMessage('');
       setErrorMessage('');
+      if (user) {
+        setName(user.name || '');
+        setBio(user.bio || '');
+        setAvatarUrl(user.avatar_url || '');
+      }
       
       const fetchProfile = async () => {
         setFetching(true);
@@ -39,8 +46,6 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
           if (data.avatar_url) setAvatarUrl(data.avatar_url);
         } catch (error) {
           console.error('Failed to fetch profile', error);
-          // Fallback para o token caso a API falhe (ex: 404)
-          const user = getUserFromToken();
           if (user?.name) setName(user.name);
         } finally {
           setFetching(false);
@@ -49,7 +54,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       
       fetchProfile();
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +70,9 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         { name, bio, avatar_url: avatarUrl },
         { headers: getAuthHeaders() }
       );
+      
+      await refreshUser(); // Atualiza o estado global!
+      
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => {
         setSuccessMessage('');

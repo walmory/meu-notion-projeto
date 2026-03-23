@@ -13,8 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { UserProvider } from "@/contexts/UserContext";
+
 export const metadata: Metadata = {
-  title: "João Victor",
+  title: "Notion Clone",
   description: "Workspace",
 };
 
@@ -31,8 +33,10 @@ export default function RootLayout({
       style={{ backgroundColor: "#191919", colorScheme: "dark" }}
     >
       <body className="min-h-full flex flex-col bg-[#191919] text-white" suppressHydrationWarning>
-        {children}
-        <CommandPalette />
+        <UserProvider>
+          {children}
+          <CommandPalette />
+        </UserProvider>
       </body>
     </html>
   );
