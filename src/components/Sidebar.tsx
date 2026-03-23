@@ -273,7 +273,8 @@ export function Sidebar({
     // Escutando eventos de título e conteúdo para atualizar a Sidebar (AAA)
     socket.on('title-change', (payload: { docId?: string; title?: string }) => {
       if (payload?.docId && payload?.title) {
-        window.dispatchEvent(new CustomEvent('mutate-documents'));
+        // Atualização instantânea (Optimistic UI) — sem refetch de rede
+        window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: payload.docId, title: payload.title } }));
       }
     });
 

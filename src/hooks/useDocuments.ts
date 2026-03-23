@@ -103,9 +103,23 @@ export function useDocuments(workspaceId?: string) {
       mutate();
     };
 
+    const handleLiveTitleUpdate = (e: Event) => {
+      const { docId, title } = (e as CustomEvent<{ docId: string; title: string }>).detail;
+      if (!docId || typeof title !== 'string') return;
+      mutate(
+        (current) =>
+          Array.isArray(current)
+            ? current.map((d) => (String(d.id) === String(docId) ? { ...d, title } : d))
+            : current,
+        false
+      );
+    };
+
     window.addEventListener('mutate-documents', handleMutateDocuments);
+    window.addEventListener('live-title-update', handleLiveTitleUpdate);
     return () => {
       window.removeEventListener('mutate-documents', handleMutateDocuments);
+      window.removeEventListener('live-title-update', handleLiveTitleUpdate);
     };
   }, [mutate]);
 
