@@ -172,9 +172,10 @@ async function processDocQueue(socket, docId) {
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
     cors: { 
-      origin: '*',
+      origin: 'https://meu-notion-projeto.vercel.app',
       methods: ['GET', 'POST', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Pragma', 'Cache-Control', 'skip-browser-warning', 'x-workspace-id']
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'skip-browser-warning', 'x-workspace-id'],
+      credentials: true
     },
     transports: ['websocket', 'polling']
   });

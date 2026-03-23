@@ -20,9 +20,10 @@ const PORT = Number(process.env.PORT || 3001);
 const app = express();
 
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Pragma', 'Cache-Control', 'skip-browser-warning', 'x-workspace-id']
+  origin: 'https://meu-notion-projeto.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'skip-browser-warning', 'x-workspace-id'],
+  credentials: true
 }));
 
 app.use(express.json());
