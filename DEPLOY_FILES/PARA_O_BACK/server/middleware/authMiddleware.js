@@ -15,6 +15,11 @@ export const authMiddleware = (req, res, next) => {
     req.user_id = payload.user_id;
     req.user_email = payload.email;
     req.user_name = payload.name;
+    req.user = {
+      id: payload.user_id,
+      email: payload.email,
+      name: payload.name
+    };
     return next();
   } catch {
     return res.status(401).json({ error: 'Unauthorized' });

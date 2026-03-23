@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 import pool from './config/db.js';
 
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/user.js';
 import workspaceRoutes from './routes/workspaces.js';
 import teamspaceRoutes from './routes/teamspaces.js';
 import documentRoutes from './routes/documents.js';
@@ -19,17 +20,18 @@ const PORT = Number(process.env.PORT || 3001);
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 const httpServer = createServer(app);
 
 // Rotas
 app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
 app.use('/workspaces', workspaceRoutes);
 app.use('/workspace', workspaceRoutes); // Alias para a rota usada no frontend
 app.use('/teamspaces', teamspaceRoutes);
 app.use('/documents', documentRoutes);
 app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 app.get('/health', async (_req, res) => {
   try {
