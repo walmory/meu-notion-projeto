@@ -171,7 +171,11 @@ async function processDocQueue(socket, docId) {
 // ─── Socket Server ───────────────────────────────────────────────────────────
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
-    cors: { origin: '*' },
+    cors: {
+      origin: [/vercel\.app$/, 'https://meu-notion-projeto.vercel.app'],
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
   });
 
   // JWT authentication middleware
