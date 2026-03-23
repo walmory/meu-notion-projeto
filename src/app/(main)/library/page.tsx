@@ -299,7 +299,7 @@ export default function LibraryPage() {
                   {filteredTeamspaces.length === 0 ? (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={4} className="text-center py-8 text-[#9b9b9b]">
-                        No teamspaces found.
+                        Nenhum projeto encontrado aqui
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -312,7 +312,7 @@ export default function LibraryPage() {
                           <TeamspaceContextMenu teamspaceId={ts.id} onDelete={handleDeleteTeamspace}>
                             <TableRow 
                               className="border-b-0 hover:bg-white/5 cursor-pointer transition-colors group/row"
-                              onClick={() => handleRowClick(ts.id)}
+                              onClick={() => setExpandedTeamspaces(prev => ({ ...prev, [ts.id]: !prev[ts.id] }))}
                             >
                               <TableCell className="font-medium py-4 text-white">
                                 <div className="flex items-center gap-2">
@@ -351,13 +351,13 @@ export default function LibraryPage() {
                           {isExpanded && tsDocs.map(doc => (
                             <TableRow 
                               key={doc.id}
-                              className="border-b-0 hover:bg-white/5 cursor-pointer transition-colors"
-                              onClick={() => router.push('/')}
+                              className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors"
+                              onClick={() => router.push(`/documents/${doc.id}`)}
                             >
                               <TableCell className="font-medium py-2 text-white pl-12">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-[#9b9b9b]" />
-                                  <span className="truncate text-sm text-[#d4d4d4]">{doc.title || 'Untitled'}</span>
+                                  <span className="truncate text-sm text-[#d4d4d4] group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="text-[#9b9b9b] py-2 text-sm">
@@ -387,25 +387,221 @@ export default function LibraryPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="recents" className="text-[#9b9b9b] py-8 text-center bg-transparent border border-white/5 rounded-xl">
-            <Clock className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>Recently viewed documents will appear here.</p>
+          <TabsContent value="recents" className="m-0">
+            <div className="w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Location</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-white/5">
+                  {documents
+                    .filter(doc => !doc.is_trash)
+                    .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
+                    .map(doc => (
+                      <TableRow 
+                        key={doc.id}
+                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium py-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {doc.teamspace_id ? teamspaces.find(ts => ts.id === doc.teamspace_id)?.name || 'Teamspace' : 'Private'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {documents.filter(doc => !doc.is_trash).length === 0 && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
+                        Nenhum projeto encontrado aqui
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
-          <TabsContent value="favorites" className="text-[#9b9b9b] py-8 text-center bg-transparent border border-white/5 rounded-xl">
-            <Star className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>Your favorite documents will appear here.</p>
+
+          <TabsContent value="favorites" className="m-0">
+            <div className="w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Location</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-white/5">
+                  {documents
+                    .filter(doc => !doc.is_trash && doc.is_favorite)
+                    .map(doc => (
+                      <TableRow 
+                        key={doc.id}
+                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium py-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {doc.teamspace_id ? teamspaces.find(ts => ts.id === doc.teamspace_id)?.name || 'Teamspace' : 'Private'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {documents.filter(doc => !doc.is_trash && doc.is_favorite).length === 0 && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
+                        Nenhum projeto encontrado aqui
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
-          <TabsContent value="shared" className="text-[#9b9b9b] py-8 text-center bg-transparent border border-white/5 rounded-xl">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>Documents shared with you will appear here.</p>
+          <TabsContent value="shared" className="m-0">
+            <div className="w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Owner</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-white/5">
+                  {documents
+                    .filter(doc => !doc.is_trash && doc.is_shared_with_me)
+                    .map(doc => (
+                      <TableRow 
+                        key={doc.id}
+                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium py-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          Shared
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {documents.filter(doc => !doc.is_trash && doc.is_shared_with_me).length === 0 && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
+                        Nenhum projeto encontrado aqui
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
-          <TabsContent value="private" className="text-[#9b9b9b] py-8 text-center bg-transparent border border-white/5 rounded-xl">
-            <Lock className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>Your private documents will appear here.</p>
+
+          <TabsContent value="private" className="m-0">
+            <div className="w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-white/5">
+                  {documents
+                    .filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me && doc.parent_id !== 'meetings')
+                    .map(doc => (
+                      <TableRow 
+                        key={doc.id}
+                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium py-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {documents.filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me && doc.parent_id !== 'meetings').length === 0 && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
+                        Nenhum projeto encontrado aqui
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
-          <TabsContent value="ai-notes" className="text-[#9b9b9b] py-8 text-center bg-transparent border border-white/5 rounded-xl">
-            <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>Your AI Meeting Notes will appear here.</p>
+
+          <TabsContent value="ai-notes" className="m-0">
+            <div className="w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
+                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-white/5">
+                  {documents
+                    .filter(doc => !doc.is_trash && doc.parent_id === 'meetings')
+                    .map(doc => (
+                      <TableRow 
+                        key={doc.id}
+                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium py-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#9b9b9b] py-4">
+                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {documents.filter(doc => !doc.is_trash && doc.parent_id === 'meetings').length === 0 && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
+                        Nenhum projeto encontrado aqui
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
