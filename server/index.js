@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'node:http';
 import pool from './config/db.js';
 
@@ -17,6 +18,7 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Rota de teste direto de isolamento
