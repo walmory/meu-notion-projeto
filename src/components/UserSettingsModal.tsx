@@ -132,7 +132,6 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
               />
             </div>
 
-            {successMessage && <div className="text-sm text-green-500">{successMessage}</div>}
             {errorMessage && <div className="text-sm text-red-500">{errorMessage}</div>}
           </div>
 
@@ -147,11 +146,15 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
             </Button>
             <Button
               type="submit"
-              disabled={loading || fetching || !name.trim()}
-              className="bg-white text-black hover:bg-gray-200"
+              disabled={loading || fetching || !name.trim() || !!successMessage}
+              className={`text-black transition-all ${
+                successMessage 
+                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                  : "bg-white hover:bg-gray-200"
+              }`}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Save
+              {successMessage ? 'Success!' : 'Save'}
             </Button>
           </DialogFooter>
         </form>

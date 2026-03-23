@@ -16,12 +16,14 @@ interface WorkspaceCreateModalProps {
 export function WorkspaceCreateModal({ isOpen, onClose, onWorkspaceCreated }: WorkspaceCreateModalProps) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     setLoading(true);
+    setSuccess(false);
     try {
       // Como removemos o state icon, enviaremos vazio para o backend resolver ou salvamos apenas 'W'
       const res = await api.post('/workspaces', { name, icon: name.charAt(0).toUpperCase() }, { headers: getAuthHeaders() });
@@ -29,7 +31,11 @@ export function WorkspaceCreateModal({ isOpen, onClose, onWorkspaceCreated }: Wo
       // Delay intencional para exibir o estado de loading e suavizar a UX (AAA+)
       await new Promise(resolve => setTimeout(resolve, 400));
       
+      setSuccess(true);
+      await new Promise(resolve => setTimeout(resolve, 800)); // Show success message for 800ms
+      
       setName('');
+      setSuccess(false);
       onWorkspaceCreated(res.data.id);
       onClose();
     } catch (error) {
@@ -72,21 +78,25 @@ export function WorkspaceCreateModal({ isOpen, onClose, onWorkspaceCreated }: Wo
               variant="ghost" 
               onClick={onClose} 
               className="hover:bg-white/5 text-[#d4d4d4] hover:text-white h-9 px-6"
-              disabled={loading}
+              disabled={loading || success}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={!name.trim() || loading} 
-              className="bg-[#2383e2] hover:bg-[#2383e2]/90 text-white h-9 px-6 font-medium transition-all"
+              disabled={!name.trim() || loading || success} 
+              className={`h-9 px-6 font-medium transition-all ${
+                success 
+                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                  : "bg-[#2383e2] hover:bg-[#2383e2]/90 text-white"
+              }`}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 size={16} className="animate-spin" />
                   Creating...
                 </span>
-              ) : 'Create workspace'}
+              ) : success ? 'Success!' : 'Create workspace'}
             </Button>
           </div>
         </form>

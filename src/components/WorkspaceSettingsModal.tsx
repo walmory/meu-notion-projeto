@@ -156,17 +156,20 @@ export function WorkspaceSettingsModal({
               <div className="flex items-center gap-3 pt-2">
                 <Button 
                   type="submit" 
-                  disabled={!name.trim() || loading} 
-                  className="bg-[#2c2c2c] hover:bg-[#3f3f3f] text-white border border-[#3f3f3f] h-8 text-xs px-4 transition-all"
+                  disabled={!name.trim() || loading || !!successMessage} 
+                  className={`border h-8 text-xs px-4 transition-all ${
+                    successMessage 
+                      ? "bg-green-500 hover:bg-green-600 text-white border-green-500" 
+                      : "bg-[#2c2c2c] hover:bg-[#3f3f3f] text-white border-[#3f3f3f]"
+                  }`}
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 size={12} className="animate-spin" />
                       Updating...
                     </span>
-                  ) : 'Update'}
+                  ) : successMessage ? 'Success!' : 'Update'}
                 </Button>
-                {successMessage && <span className="text-xs text-green-500">{successMessage}</span>}
               </div>
             </form>
 
