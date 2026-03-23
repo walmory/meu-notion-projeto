@@ -15,7 +15,7 @@ interface UserSettingsModalProps {
 }
 
 export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
-  const { user, refreshUser } = useUser();
+  const { user, refreshUser, setUser } = useUser();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -65,13 +65,21 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     setErrorMessage('');
 
     try {
+      // 2. Optimistic UI / Pulo do Gato: Atualiza o estado global ANTES da API responder
+      const optimisticUser = { ...user, name, bio, avatar_url: avatarUrl };
+      setUser(optimisticUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_profile_cache', JSON.stringify(optimisticUser));
+      }
+
       await axios.put(
         'https://apinotion.andrekehrer.com/user/profile',
         { name, bio, avatar_url: avatarUrl },
         { headers: getAuthHeaders() }
       );
       
-      await refreshUser(); // Atualiza o estado global!
+      // O refreshUser já não é tão urgente porque a UI já atualizou, mas mantemos para garantir consistência
+      await refreshUser(); 
       
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => {
@@ -80,6 +88,8 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       }, 2000);
     } catch (error) {
       console.error('Failed to update profile', error);
+      // Rollback
+      if (user) setUser(user);
       setErrorMessage('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);

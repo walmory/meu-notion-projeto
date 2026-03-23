@@ -26,7 +26,25 @@ const UserContext = createContext<UserContextData>({
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    // 1. Optimistic UI / Cache: Carrega o usuário do localStorage imediatamente (Zero Loading State)
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedUser = localStorage.getItem('user_profile_cache');
+        if (cachedUser) {
+          return JSON.parse(cachedUser);
+        }
+        // Fallback pro token imediatamente
+        const tokenUser = getUserFromToken();
+        if (tokenUser) {
+          return { name: tokenUser.name, email: tokenUser.email };
+        }
+      } catch (e) {
+        // ignora erro de parse
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
@@ -35,14 +53,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         headers: getAuthHeaders(),
       });
       setUser(response.data);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_profile_cache', JSON.stringify(response.data));
+      }
     } catch (error) {
       console.error('Failed to fetch user profile, falling back to token:', error);
       const tokenUser = getUserFromToken();
       if (tokenUser) {
-        setUser({
-          name: tokenUser.name,
-          email: tokenUser.email,
-        });
+        const fallbackUser = { name: tokenUser.name, email: tokenUser.email };
+        setUser(fallbackUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_profile_cache', JSON.stringify(fallbackUser));
+        }
       }
     } finally {
       setLoading(false);

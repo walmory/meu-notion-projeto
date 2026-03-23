@@ -50,6 +50,40 @@ app.get('/health', async (_req, res) => {
 
 initSocket(httpServer);
 
-httpServer.listen(PORT, () => {
+const ensureDatabaseIndexes = async () => {
+  try {
+    const [rows] = await pool.query(`SHOW INDEX FROM documents`);
+    const indexNames = rows.map(r => r.Key_name);
+
+    if (!indexNames.includes('idx_workspace_id')) {
+      await pool.query('CREATE INDEX idx_workspace_id ON documents (workspace_id)');
+      console.log('Índice idx_workspace_id criado.');
+    }
+    if (!indexNames.includes('idx_owner_id')) {
+      await pool.query('CREATE INDEX idx_owner_id ON documents (owner_id)');
+      console.log('Índice idx_owner_id criado.');
+    }
+    if (!indexNames.includes('idx_updated_at')) {
+      await pool.query('CREATE INDEX idx_updated_at ON documents (updated_at DESC)');
+      console.log('Índice idx_updated_at criado.');
+    }
+    if (!indexNames.includes('idx_user_id_doc')) {
+      // Considerando que documentos em algumas queries dependem do user_id/owner_id, 
+      // embora a coluna atual no schema seja owner_id. Vamos garantir que se houver user_id ela seja indexada
+      try {
+        await pool.query('CREATE INDEX idx_user_id_doc ON documents (user_id)');
+        console.log('Índice idx_user_id_doc criado.');
+      } catch (e) {
+        // Ignora se a coluna não existir
+      }
+    }
+    console.log('✅ Indexação Automática concluída (Performance AAA).');
+  } catch (error) {
+    console.error('⚠️ Falha ao criar índices automáticos:', error.message);
+  }
+};
+
+httpServer.listen(PORT, async () => {
   console.log(`Servidor ON na porta ${PORT}`);
+  await ensureDatabaseIndexes();
 });
