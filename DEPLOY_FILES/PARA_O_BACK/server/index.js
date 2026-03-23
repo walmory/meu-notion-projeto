@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'node:http';
 import pool from './config/db.js';
 
@@ -17,6 +18,13 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'X-Requested-With'],
+  credentials: true
+}));
 
 app.use(express.json());
 
