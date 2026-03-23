@@ -4,9 +4,13 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.get('/test', (_req, res) => {
+  res.send('Rota User funcionando!');
+});
+
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user_id;
+    const userId = req.user?.id ?? req.user_id;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -31,7 +35,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
-    const userId = req.user_id;
+    const userId = req.user?.id ?? req.user_id;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
