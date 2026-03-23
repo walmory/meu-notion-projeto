@@ -156,10 +156,8 @@ export function Sidebar({
   const activeWorkspaceId = selectedWorkspaceId || (workspaces.length > 0 ? workspaces[0].id : null);
   const selectedWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const user = getUserFromToken();
-  const rawWorkspaceName = selectedWorkspace?.name || `Workspace do ${user?.name || 'User'}`;
-  const workspaceDisplayName = isWorkspacesLoading 
-    ? 'Loading...' 
-    : (rawWorkspaceName.includes('João Victor') ? `Workspace do ${user?.name || 'User'}` : rawWorkspaceName);
+  const rawWorkspaceName = selectedWorkspace?.name || `João Victor`;
+  const workspaceDisplayName = isWorkspacesLoading ? 'Loading...' : rawWorkspaceName;
   const workspaceInitial = workspaceDisplayName.charAt(0).toUpperCase();
   const { data: pendingInvites } = useSWR<{ count: number }>(
     activeWorkspaceId ? '/workspaces/invitations/pending-count' : null,

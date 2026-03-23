@@ -121,7 +121,8 @@ export default function MeetingsPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('notion_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('notion_token')}`,
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ content: templateContent, emoji: '📝' })
       });

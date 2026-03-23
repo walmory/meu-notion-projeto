@@ -122,7 +122,7 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                 {greeting}, {user?.name || 'User'}
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
-             <p className="text-white text-base font-semibold tracking-wide">João Victor Workspace</p>
+             <p className="text-white text-base font-semibold tracking-wide">João Victor</p>
              <p className="text-[#a3a3a3] text-lg">Pronto para capturar suas melhores ideias hoje?</p>
           </div>
 

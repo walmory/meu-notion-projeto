@@ -17,7 +17,12 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'ngrok-skip-browser-warning', 'skip-browser-warning']
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 const httpServer = createServer(app);

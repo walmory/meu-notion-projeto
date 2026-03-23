@@ -31,7 +31,7 @@ export default function LoginPage() {
     <div className="flex h-screen items-center justify-center bg-[#191919] text-white">
       <div className="w-full max-w-sm rounded-lg border border-[#2d2d2d] bg-[#1a1a1a] p-8">
         <h1 className="mb-6 text-center text-2xl font-semibold">Log in</h1>
-        <p className="mb-5 text-center text-sm font-medium text-white">João Victor Workspace</p>
+        <p className="mb-5 text-center text-sm font-medium text-white">João Victor</p>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-[#a3a3a3]" htmlFor="email">Email</label>
