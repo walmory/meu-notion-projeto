@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import express from 'express';
-import cors from 'cors';
 import { createServer } from 'node:http';
 import pool from './config/db.js';
 
@@ -18,13 +17,6 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
-
-app.use(cors({
-  origin: ['https://meu-notion-projeto-git-main-walmorys-projects.vercel.app', 'https://meu-notion-projeto.vercel.app'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'X-Requested-With', 'skip-browser-warning'],
-  credentials: true
-}));
 
 app.use(express.json());
 
