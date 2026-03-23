@@ -434,12 +434,13 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       if (socket && isConnected && !isUpdatingContent.current) {
         emitLiveTitleViaSocket(document.id, titleForPersistence);
         seqRef.current += 1;
-        saveContentViaSocket(document.id, editor.document, titleForPersistence, seqRef.current);
+        emitContentViaSocketInstant(document.id, editor.document, titleForPersistence, seqRef.current);
+        saveContentDebounced(document.id, editor.document, titleForPersistence);
       } else {
         if (onUpdateDocument) {
           onUpdateDocument(document.id, { title: titleForPersistence });
         } else {
-          void api.patch(`/documents/${document.id}`, { title: titleForPersistence });
+          saveContentDebounced(document.id, editor.document, titleForPersistence);
         }
       }
     }
@@ -467,33 +468,19 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           },
           false
         );
-      }, 300),
+      }, 600),
     [mutateGlobal]
-  );
-
-  const saveContent = useMemo(
-    () =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      debounce(async (id: string, blocks: any[], nextTitle: string) => {
-        const jsonContent = JSON.stringify(blocks);
-        try {
-          await api.patch(`/documents/${id}`, { content: jsonContent, title: nextTitle });
-        } catch (error) {
-          console.error('Failed to save document:', error);
-        }
-      }, 300),
-    []
   );
 
   // Monotonically increasing content version — used by the DB guard
   // (AND content_version < ?) to reject stale writes automatically.
   const localContentVersionRef = useRef(Date.now());
 
-  // Debounced emit: captures seq + contentVersion at call time.
-  const saveContentViaSocket = useMemo(
+  // Envia via Socket.io INSTANTANEAMENTE (evento de Typing para todos verem na hora)
+  const emitContentViaSocketInstant = useMemo(
     () =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      debounce((id: string, blocks: any[], nextTitle: string, seq: number) => {
+      (id: string, blocks: any[], nextTitle: string, seq: number) => {
         if (!socket) return;
         if (activeDocumentIdRef.current && String(activeDocumentIdRef.current) !== String(id)) {
           return;
@@ -516,8 +503,23 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           seq,
           contentVersion: localContentVersionRef.current,
         });
-      }, 50),
+      },
     [socket, documentIcon, document?.cover]
+  );
+
+  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (600ms)
+  const saveContentDebounced = useMemo(
+    () =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      debounce(async (id: string, blocks: any[], nextTitle: string) => {
+        const jsonContent = JSON.stringify(blocks);
+        try {
+          await api.patch(`/documents/${id}`, { content: jsonContent, title: nextTitle });
+        } catch (error) {
+          console.error('Failed to save document:', error);
+        }
+      }, 600),
+    []
   );
 
   const emitLiveTitleViaSocket = useMemo(
@@ -531,7 +533,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           docId: id,
           title: nextTitle,
         });
-      }, 50),
+      }, 300),
     [socket]
   );
 
@@ -546,7 +548,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           docId: id,
           icon: nextIcon,
         });
-      }, 50),
+      }, 300),
     [socket]
   );
 
@@ -561,7 +563,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           docId: id,
           cover: nextCover,
         });
-      }, 50),
+      }, 300),
     [socket]
   );
 
@@ -572,12 +574,13 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       }
       if (socket && isConnected) {
         seqRef.current += 1;
-        saveContentViaSocket(document.id, editor.document, titleRef.current, seqRef.current);
+        emitContentViaSocketInstant(document.id, editor.document, titleRef.current, seqRef.current);
+        saveContentDebounced(document.id, editor.document, titleRef.current);
       } else {
-        saveContent(document.id, editor.document, titleRef.current);
+        saveContentDebounced(document.id, editor.document, titleRef.current);
       }
-    }, 50),
-    [document, socket, isConnected, saveContentViaSocket, editor, saveContent]
+    }, 50), // Baixamos para 50ms para capturar o "Typing" rápido e deixar a responsabilidade de "aguardar para salvar" no saveContentDebounced
+    [document, socket, isConnected, emitContentViaSocketInstant, editor, saveContentDebounced]
   );
 
   const handleEditorChange = useCallback(() => {

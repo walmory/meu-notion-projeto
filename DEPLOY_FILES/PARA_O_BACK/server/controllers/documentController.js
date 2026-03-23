@@ -4,6 +4,34 @@ import { emitToWorkspace } from '../socket.js';
 
 let documentContentVersionColumnReady = null;
 let documentOwnerColumnReady = null;
+let documentIndexesReady = null;
+
+const ensureDocumentIndexes = async () => {
+  if (documentIndexesReady !== null) {
+    return documentIndexesReady;
+  }
+
+  try {
+    const [rows] = await pool.query(`SHOW INDEX FROM documents`);
+    const indexNames = rows.map(r => r.Key_name);
+
+    if (!indexNames.includes('idx_workspace_id')) {
+      await pool.query('CREATE INDEX idx_workspace_id ON documents (workspace_id)');
+    }
+    if (!indexNames.includes('idx_owner_id')) {
+      await pool.query('CREATE INDEX idx_owner_id ON documents (owner_id)');
+    }
+    if (!indexNames.includes('idx_updated_at')) {
+      await pool.query('CREATE INDEX idx_updated_at ON documents (updated_at DESC)');
+    }
+
+    documentIndexesReady = true;
+  } catch (error) {
+    console.error('Failed to create indexes:', error);
+    documentIndexesReady = false;
+  }
+  return documentIndexesReady;
+};
 
 const ensureDocumentContentVersionColumn = async () => {
   if (documentContentVersionColumnReady !== null) {
@@ -121,6 +149,7 @@ export const getDocuments = async (req, res) => {
 
   try {
     await ensureDocumentOwnerColumn();
+    await ensureDocumentIndexes();
     await pool.query(
       `UPDATE documents d
        JOIN workspaces w ON w.id = d.workspace_id

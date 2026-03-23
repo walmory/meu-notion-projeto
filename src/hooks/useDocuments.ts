@@ -55,8 +55,10 @@ export function useDocuments(workspaceId?: string) {
   const { data: documents, isLoading, mutate } = useSWR<Document[]>(url, fetcher, {
     fallbackData: [],
     shouldRetryOnError: false,
-    revalidateOnFocus: false,
-    dedupingInterval: 600,
+    revalidateOnFocus: true,
+    revalidateIfStale: true,
+    keepPreviousData: true,
+    dedupingInterval: 2000,
     onError: (err) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (err.message === 'Unauthorized' || (err as any).response?.status === 401) {
