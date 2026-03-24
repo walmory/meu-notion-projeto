@@ -328,7 +328,7 @@ export function Sidebar({
         });
       }
     } catch (error) {
-      console.error('[Sincronia Victor] Falha ao emitir atualização de título', error);
+      console.error('[UX-Sync] Falha ao emitir atualização de título', error);
     }
   }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
 

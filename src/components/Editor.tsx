@@ -261,6 +261,8 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
       if (typeof payload.newTitle !== 'string') return;
+      // Bloqueio de Race Condition: Ignora se o usuário está digitando ativamente um novo título local.
+      if (isUpdatingContent.current) return;
       if (payload.newTitle === titleRef.current) return;
       syncSharedTitle(currentDocumentId, payload.newTitle);
     });
@@ -455,47 +457,56 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     const newTitle = e.target.value;
     setTitle(newTitle);
     titleRef.current = newTitle;
-    const titleForPersistence = newTitle;
+    isUpdatingContent.current = true;
+    
+    // Atualização Visual Imediata
     if (document) {
+      // 1. Atualiza imediatamente a Sidebar (local UI)
       queueLocalTitleSync(document.id, newTitle);
-      if (socket && isConnected && !isUpdatingContent.current) {
-        emitLiveTitleViaSocket(document.id, titleForPersistence);
+      
+      // 2. Transmite via socket debounced (500ms) sem eco
+      if (socket && isConnected) {
+        emitLiveTitleViaSocket(document.id, newTitle);
         seqRef.current += 1;
-        emitContentViaSocketInstant(document.id, editor.document, titleForPersistence, seqRef.current);
-        saveContentDebounced(document.id, editor.document, titleForPersistence);
+        emitContentViaSocketInstant(document.id, editor.document, newTitle, seqRef.current);
+      }
+      
+      // 3. Salva no banco debounced (600ms)
+      if (onUpdateDocument) {
+        onUpdateDocument(document.id, { title: newTitle });
       } else {
-        if (onUpdateDocument) {
-          onUpdateDocument(document.id, { title: titleForPersistence });
-        } else {
-          saveContentDebounced(document.id, editor.document, titleForPersistence);
-        }
+        saveContentDebounced(document.id, editor.document, newTitle);
       }
     }
+
+    // Libera a flag de race condition após curto intervalo para permitir recebimento novamente
+    setTimeout(() => {
+      isUpdatingContent.current = false;
+    }, 600);
   };
 
-  const queueLocalTitleSync = useMemo(
-    () =>
-      debounce((id: string, nextTitle: string) => {
-        mutateGlobal(
-          '/documents',
-          (current: Document[] | undefined) => {
-            const list = Array.isArray(current) ? current : [];
-            return list.map((doc) => String(doc.id) === String(id) ? { ...doc, title: nextTitle } : doc);
-          },
-          false
-        );
+  const queueLocalTitleSync = useCallback(
+    (id: string, nextTitle: string) => {
+      mutateGlobal(
+        '/documents',
+        (current: Document[] | undefined) => {
+          const list = Array.isArray(current) ? current : [];
+          return list.map((doc) => String(doc.id) === String(id) ? { ...doc, title: nextTitle } : doc);
+        },
+        false
+      );
 
-        const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
-        const recentKey = activeWorkspaceId ? `/documents/recent?workspace_id=${activeWorkspaceId}` : '/documents/recent';
-        mutateGlobal(
-          recentKey,
-          (current: Array<{ id: string; title: string; icon?: string; updated_at?: string; is_trash?: boolean | 0 | 1 }> | undefined) => {
-            const list = Array.isArray(current) ? current : [];
-            return list.map((doc) => String(doc.id) === String(id) ? { ...doc, title: nextTitle } : doc);
-          },
-          false
-        );
-      }, 600),
+      const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
+      const recentKey = activeWorkspaceId ? `/documents/recent?workspace_id=${activeWorkspaceId}` : '/documents/recent';
+      mutateGlobal(
+        recentKey,
+        (current: Array<{ id: string; title: string; icon?: string; updated_at?: string; is_trash?: boolean | 0 | 1 }> | undefined) => {
+          const list = Array.isArray(current) ? current : [];
+          return list.map((doc) => String(doc.id) === String(id) ? { ...doc, title: nextTitle } : doc);
+        },
+        false
+      );
+    },
     [mutateGlobal]
   );
 
@@ -567,7 +578,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
             workspaceId,
           });
         } catch (error) {
-          console.error('[Sincronia Victor] Falha ao emitir atualização de título', error);
+          console.error('[UX-Sync] Falha ao emitir atualização de título', error);
         }
       }, 500),
     [socket, document?.workspace_id]

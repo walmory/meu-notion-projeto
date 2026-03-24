@@ -292,6 +292,7 @@ export const initSocket = (httpServer) => {
       if (!docId || typeof newTitle !== 'string' || !workspaceId) return;
       const workspaceRoom = getWorkspaceRoom(workspaceId);
       if (!socket.rooms.has(workspaceRoom)) return;
+      console.log(`[UX-Sync] -> Documento ${docId} atualizado`);
       socket.broadcast.to(workspaceRoom).emit('document:update-title', {
         senderId: socket.id,
         workspaceId,
