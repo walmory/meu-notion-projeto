@@ -153,10 +153,12 @@ export function Sidebar({
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
+  const isCreatingDefaultWorkspaceRef = useRef(false);
   
   const { data: workspacesData, isLoading: isWorkspacesLoading, mutate: mutateWorkspaces } = useSWR<Workspace[]>('/workspaces', fetcher);
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
-  const activeWorkspaceId = selectedWorkspaceId || (workspaces.length > 0 ? workspaces[0].id : null);
+  const hasValidSelectedWorkspace = selectedWorkspaceId ? workspaces.some((workspace) => workspace.id === selectedWorkspaceId) : false;
+  const activeWorkspaceId = hasValidSelectedWorkspace ? selectedWorkspaceId : (workspaces.length > 0 ? workspaces[0].id : null);
   const selectedWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const { user } = useUser();
   const rawWorkspaceName = selectedWorkspace?.name || `Workspace do ${user?.name || 'User'}`;
@@ -170,6 +172,49 @@ export function Sidebar({
     }
   );
   const hasPendingInvites = Number(pendingInvites?.count || 0) > 0;
+
+  useEffect(() => {
+    if (isWorkspacesLoading || workspaces.length > 0 || isCreatingDefaultWorkspaceRef.current) {
+      return;
+    }
+    const token = localStorage.getItem('notion_token');
+    if (!token) {
+      return;
+    }
+
+    isCreatingDefaultWorkspaceRef.current = true;
+
+    const createDefaultWorkspace = async () => {
+      try {
+        const response = await api.post(
+          '/workspaces',
+          { name: 'Meu Workspace' },
+          { headers: getAuthHeaders() }
+        );
+        const createdWorkspaceId = response.data?.id ? String(response.data.id) : null;
+        await mutateWorkspaces();
+        if (createdWorkspaceId) {
+          setSelectedWorkspaceId(createdWorkspaceId);
+          localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
+          window.dispatchEvent(new CustomEvent('mutate-documents'));
+          router.push(`/workspace/${createdWorkspaceId}`);
+        }
+      } catch (error) {
+        console.error('Falha ao criar workspace padrão', error);
+      } finally {
+        isCreatingDefaultWorkspaceRef.current = false;
+      }
+    };
+
+    void createDefaultWorkspace();
+  }, [isWorkspacesLoading, workspaces.length, mutateWorkspaces, router]);
+
+  useEffect(() => {
+    if (isWorkspacesLoading || workspaces.length === 0 || hasValidSelectedWorkspace) {
+      return;
+    }
+    setSelectedWorkspaceId(workspaces[0].id);
+  }, [isWorkspacesLoading, workspaces, hasValidSelectedWorkspace]);
 
   useEffect(() => {
     if (activeWorkspaceId) {
