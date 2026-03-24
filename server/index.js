@@ -19,22 +19,11 @@ const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
 
-const allowedOrigins = [
-  'https://meu-notion-projeto.vercel.app',
-  'http://localhost:3000'
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: 'https://meu-notion-projeto.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'Cache-Control', 'Pragma'],
+  credentials: true
 }));
 
 app.use(express.json());
