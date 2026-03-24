@@ -110,8 +110,8 @@ interface SidebarProps {
     isShared: boolean,
     parentId?: string | null,
     teamspaceId?: string | null,
-    options?: { title?: string; is_meeting_note?: boolean }
-  ) => void;
+    options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'folder' | 'database'; skipNavigation?: boolean }
+  ) => Promise<Document | undefined>;
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onTurnIntoFolder: (id: string) => Promise<TurnIntoFolderResult>;
@@ -370,6 +370,22 @@ export function Sidebar({
       toast.error('Failed to turn into folder');
     }
   }, [onTurnIntoFolder]);
+
+  const handleCreatePage = useCallback(async (isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
+    await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { type: 'page' });
+  }, [onCreateDocument]);
+
+  const handleCreateFolder = useCallback(async (isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
+    const createdFolder = await onCreateDocument(
+      isShared,
+      parentId ?? null,
+      teamspaceId ?? null,
+      { title: 'Untitled Folder', type: 'folder', skipNavigation: true }
+    );
+    if (createdFolder?.id) {
+      await handleTurnIntoFolder(createdFolder.id);
+    }
+  }, [onCreateDocument, handleTurnIntoFolder]);
 
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
@@ -1178,7 +1194,18 @@ export function Sidebar({
                 title="Teamspaces" 
                 expanded={teamspacesExpanded} 
                 onToggle={() => setTeamspacesExpanded(!teamspacesExpanded)}
-                onAdd={() => setIsCreateTeamspaceOpen(true)}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCreateTeamspaceOpen(true);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all"
+                  >
+                    <Plus size={16} />
+                  </button>
+                }
               />
 
               <div className={`grid transition-all duration-200 ease-in-out ${teamspacesExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -1196,7 +1223,8 @@ export function Sidebar({
                         onDeleteDocument={onDeleteDocument}
                         onUpdateDocument={onUpdateDocument}
                         onDuplicateDocument={onDuplicateDocument}
-                        onCreateDocument={() => onCreateDocument(true, null, ts.id)}
+                        onCreatePage={() => { void handleCreatePage(true, ts.id, null); }}
+                        onCreateFolder={() => { void handleCreateFolder(true, ts.id, null); }}
                         onDeleteTeamspace={() => handleDeleteTeamspace(ts.id)}
                         onSettings={() => setSettingsTeamspace(ts)}
                         renderDocs={renderDocs}
@@ -1214,7 +1242,8 @@ export function Sidebar({
               title="Private" 
               expanded={privateExpanded} 
               onToggle={() => setPrivateExpanded(!privateExpanded)}
-              onAdd={() => onCreateDocument(false, null)}
+              onCreatePage={() => { void handleCreatePage(false, null, null); }}
+              onCreateFolder={() => { void handleCreateFolder(false, null, null); }}
             />
             <div className={`grid transition-all duration-200 ease-in-out ${privateExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden space-y-0.5">
@@ -1248,7 +1277,18 @@ export function Sidebar({
               title="Meeting Notes" 
               expanded={meetingsExpanded} 
               onToggle={() => setMeetingsExpanded(!meetingsExpanded)}
-              onAdd={() => onCreateDocument(false, null, null, { title: 'Nova Reunião', is_meeting_note: true })}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void onCreateDocument(false, null, null, { title: 'Nova Reunião', is_meeting_note: true, type: 'page' });
+                  }}
+                  className="opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all"
+                >
+                  <Plus size={16} />
+                </button>
+              }
             />
             <div className={`grid transition-all duration-200 ease-in-out ${meetingsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden space-y-0.5">
@@ -1417,7 +1457,60 @@ function SidebarItem({ icon, label, active, onClick, rightElement }: { icon: Rea
   );
 }
 
-function DroppableSection({ id, title, expanded, onToggle, onAdd, rightElement }: { id: string; title: string; expanded: boolean; onToggle: () => void; onAdd?: () => void; rightElement?: React.ReactNode }) {
+function CreateItemDropdown({
+  onCreatePage,
+  onCreateFolder,
+  triggerClassName,
+  iconSize = 16
+}: {
+  onCreatePage: () => void;
+  onCreateFolder: () => void;
+  triggerClassName?: string;
+  iconSize?: number;
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          className={triggerClassName || 'opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all'}
+        >
+          <Plus size={iconSize} />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          sideOffset={8}
+          className="z-[9999] min-w-[170px] rounded-md border border-white/10 bg-[#191919] p-1 shadow-2xl"
+        >
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              onCreatePage();
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-[#d4d4d4] outline-none hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]"
+          >
+            <FileText size={14} className="text-[#a3a3a3]" />
+            <span>New Page</span>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              onCreateFolder();
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-[#d4d4d4] outline-none hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]"
+          >
+            <Folder size={14} className="text-blue-400" />
+            <span>New Folder</span>
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+function DroppableSection({ id, title, expanded, onToggle, onCreatePage, onCreateFolder, rightElement }: { id: string; title: string; expanded: boolean; onToggle: () => void; onCreatePage?: () => void; onCreateFolder?: () => void; rightElement?: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   
   return (
@@ -1428,14 +1521,8 @@ function DroppableSection({ id, title, expanded, onToggle, onAdd, rightElement }
       </button>
       <div className="flex items-center gap-1">
         {rightElement}
-        {onAdd && (
-          <button 
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onAdd(); }} 
-            className="opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all"
-          >
-            <Plus size={16} />
-          </button>
+        {onCreatePage && onCreateFolder && (
+          <CreateItemDropdown onCreatePage={onCreatePage} onCreateFolder={onCreateFolder} />
         )}
       </div>
     </div>
@@ -1478,7 +1565,8 @@ function TeamspaceItem({
   onDeleteDocument,
   onUpdateDocument,
   onDuplicateDocument,
-  onCreateDocument,
+  onCreatePage,
+  onCreateFolder,
   onDeleteTeamspace,
   onSettings,
   renderDocs
@@ -1491,7 +1579,8 @@ function TeamspaceItem({
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onDuplicateDocument: (id: string) => void;
-  onCreateDocument: () => void;
+  onCreatePage: () => void;
+  onCreateFolder: () => void;
   onDeleteTeamspace: () => void;
   onSettings: () => void;
   renderDocs: (docs: Document[], parentId: string | null, depth: number, dragMode?: 'sortable' | 'draggable') => React.ReactNode;
@@ -1526,16 +1615,12 @@ function TeamspaceItem({
         onDelete={onDeleteTeamspace} 
         onSettings={onSettings}
         plusTrigger={
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCreateDocument();
-            }}
-            className="p-1 hover:bg-[#3f3f3f] rounded text-[#a3a3a3] hover:text-white"
-          >
-            <Plus size={14} />
-          </button>
+          <CreateItemDropdown
+            onCreatePage={onCreatePage}
+            onCreateFolder={onCreateFolder}
+            triggerClassName="p-1 hover:bg-[#3f3f3f] rounded text-[#a3a3a3] hover:text-white"
+            iconSize={14}
+          />
         }
         dropdownTrigger={
           <button 

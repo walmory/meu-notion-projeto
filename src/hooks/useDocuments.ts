@@ -144,6 +144,7 @@ export function useDocuments(workspaceId?: string) {
     workspace_id?: string | null;
     teamspace_id?: string | null;
     is_meeting_note?: boolean;
+    type?: 'page' | 'folder' | 'database';
   };
 
   const createDocument = async (
@@ -166,7 +167,7 @@ export function useDocuments(workspaceId?: string) {
       
       const payload = typeof titleOrInput === 'string'
         ? { id: tempId, title: titleOrInput, is_shared, content: '[]', parent_id, workspace_id: resolvedWorkspaceId, teamspace_id, content_version: 0 }
-        : { id: tempId, title: titleOrInput.title ?? '', is_shared: titleOrInput.is_shared ?? false, content: '[]', parent_id: titleOrInput.parent_id, workspace_id: resolvedWorkspaceId, teamspace_id: titleOrInput.teamspace_id, is_meeting_note: titleOrInput.is_meeting_note, content_version: 0 };
+        : { id: tempId, title: titleOrInput.title ?? '', is_shared: titleOrInput.is_shared ?? false, content: '[]', parent_id: titleOrInput.parent_id, workspace_id: resolvedWorkspaceId, teamspace_id: titleOrInput.teamspace_id, is_meeting_note: titleOrInput.is_meeting_note, type: titleOrInput.type ?? 'page', content_version: 0 };
 
       const optimisticDoc: Document = {
         id: tempId,
@@ -183,6 +184,7 @@ export function useDocuments(workspaceId?: string) {
         is_shared_with_me: false,
         icon: undefined,
         cover: undefined,
+        type: (typeof titleOrInput === 'string' ? 'page' : (titleOrInput.type ?? 'page')),
         owner: 'me',
         updated_at: new Date().toISOString()
       };

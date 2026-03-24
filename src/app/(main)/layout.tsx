@@ -30,7 +30,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             isShared: boolean,
             parentId?: string | null,
             teamspaceId?: string | null,
-            options?: { title?: string; is_meeting_note?: boolean }
+            options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'folder' | 'database'; skipNavigation?: boolean }
           ) => {
             const newDoc = await createDocument({
               title: options?.title ?? '',
@@ -38,13 +38,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               parent_id: parentId,
               workspace_id: null,
               teamspace_id: teamspaceId,
-              is_meeting_note: options?.is_meeting_note
+              is_meeting_note: options?.is_meeting_note,
+              type: options?.type
             });
-            if (newDoc) {
+            if (newDoc && !options?.skipNavigation) {
               const targetPath = `/documents/${newDoc.id}`;
               router.prefetch(targetPath);
               router.push(targetPath);
             }
+            return newDoc;
           }}
           onDeleteDocument={async (id) => {
             await deleteDocument(id);
