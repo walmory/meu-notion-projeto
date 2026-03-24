@@ -62,7 +62,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfile();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,11 +278,11 @@ export default function ProfilePage() {
 
         {/* Edit Mode (Settings Integrated) */}
         {isEditing && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-16 mt-8">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-12 mt-8 max-w-2xl">
             {/* Profile Form */}
             <section>
               <h2 className="text-2xl font-semibold text-white mb-6">Profile Settings</h2>
-              <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-xl">
+              <form onSubmit={handleUpdateProfile} className="space-y-5">
                 <div className="space-y-3">
                   <label htmlFor="name" className="text-sm font-medium text-[#a3a3a3]">Name</label>
                   <Input
@@ -337,7 +338,7 @@ export default function ProfilePage() {
               <p className="text-[#a3a3a3] mb-6 text-sm">
                 Confirm your identity using your current password to change your email.
               </p>
-              <form onSubmit={handleUpdateEmail} className="space-y-6 max-w-xl">
+              <form onSubmit={handleUpdateEmail} className="space-y-5">
                 <div className="space-y-3">
                   <label htmlFor="newEmail" className="text-sm font-medium text-[#a3a3a3]">New Email</label>
                   <Input
@@ -385,7 +386,7 @@ export default function ProfilePage() {
               <p className="text-[#a3a3a3] mb-6 text-sm">
                 Change your account password. Confirm your current password for security.
               </p>
-              <form onSubmit={handleUpdatePassword} className="space-y-6 max-w-xl">
+              <form onSubmit={handleUpdatePassword} className="space-y-5">
                 <div className="space-y-3">
                   <label htmlFor="currentPassword" className="text-sm font-medium text-[#a3a3a3]">Current Password</label>
                   <Input
