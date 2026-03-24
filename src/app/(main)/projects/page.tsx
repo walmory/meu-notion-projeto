@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, MoreHorizontal, Trash2, Edit2, Briefcase } from 'lucide-react';
+import { Plus, MoreHorizontal, Trash2, Edit2, Briefcase, Layers, FolderKanban } from 'lucide-react';
 import useSWR from 'swr';
 import { api, getAuthHeaders } from '@/lib/api';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -16,6 +16,7 @@ interface Project {
   owner_id: string;
   teamspace_id?: string;
   color: string;
+  progress?: number;
 }
 
 const fetcher = async (url: string) => {
@@ -169,36 +170,43 @@ export default function ProjectsDashboard() {
                 <div 
                   key={project.id}
                   onClick={() => router.push(`/projects/${project.id}`)}
-                  className="group flex flex-col bg-[#252525] border border-white/5 rounded-xl p-5 hover:bg-[#2a2a2a] hover:border-white/10 transition-all duration-300 ease-out cursor-pointer shadow-sm hover:shadow-xl hover:shadow-black/40 hover:-translate-y-1 active:scale-[0.98] relative"
+                  className="group flex flex-col bg-[#1f242d] border border-[#30363d] rounded-xl p-5 hover:bg-[#252a36] hover:border-white/10 transition-all duration-300 ease-out cursor-pointer shadow-sm hover:shadow-xl hover:shadow-black/40 hover:-translate-y-1 active:scale-[0.98] relative"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/projects/${project.id}`);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div 
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
-                      style={{ backgroundColor: project.color || '#3b82f6' }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-white/5 border border-white/10 text-[#a3a3a3]"
                     >
-                      <span className="text-white font-bold text-lg">{project.name.charAt(0).toUpperCase()}</span>
+                      <FolderKanban size={24} />
                     </div>
                     
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <div onClick={(e) => e.stopPropagation()} role="presentation">
                       <DropdownMenu.Root>
                         <DropdownMenu.Trigger className="p-1.5 rounded-md text-[#8a8a8a] hover:text-white hover:bg-white/10 transition-colors outline-none opacity-0 group-hover:opacity-100 focus:opacity-100">
                           <MoreHorizontal size={18} />
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Portal>
-                          <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50">
+                          <DropdownMenu.Content className="bg-[#1f242d] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50">
                             <DropdownMenu.Item 
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-[#d4d4d4] hover:bg-white/10 rounded-sm cursor-pointer outline-none mb-1"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleRenameProjectClick(project.id, project.name);
                               }}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-[#d4d4d4] hover:bg-white/5 rounded-sm cursor-pointer outline-none mb-1"
                             >
                               <Edit2 size={14} />
                               Rename
                             </DropdownMenu.Item>
                             <DropdownMenu.Item 
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 font-medium hover:bg-red-500/10 rounded-sm cursor-pointer outline-none"
                               onClick={() => handleDeleteProject(project.id, project.name)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 font-medium hover:bg-red-500/10 rounded-sm cursor-pointer outline-none"
                             >
                               <Trash2 size={14} />
                               Delete Project
@@ -208,10 +216,23 @@ export default function ProjectsDashboard() {
                       </DropdownMenu.Root>
                     </div>
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-white mb-1 truncate">{project.name}</h3>
-                  <div className="text-xs font-medium text-[#8a8a8a] uppercase tracking-wider mt-auto pt-4 border-t border-white/5">
+
+                  <h3 className="text-lg font-bold text-white mb-1 tracking-tight truncate pr-2">{project.name}</h3>
+                  <div className="text-xs font-medium text-[#8a8a8a] uppercase tracking-wider pt-4 border-t border-white/5">
                     {project.teamspace_id ? 'Teamspace Project' : 'Workspace Project'}
+                  </div>
+
+                  <div className="mt-auto pt-4 flex flex-col gap-2">
+                    <div className="flex justify-between text-xs text-[#8a8a8a]">
+                      <span>Progress</span>
+                      <span>{project.progress || 0}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-[#0b0e14] rounded-full overflow-hidden border border-white/5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#32ff7e] to-[#7efff5] rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(50,255,126,0.3)]"
+                        style={{ width: `${project.progress || 0}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
