@@ -48,7 +48,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             }
             return newDoc;
           }}
-          onDeleteDocument={deleteDocument}
+          onDeleteDocument={async (id) => {
+            deleteDocument(id);
+            if (documentId === id) {
+              router.push('/');
+            }
+          }}
           onUpdateDocument={updateDocument}
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}

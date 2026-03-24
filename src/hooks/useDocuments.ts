@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useRouter } from 'next/navigation';
 import { api, getAuthHeaders } from '@/lib/api';
+import { toast } from 'sonner';
 
 export interface Document {
   id: string;
@@ -305,9 +306,11 @@ export function useDocuments(workspaceId?: string) {
         { is_trash: 1 },
         { headers: getAuthHeaders(), suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
       );
-      await mutate();
+      // Removed re-fetch to maintain optimistic state smoothly
+      // await mutate();
     } catch (error) {
       console.error('Error deleting document', error);
+      toast.error('Failed to delete. Please try again.');
       // Reverte em caso de falha
       mutate(previousDocuments, false);
       if (previousRecent !== undefined) {
