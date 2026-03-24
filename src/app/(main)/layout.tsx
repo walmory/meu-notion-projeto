@@ -14,7 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <SidePeekProvider>
-      <div className="flex flex-row h-screen w-full bg-background text-white overflow-hidden pt-8">
+      <div className="flex flex-row h-screen w-full bg-background text-white overflow-hidden">
         <Sidebar 
           documents={documents || []}
           selectedDocId={documentId}
@@ -54,7 +54,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-y-auto pt-6">
           {children}
         </div>
         <SidePeekDrawer />
