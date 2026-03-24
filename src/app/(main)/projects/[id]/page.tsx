@@ -42,8 +42,10 @@ interface Project {
 
 interface TeamspaceMember {
   user_id: string;
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
+  user_name?: string;
+  user_email?: string;
   role: string;
 }
 
@@ -107,10 +109,14 @@ export default function ProjectPage() {
   };
 
   const { data: membersData } = useSWR<TeamspaceMember[]>(
-    project ? (project.teamspace_id ? `/teamspaces/${project.teamspace_id}/members` : `/workspaces/members?workspace_id=${project.workspace_id}`) : null, 
+    project ? `/workspaces/members?workspace_id=${project.workspace_id}` : null,
     fetcher
   );
-  const members = membersData || [];
+  const members = (membersData || []).map((member) => ({
+    ...member,
+    name: member.name || member.user_name || member.email || member.user_email || 'Unknown User',
+    email: member.email || member.user_email || ''
+  }));
 
   useEffect(() => {
     const user = getUserFromToken();
@@ -389,7 +395,7 @@ export default function ProjectPage() {
                               <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
                                 <div className="flex items-center justify-center gap-3 text-[13px] text-[#8a8a8a] hover:bg-white/5 px-3 py-1.5 rounded-full cursor-pointer transition-colors w-fit mx-auto border border-transparent hover:border-white/10">
                                   <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px] font-bold text-blue-400 shrink-0 shadow-sm ring-1 ring-blue-500/30">
-                                    {task.assigned_to ? (members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to || '?').charAt(0).toUpperCase() : <UserIcon size={12} className="text-[#8a8a8a]" />}
+                                    {task.assigned_to ? ((members.find(m => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find(m => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()) : <UserIcon size={12} className="text-[#8a8a8a]" />}
                                   </div>
                                   <span className="truncate max-w-[100px] font-medium group-hover/row:text-[#d4d4d4] transition-colors">{task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Assign'}</span>
                                 </div>
@@ -415,7 +421,7 @@ export default function ProjectPage() {
                                       <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold shrink-0 shadow-sm ring-1 ring-blue-500/30">
                                         {(member?.name || '?').charAt(0).toUpperCase()}
                                       </div>
-                                      <span className="truncate font-medium">{member?.name || 'Unknown User'}</span>
+                                      <span className="truncate font-medium">{member?.name || member?.email || 'Unknown User'}</span>
                                     </DropdownMenu.Item>
                                   ))}
                                 </DropdownMenu.Content>
@@ -498,7 +504,7 @@ export default function ProjectPage() {
               <div className="grid gap-4">
                 {members.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-[#a3a3a3] mb-4">No members found in this teamspace.</p>
+                    <p className="text-[#a3a3a3] mb-4">No members found in this workspace.</p>
                     <button 
                       type="button"
                       onClick={() => router.push('/settings/members')}
@@ -512,11 +518,11 @@ export default function ProjectPage() {
                     <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-[#252525]">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-semibold text-lg shrink-0">
-                          {(member?.name || 'U').charAt(0).toUpperCase()}
+                          {(member?.name?.charAt(0) || member?.email?.charAt(0) || '?').toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-white">{member?.name || 'Unknown User'}</div>
-                          <div className="text-sm text-[#a3a3a3]">{member.email}</div>
+                          <div className="font-medium text-white">{member?.name || member?.email || 'Unknown User'}</div>
+                          <div className="text-sm text-[#a3a3a3]">{member.email || member.user_email || '-'}</div>
                         </div>
                       </div>
                       <div className="px-3 py-1 rounded-full bg-white/5 text-xs text-[#a3a3a3] capitalize">
