@@ -52,6 +52,7 @@ import { TeamspaceSettingsModal } from './TeamspaceSettingsModal';
 import useSWR, { useSWRConfig } from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import * as LucideIcons from 'lucide-react';
+import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 
 interface Teamspace {
@@ -160,6 +161,16 @@ export function Sidebar({
   const [isWorkspaceInviteOpen, setIsWorkspaceInviteOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  const toggleFolder = useCallback((id: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
@@ -776,12 +787,46 @@ export function Sidebar({
     if (dropTargetId !== documentId) {
       const targetDoc = documents.find(d => d.id === dropTargetId);
       if (targetDoc) {
-        handleDocumentUpdate(documentId, { 
-          parent_id: targetDoc.id,
-          teamspace_id: targetDoc.teamspace_id,
-          is_private: targetDoc.teamspace_id ? false : true,
-          is_meeting_note: isMeetingNoteDoc(targetDoc)
-        });
+        // Only allow dropping into folders
+        if (targetDoc.type === 'folder') {
+          // Prevent cyclic drops (dropping a parent into its own child)
+          let currentParentId = targetDoc.parent_id;
+          let isCyclic = false;
+          while (currentParentId) {
+            if (currentParentId === documentId) {
+              isCyclic = true;
+              break;
+            }
+            const parentDoc = documents.find(d => d.id === currentParentId);
+            currentParentId = parentDoc?.parent_id || null;
+          }
+
+          if (!isCyclic) {
+            handleDocumentUpdate(documentId, { 
+              parent_id: targetDoc.id,
+              teamspace_id: targetDoc.teamspace_id,
+              is_private: targetDoc.teamspace_id ? false : true,
+              is_meeting_note: isMeetingNoteDoc(targetDoc)
+            });
+            
+            // Expand the target folder automatically
+            setExpandedFolders(prev => {
+              const next = new Set(prev);
+              next.add(targetDoc.id);
+              return next;
+            });
+          } else {
+            toast.error("Cannot move a folder into its own subfolder.");
+          }
+        } else {
+          // If dropped on a page/database, drop it alongside (same parent)
+          handleDocumentUpdate(documentId, { 
+            parent_id: targetDoc.parent_id,
+            teamspace_id: targetDoc.teamspace_id,
+            is_private: targetDoc.teamspace_id ? false : true,
+            is_meeting_note: isMeetingNoteDoc(targetDoc)
+          });
+        }
       }
     }
   };
@@ -792,18 +837,21 @@ export function Sidebar({
     depth = 0,
     dragMode: 'sortable' | 'draggable' = 'sortable'
   ): React.ReactNode => {
-    const currentLevelDocs = docs.filter(d => (d.parent_id || null) === parentId);
+    const currentLevelDocs = documents.filter(d => (d.parent_id || null) === parentId && !d.is_trash && (parentId ? true : docs.some(doc => doc.id === d.id)));
     
     return (
       <SortableContext 
         items={currentLevelDocs.map(d => d.id)} 
         strategy={verticalListSortingStrategy}
       >
-        {currentLevelDocs.filter((doc) => !doc.is_trash).map(doc => {
+        {currentLevelDocs.map(doc => {
           if (!doc.id) {
             console.error('Documento sem id na Sidebar', doc);
             return null;
           }
+
+          const isFolder = doc.type === 'folder';
+          const isExpanded = expandedFolders.has(doc.id);
 
           return (
             <div key={doc.id}>
@@ -811,15 +859,30 @@ export function Sidebar({
                 doc={doc} 
                 active={doc.id === selectedDocId} 
                 isDropTarget={doc.id === overId && doc.id !== activeId}
-                onClick={() => onSelectDocument(doc)}
+                onClick={() => {
+                  if (isFolder) {
+                    toggleFolder(doc.id);
+                  }
+                  onSelectDocument(doc);
+                }}
                 onDelete={onDeleteDocument}
                 onUpdate={handleDocumentUpdate}
                 onToggleFavorite={handleToggleFavorite}
                 onDuplicate={onDuplicateDocument}
                 depth={depth}
                 dragMode={dragMode}
+                isFolder={isFolder}
+                isExpanded={isExpanded}
+                onToggleExpand={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  toggleFolder(doc.id);
+                }}
               />
-              {renderDocs(docs, doc.id, depth + 1, dragMode)}
+              <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  {isExpanded && renderDocs(documents, doc.id, depth + 1, dragMode)}
+                </div>
+              </div>
             </div>
           );
         })}
@@ -1509,7 +1572,10 @@ const DocumentItem = memo(({
   onUpdate,
   onToggleFavorite,
   onDuplicate,
-  depth = 0
+  depth = 0,
+  isFolder = false,
+  isExpanded = false,
+  onToggleExpand
 }: { 
   doc: Document; 
   active: boolean; 
@@ -1521,6 +1587,9 @@ const DocumentItem = memo(({
   onToggleFavorite: (id: string) => void;
   onDuplicate: (id: string) => void;
   depth?: number;
+  isFolder?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: (e: React.MouseEvent) => void;
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [title, setTitle] = useState(doc.title || '');
@@ -1647,12 +1716,23 @@ const DocumentItem = memo(({
           }}
         >
           <div className="flex items-center gap-2 flex-1 overflow-hidden pr-10">
+            {isFolder && (
+              <button
+                type="button"
+                onClick={onToggleExpand}
+                className="p-0.5 hover:bg-[#3f3f3f] rounded transition-colors text-[#a3a3a3] shrink-0"
+              >
+                <ChevronRight size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+              </button>
+            )}
+            {!isFolder && <div className="w-4 shrink-0" />}
+            
             {doc.icon ? (
               <span className="shrink-0 mr-1 text-sm leading-none">{doc.icon}</span>
             ) : (
               doc.type === 'folder' ? <Folder size={16} className="shrink-0 text-blue-400" /> :
               doc.type === 'database' ? <Database size={16} className="shrink-0 text-purple-400" /> :
-              <FileText size={16} className="shrink-0" />
+              <FileText size={16} className="shrink-0 text-[#a3a3a3]" />
             )}
             {isRenaming ? (
               <input
