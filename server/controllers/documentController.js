@@ -132,7 +132,7 @@ export const getDocuments = async (req, res) => {
 
     const [documents] = trashOnly
       ? await pool.query(
-        `SELECT id, title, icon, cover, parent_id, updated_at
+        `SELECT id, title, icon, cover, parent_id, updated_at, type
          FROM documents
          WHERE workspace_id = ?
            AND is_trash = 1
@@ -141,7 +141,7 @@ export const getDocuments = async (req, res) => {
         [workspaceId, userId]
       )
       : await pool.query(
-        `SELECT id, title, icon, cover, parent_id, is_favorite, updated_at, is_trash, is_private, teamspace_id, is_meeting_note
+        `SELECT id, title, icon, cover, parent_id, is_favorite, updated_at, is_trash, is_private, teamspace_id, is_meeting_note, type
          FROM documents
          WHERE workspace_id = ?
            AND is_trash = 0
@@ -179,7 +179,7 @@ export const getDocumentById = async (req, res) => {
   try {
     await ensureDocumentOwnerColumn();
     const [documents] = await pool.query(
-      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note
+      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note, type
        FROM documents
        WHERE id = ? AND workspace_id = ?
          AND (is_private = 0 OR (is_private = 1 AND owner_id = ?))

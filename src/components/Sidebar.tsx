@@ -1688,7 +1688,7 @@ const DocumentItem = memo(({
           </button>
         }
       >
-        <button 
+        <button
           type="button"
           {...dragAttributes}
           {...dragListeners}
