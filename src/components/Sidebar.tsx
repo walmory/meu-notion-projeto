@@ -1054,14 +1054,17 @@ export function Sidebar({
             
             <DroppableSection 
               id="section-projects"
-              title="Projects" 
+              title="PROJECTS" 
               expanded={projectsExpanded} 
               onToggle={() => setProjectsExpanded(!projectsExpanded)}
-              onAdd={() => setIsCreateProjectOpen(true)}
+              onAdd={() => {
+                setNewProjectTeamspaceId(null);
+                setIsCreateProjectOpen(true);
+              }}
             />
             <div className={`grid transition-all duration-200 ease-in-out ${projectsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden space-y-0.5">
-                {projects.filter(p => !p.teamspace_id).map((project: Project) => (
+                {projects.map((project: Project) => (
                   <div key={project.id} className="relative group/project">
                     <button
                       type="button"
@@ -1110,7 +1113,7 @@ export function Sidebar({
                     </DropdownMenu.Root>
                   </div>
                 ))}
-                {projects.filter(p => !p.teamspace_id).length === 0 && (
+                {projects.length === 0 && (
                   <div className="px-6 py-1 text-xs text-gray-500">No projects yet</div>
                 )}
               </div>
@@ -1199,7 +1202,7 @@ export function Sidebar({
                         key={ts.id}
                         teamspace={ts}
                         docs={tsDocs}
-                        projects={projects.filter(p => p.teamspace_id === ts.id)}
+                        projects={[]}
                         isActiveDropTarget={overId === ts.id}
                         selectedDocId={selectedDocId}
                         onSelectDocument={onSelectDocument}
@@ -1653,36 +1656,8 @@ function TeamspaceItem({
       
       <div className={`grid transition-all duration-200 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100 mt-0.5' : 'grid-rows-[0fr] opacity-0'}`}>
         <div className="overflow-hidden">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setNewProjectTeamspaceId(teamspace.id);
-              setIsCreateProjectOpen(true);
-            }}
-            className="w-full flex items-center gap-2 pl-9 pr-3 py-2 text-[12px] font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors border-l-2 border-transparent hover:border-blue-400 group/create"
-          >
-            <div className="w-4 h-4 rounded-sm bg-blue-500/20 flex items-center justify-center group-hover/create:bg-blue-500/30 transition-colors">
-              <Plus size={12} />
-            </div>
-            Create New Project
-          </button>
-          {projects.map((project: Project) => (
-            <button
-              key={project.id}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/projects/${project.id}`);
-              }}
-              className={`w-full flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md transition-colors hover:bg-[#2c2c2c] text-[#a3a3a3]`}
-            >
-              <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: project.color || '#3b82f6' }} />
-              <span className="truncate text-[13px]">{project.name}</span>
-            </button>
-          ))}
           {docs.length > 0 ? renderDocs(docs, null, 1, 'draggable') : (
-            projects.length === 0 && <div className="pl-9 pr-3 py-1 text-xs text-gray-500">No pages inside</div>
+            <div className="pl-9 pr-3 py-1 text-xs text-gray-500">No pages inside</div>
           )}
         </div>
       </div>
