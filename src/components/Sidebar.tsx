@@ -145,7 +145,6 @@ export function Sidebar({
   const [sharedExpanded, setSharedExpanded] = useState(true);
   const [privateExpanded, setPrivateExpanded] = useState(true);
   const [meetingsExpanded, setMeetingsExpanded] = useState(true);
-  const [projectsExpanded, setProjectsExpanded] = useState(true);
   
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [settingsTeamspace, setSettingsTeamspace] = useState<Teamspace | null>(null);
@@ -159,10 +158,6 @@ export function Sidebar({
   const [isWorkspaceInviteOpen, setIsWorkspaceInviteOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectTeamspaceId, setNewProjectTeamspaceId] = useState<string | null>(null);
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
@@ -240,14 +235,6 @@ export function Sidebar({
 
   const { data: teamspacesData, mutate: mutateTeamspaces } = useSWR<Teamspace[]>(activeWorkspaceId ? `/teamspaces?workspace_id=${activeWorkspaceId}` : null, fetcher);
 
-  const { data: projectsData, mutate: mutateProjects } = useSWR<Project[]>(activeWorkspaceId ? `/projects?workspace_id=${activeWorkspaceId}` : null, fetcher);
-  useEffect(() => {
-    const handleProjectsChanged = () => mutateProjects();
-    window.addEventListener('projectsChanged', handleProjectsChanged);
-    return () => window.removeEventListener('projectsChanged', handleProjectsChanged);
-  }, [mutateProjects]);
-
-  const projects = projectsData || [];
   const teamspaces = useMemo(
     () => (
       Array.isArray(teamspacesData)
@@ -636,28 +623,6 @@ export function Sidebar({
       console.error('Failed to delete teamspace', error);
       alert('Failed to delete teamspace');
       mutateTeamspaces(previousTeamspaces, { revalidate: false }); // Rollback se der erro
-    }
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProjectName.trim() || isCreatingProject) return;
-
-    try {
-      setIsCreatingProject(true);
-      await api.post('/projects', {
-        name: newProjectName.trim(),
-        workspace_id: activeWorkspaceId,
-        teamspace_id: newProjectTeamspaceId
-      });
-      mutateProjects();
-      setNewProjectName('');
-      setNewProjectTeamspaceId(null);
-      setIsCreateProjectOpen(false);
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    } finally {
-      setIsCreatingProject(false);
     }
   };
 
@@ -1136,7 +1101,6 @@ export function Sidebar({
                         key={ts.id}
                         teamspace={ts}
                         docs={tsDocs}
-                        projects={[]}
                         isActiveDropTarget={overId === ts.id}
                         selectedDocId={selectedDocId}
                         onSelectDocument={onSelectDocument}
@@ -1147,8 +1111,6 @@ export function Sidebar({
                         onDeleteTeamspace={() => handleDeleteTeamspace(ts.id)}
                         onSettings={() => setSettingsTeamspace(ts)}
                         renderDocs={renderDocs}
-                        setNewProjectTeamspaceId={setNewProjectTeamspaceId}
-                        setIsCreateProjectOpen={setIsCreateProjectOpen}
                       />
                     );
                   })}
@@ -1259,65 +1221,6 @@ export function Sidebar({
           handleWorkspaceSwitch(newId);
         }}
       />
-
-      <Dialog
-        open={isCreateProjectOpen}
-        onOpenChange={setIsCreateProjectOpen}
-      >
-        <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[425px]">
-          <form onSubmit={handleCreateProject}>
-            <DialogHeader>
-              <DialogTitle className="text-white">Create Project</DialogTitle>
-              <DialogDescription className="text-[#9b9b9b]">
-                Add a new project to organize your tasks.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <span className="text-sm font-medium text-white">Name</span>
-                <Input
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="e.g. Website Redesign..."
-                  className="bg-[#2c2c2c] border-white/5 text-white placeholder:text-[#9b9b9b]"
-                  autoFocus
-                />
-              </div>
-              <div className="grid gap-2">
-                <span className="text-sm font-medium text-white">Teamspace</span>
-                <select
-                  value={newProjectTeamspaceId || ''}
-                  onChange={(e) => setNewProjectTeamspaceId(e.target.value)}
-                  className="bg-[#2c2c2c] border border-white/5 text-white text-sm rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="" disabled>Select a teamspace...</option>
-                  {teamspaces.map(ts => (
-                    <option key={ts.id} value={ts.id}>{ts.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsCreateProjectOpen(false)}
-                className="bg-transparent border-white/10 text-white hover:bg-white/5"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={!newProjectName.trim() || !newProjectTeamspaceId || isCreatingProject}
-                className="bg-white text-black hover:bg-gray-200"
-              >
-                {isCreatingProject ? 'Creating...' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={isCreateTeamspaceOpen}
@@ -1480,7 +1383,6 @@ function TeamspaceSectionDropZone({ children, isDragSuggestionActive, showEmptyD
 function TeamspaceItem({ 
   teamspace, 
   docs,
-  projects,
   isActiveDropTarget,
   selectedDocId,
   onSelectDocument,
@@ -1490,13 +1392,10 @@ function TeamspaceItem({
   onCreateDocument,
   onDeleteTeamspace,
   onSettings,
-  renderDocs,
-  setNewProjectTeamspaceId,
-  setIsCreateProjectOpen
+  renderDocs
 }: { 
   teamspace: Teamspace; 
   docs: Document[];
-  projects: Project[];
   isActiveDropTarget: boolean;
   selectedDocId?: string;
   onSelectDocument: (doc: Document) => void;
@@ -1507,8 +1406,6 @@ function TeamspaceItem({
   onDeleteTeamspace: () => void;
   onSettings: () => void;
   renderDocs: (docs: Document[], parentId: string | null, depth: number, dragMode?: 'sortable' | 'draggable') => React.ReactNode;
-  setNewProjectTeamspaceId: (id: string | null) => void;
-  setIsCreateProjectOpen: (open: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const { setNodeRef, isOver } = useDroppable({
