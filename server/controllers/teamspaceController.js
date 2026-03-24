@@ -18,6 +18,30 @@ const ensureTeamspaceTrashColumn = async () => {
   }
 };
 
+export const getTeamspaceMembers = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [members] = await pool.query(
+      `SELECT u.id as user_id, u.name, u.email, 'member' as role
+       FROM users u
+       JOIN workspace_members wm ON u.id = wm.user_id
+       JOIN teamspaces t ON t.workspace_id = wm.workspace_id
+       WHERE t.id = ?
+       
+       UNION
+       
+       SELECT u.id as user_id, u.name, u.email, 'owner' as role
+       FROM users u
+       JOIN teamspaces t ON t.created_by = u.id
+       WHERE t.id = ?`,
+      [id, id]
+    );
+    res.json(members);
+  } catch (error) {
+    console.error('Error fetching teamspace members:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 export const getTeamspaces = async (req, res) => {
   const workspaceId = req.workspace_id;
 

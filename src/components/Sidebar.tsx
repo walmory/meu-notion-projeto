@@ -1153,12 +1153,12 @@ export function Sidebar({
                     const tsDocs = documentsByTeamspace.get(String(ts.id)) || [];
                     return (
                       <TeamspaceItem 
-                      key={ts.id}
-                      teamspace={ts}
-                      docs={tsDocs}
-                      projects={projects.filter(p => p.teamspace_id === ts.id)}
-                      isActiveDropTarget={overId === ts.id}
-                      selectedDocId={selectedDocId}
+                        key={ts.id}
+                        teamspace={ts}
+                        docs={tsDocs}
+                        projects={projects.filter(p => p.teamspace_id === ts.id)}
+                        isActiveDropTarget={overId === ts.id}
+                        selectedDocId={selectedDocId}
                         onSelectDocument={onSelectDocument}
                         onDeleteDocument={onDeleteDocument}
                         onUpdateDocument={onUpdateDocument}
@@ -1167,6 +1167,8 @@ export function Sidebar({
                         onDeleteTeamspace={() => handleDeleteTeamspace(ts.id)}
                         onSettings={() => setSettingsTeamspace(ts)}
                         renderDocs={renderDocs}
+                        setNewProjectTeamspaceId={setNewProjectTeamspaceId}
+                        setIsCreateProjectOpen={setIsCreateProjectOpen}
                       />
                     );
                   })}
@@ -1498,8 +1500,8 @@ function TeamspaceSectionDropZone({ children, isDragSuggestionActive, showEmptyD
 function TeamspaceItem({ 
   teamspace, 
   docs,
-  isActiveDropTarget,
   projects,
+  isActiveDropTarget,
   selectedDocId,
   onSelectDocument,
   onDeleteDocument,
@@ -1508,7 +1510,9 @@ function TeamspaceItem({
   onCreateDocument,
   onDeleteTeamspace,
   onSettings,
-  renderDocs 
+  renderDocs,
+  setNewProjectTeamspaceId,
+  setIsCreateProjectOpen
 }: { 
   teamspace: Teamspace; 
   docs: Document[];
@@ -1523,6 +1527,8 @@ function TeamspaceItem({
   onDeleteTeamspace: () => void;
   onSettings: () => void;
   renderDocs: (docs: Document[], parentId: string | null, depth: number, dragMode?: 'sortable' | 'draggable') => React.ReactNode;
+  setNewProjectTeamspaceId: (id: string | null) => void;
+  setIsCreateProjectOpen: (open: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const { setNodeRef, isOver } = useDroppable({
@@ -1604,6 +1610,20 @@ function TeamspaceItem({
       
       <div className={`grid transition-all duration-200 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100 mt-0.5' : 'grid-rows-[0fr] opacity-0'}`}>
         <div className="overflow-hidden">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNewProjectTeamspaceId(teamspace.id);
+              setIsCreateProjectOpen(true);
+            }}
+            className="w-full flex items-center gap-2 pl-9 pr-3 py-2 text-[12px] font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors border-l-2 border-transparent hover:border-blue-400 group/create"
+          >
+            <div className="w-4 h-4 rounded-sm bg-blue-500/20 flex items-center justify-center group-hover/create:bg-blue-500/30 transition-colors">
+              <Plus size={12} />
+            </div>
+            Create Tasklist
+          </button>
           {projects.map((project: Project) => (
             <button
               key={project.id}

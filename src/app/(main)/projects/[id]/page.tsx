@@ -106,7 +106,10 @@ export default function ProjectPage() {
     'Done': tasks.filter(t => t.status === 'Done')
   };
 
-  const { data: membersData } = useSWR<TeamspaceMember[]>(activeWorkspaceId ? `/workspaces/members?workspace_id=${activeWorkspaceId}` : null, fetcher);
+  const { data: membersData } = useSWR<TeamspaceMember[]>(
+    project ? (project.teamspace_id ? `/teamspaces/${project.teamspace_id}/members` : `/workspaces/members?workspace_id=${project.workspace_id}`) : null, 
+    fetcher
+  );
   const members = membersData || [];
 
   useEffect(() => {
@@ -182,6 +185,10 @@ export default function ProjectPage() {
     }
   };
 
+  const completedTasks = tasks.filter(t => t.status === 'Done').length;
+  const totalTasks = tasks.length;
+  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   if (!projectsData || !membersData) {
     return (
       <div className="flex items-center justify-center h-full bg-[#191919] text-[#a3a3a3]">
@@ -235,6 +242,18 @@ export default function ProjectPage() {
               <UserIcon size={14} />
               {userName}&apos;s Workspace
             </p>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="flex items-center gap-3 bg-[#191919] px-3 py-1.5 rounded-full border border-white/5">
+            <div className="text-[12px] font-semibold text-[#8a8a8a]">Progress</div>
+            <div className="w-32 h-1.5 bg-[#2c2c2c] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            <div className="text-[12px] font-bold text-white min-w-[3ch]">{progressPercentage}%</div>
           </div>
         </div>
         
@@ -306,9 +325,9 @@ export default function ProjectPage() {
                         <div key={task.id} className="grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 hover:bg-white/[0.03] transition-colors group/row bg-[#1e1e1e]">
                           
                           {/* Title */}
-                          <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors">
-                            <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 opacity-0 group-hover/row:opacity-100 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
-                            <div className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors">
+                          <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors relative">
+                            <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
+                            <div className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors pl-2">
                               {task.title}
                             </div>
                           </div>
