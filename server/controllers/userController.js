@@ -78,6 +78,11 @@ export const updateEmail = async (req, res) => {
     }
 
     const user = userRows[0];
+    
+    console.log('--- DEBUG SENHA ---');
+    console.log('Senha vinda do form:', req.body.currentPassword);
+    console.log('Senha vinda do banco (hash):', user.password);
+    
     const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updateEmail] password match:', isPasswordValid);
@@ -122,6 +127,11 @@ export const updatePassword = async (req, res) => {
     }
 
     const user = userRows[0];
+    
+    console.log('--- DEBUG SENHA (PASSWORD) ---');
+    console.log('Senha vinda do form:', req.body.currentPassword);
+    console.log('Senha vinda do banco (hash):', user.password);
+    
     const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updatePassword] password match:', isPasswordValid);
