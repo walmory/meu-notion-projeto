@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Editor } from '@/components/Editor';
 import { useDocuments, Document } from '@/hooks/useDocuments';
 import { EditorSkeleton } from '@/components/EditorSkeleton';
-import { FolderDashboard } from '@/components/FolderDashboard';
 import { api, getAuthHeaders } from '@/lib/api';
 import useSWR from 'swr';
 
@@ -71,19 +70,6 @@ export default function DocumentPage() {
 
   if (!loading && !selectedDocument && !editorDocument) {
     return <EditorSkeleton />;
-  }
-
-  if (editorDocument?.type === 'folder') {
-    return (
-      <FolderDashboard 
-        folder={editorDocument} 
-        documents={documents || []} 
-        onUpdateDocument={handleUpdateDocument}
-        onToggleFavorite={toggleFavorite}
-        onDeleteDocument={deleteDocument}
-        onDuplicateDocument={duplicateDocument}
-      />
-    );
   }
 
   return (

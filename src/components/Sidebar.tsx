@@ -28,7 +28,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
-import { Document, TurnIntoFolderResult } from '@/hooks/useDocuments';
+import { Document } from '@/hooks/useDocuments';
 import { 
   DndContext, 
   DragEndEvent,
@@ -110,11 +110,10 @@ interface SidebarProps {
     isShared: boolean,
     parentId?: string | null,
     teamspaceId?: string | null,
-    options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'folder' | 'database'; skipNavigation?: boolean }
+    options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'database'; skipNavigation?: boolean }
   ) => Promise<Document | undefined>;
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
-  onTurnIntoFolder: (id: string) => Promise<TurnIntoFolderResult>;
   onToggleFavorite: (id: string) => void;
   onDuplicateDocument: (id: string) => void;
 }
@@ -136,7 +135,6 @@ export function Sidebar({
   onCreateDocument,
   onDeleteDocument,
   onUpdateDocument,
-  onTurnIntoFolder,
   onToggleFavorite,
   onDuplicateDocument
 }: SidebarProps) {
@@ -179,7 +177,7 @@ export function Sidebar({
 
   // Modal de criação de documentos/pastas
   const [isCreateDocModalOpen, setIsCreateDocModalOpen] = useState(false);
-  const [createDocType, setCreateDocType] = useState<'page' | 'folder'>('page');
+  const [createDocType, setCreateDocType] = useState<'page' | 'database'>('page');
   const [createDocTitle, setCreateDocTitle] = useState('');
   const [createDocParams, setCreateDocParams] = useState<{ isShared: boolean, teamspaceId?: string | null, parentId?: string | null } | null>(null);
   
@@ -361,30 +359,8 @@ export function Sidebar({
     }
   }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
 
-  const handleTurnIntoFolder = useCallback(async (documentId: string) => {
-    try {
-      const result = await onTurnIntoFolder(documentId);
-      setExpandedFolders((prev) => {
-        const next = new Set(prev);
-        next.add(result.folder.id);
-        return next;
-      });
-      setAutoRenameDocId(result.child.id);
-    } catch (error) {
-      console.error('Falha ao converter em pasta', error);
-      toast.error('Failed to turn into folder');
-    }
-  }, [onTurnIntoFolder]);
-
   const handleCreatePage = useCallback((isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
     setCreateDocType('page');
-    setCreateDocParams({ isShared, teamspaceId, parentId });
-    setCreateDocTitle('');
-    setIsCreateDocModalOpen(true);
-  }, []);
-
-  const handleCreateFolder = useCallback((isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
-    setCreateDocType('folder');
     setCreateDocParams({ isShared, teamspaceId, parentId });
     setCreateDocTitle('');
     setIsCreateDocModalOpen(true);
@@ -397,29 +373,13 @@ export function Sidebar({
     setIsCreateDocModalOpen(false);
     
     const { isShared, teamspaceId, parentId } = createDocParams;
-    const finalTitle = createDocTitle.trim() || (createDocType === 'folder' ? 'Untitled Folder' : 'Untitled');
+    const finalTitle = createDocTitle.trim() || 'Untitled';
     
     try {
-      const newDoc = await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { 
+      await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { 
         title: finalTitle, 
-        type: createDocType,
-        skipNavigation: createDocType === 'folder'
+        type: createDocType
       });
-
-      if (createDocType === 'folder' && newDoc) {
-        setExpandedFolders((prev) => {
-          const next = new Set(prev);
-          next.add(newDoc.id);
-          return next;
-        });
-        
-        // Se a API retornou o child (Ação atômica)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const childDoc = (newDoc as any).child;
-        if (childDoc?.id) {
-           router.push(`/documents/${childDoc.id}`);
-        }
-      }
     } catch (error) {
       console.error('Falha ao criar documento', error);
       toast.error('Failed to create item');
@@ -926,7 +886,6 @@ export function Sidebar({
           const hasChildren = documents.some((childDoc) => (
             (childDoc.parent_id || null) === doc.id && childDoc.is_trash !== true && childDoc.is_trash !== 1
           ));
-          const isFolder = doc.type === 'folder' || hasChildren;
           const isExpanded = expandedFolders.has(doc.id);
 
           return (
@@ -934,22 +893,17 @@ export function Sidebar({
               <DocumentItem 
                 doc={doc} 
                 active={doc.id === selectedDocId} 
-                isDropTarget={isFolder && doc.id === overId && doc.id !== activeId}
+                isDropTarget={doc.id === overId && doc.id !== activeId}
                 onClick={() => {
-                  if (doc.type === 'folder') {
-                    toggleFolder(doc.id);
-                  } else {
-                    onSelectDocument(doc);
-                  }
+                  onSelectDocument(doc);
                 }}
                 onDelete={onDeleteDocument}
                 onUpdate={handleDocumentUpdate}
-                onTurnIntoFolder={handleTurnIntoFolder}
                 onToggleFavorite={handleToggleFavorite}
                 onDuplicate={onDuplicateDocument}
                 depth={depth}
                 dragMode={dragMode}
-                isFolder={isFolder}
+                hasChildren={hasChildren}
                 isExpanded={isExpanded}
                 onToggleExpand={(e: React.MouseEvent) => {
                   e.preventDefault();
@@ -963,7 +917,7 @@ export function Sidebar({
                   }
                 }}
               />
-              {isFolder && (
+              {hasChildren && (
                 <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                   <div className="overflow-hidden">
                     {isExpanded && renderDocs(documents, doc.id, depth + 1, dragMode)}
@@ -1259,7 +1213,6 @@ export function Sidebar({
                         onUpdateDocument={onUpdateDocument}
                         onDuplicateDocument={onDuplicateDocument}
                         onCreatePage={() => { void handleCreatePage(true, ts.id, null); }}
-                        onCreateFolder={() => { void handleCreateFolder(true, ts.id, null); }}
                         onDeleteTeamspace={() => handleDeleteTeamspace(ts.id)}
                         onSettings={() => setSettingsTeamspace(ts)}
                         renderDocs={renderDocs}
@@ -1278,7 +1231,6 @@ export function Sidebar({
               expanded={privateExpanded} 
               onToggle={() => setPrivateExpanded(!privateExpanded)}
               onCreatePage={() => { void handleCreatePage(false, null, null); }}
-              onCreateFolder={() => { void handleCreateFolder(false, null, null); }}
             />
             <div className={`grid transition-all duration-200 ease-in-out ${privateExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden space-y-0.5">
@@ -1455,7 +1407,7 @@ export function Sidebar({
           <form onSubmit={handleConfirmCreateDoc}>
             <DialogHeader>
               <DialogTitle className="text-white text-lg leading-tight flex items-center gap-2">
-                {createDocType === 'folder' ? 'New Folder' : 'New Page'}
+                New Page
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4 mt-2">
@@ -1463,7 +1415,7 @@ export function Sidebar({
                 <Input
                   value={createDocTitle}
                   onChange={(e) => setCreateDocTitle(e.target.value)}
-                  placeholder={createDocType === 'folder' ? 'Folder Name' : 'Page Title'}
+                  placeholder="Page Title"
                   className="bg-[#252525] border-[#2c2c2c] text-white focus-visible:ring-1 focus-visible:ring-white/20 h-9 text-sm"
                   autoFocus
                 />
@@ -1544,60 +1496,7 @@ function SidebarItem({ icon, label, active, onClick, rightElement }: { icon: Rea
   );
 }
 
-function CreateItemDropdown({
-  onCreatePage,
-  onCreateFolder,
-  triggerClassName,
-  iconSize = 16
-}: {
-  onCreatePage: () => void;
-  onCreateFolder: () => void;
-  triggerClassName?: string;
-  iconSize?: number;
-}) {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          className={triggerClassName || 'opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all'}
-        >
-          <Plus size={iconSize} />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          sideOffset={8}
-          className="z-[9999] min-w-[170px] rounded-md border border-white/10 bg-[#191919] p-1 shadow-2xl"
-        >
-          <DropdownMenu.Item
-            onSelect={(e) => {
-              e.preventDefault();
-              onCreatePage();
-            }}
-            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-[#d4d4d4] outline-none hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]"
-          >
-            <FileText size={14} className="text-[#a3a3a3]" />
-            <span>New Page</span>
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            onSelect={(e) => {
-              e.preventDefault();
-              onCreateFolder();
-            }}
-            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-[#d4d4d4] outline-none hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]"
-          >
-            <Folder size={14} className="text-blue-400" />
-            <span>New Folder</span>
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  );
-}
-
-function DroppableSection({ id, title, expanded, onToggle, onCreatePage, onCreateFolder, rightElement, hideChevron = false }: { id: string; title: string; expanded: boolean; onToggle: () => void; onCreatePage?: () => void; onCreateFolder?: () => void; rightElement?: React.ReactNode; hideChevron?: boolean }) {
+function DroppableSection({ id, title, expanded, onToggle, onCreatePage, rightElement, hideChevron = false }: { id: string; title: string; expanded: boolean; onToggle: () => void; onCreatePage?: () => void; rightElement?: React.ReactNode; hideChevron?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   
   return (
@@ -1610,8 +1509,14 @@ function DroppableSection({ id, title, expanded, onToggle, onCreatePage, onCreat
       </button>
       <div className="flex items-center gap-1">
         {rightElement}
-        {onCreatePage && onCreateFolder && (
-          <CreateItemDropdown onCreatePage={onCreatePage} onCreateFolder={onCreateFolder} />
+        {onCreatePage && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCreatePage(); }}
+            className="opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all"
+          >
+            <Plus size={16} />
+          </button>
         )}
       </div>
     </div>
@@ -1647,29 +1552,27 @@ function TeamspaceSectionDropZone({ children, isDragSuggestionActive, showEmptyD
 
 function TeamspaceItem({ 
   teamspace, 
-  docs,
+  docs, 
   isActiveDropTarget,
-  selectedDocId,
-  onSelectDocument,
+  selectedDocId, 
+  onSelectDocument, 
   onDeleteDocument,
   onUpdateDocument,
   onDuplicateDocument,
   onCreatePage,
-  onCreateFolder,
   onDeleteTeamspace,
   onSettings,
-  renderDocs
+  renderDocs 
 }: { 
   teamspace: Teamspace; 
-  docs: Document[];
+  docs: Document[]; 
   isActiveDropTarget: boolean;
-  selectedDocId?: string;
+  selectedDocId?: string; 
   onSelectDocument: (doc: Document) => void;
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onDuplicateDocument: (id: string) => void;
   onCreatePage: () => void;
-  onCreateFolder: () => void;
   onDeleteTeamspace: () => void;
   onSettings: () => void;
   renderDocs: (docs: Document[], parentId: string | null, depth: number, dragMode?: 'sortable' | 'draggable') => React.ReactNode;
@@ -1704,12 +1607,13 @@ function TeamspaceItem({
         onDelete={onDeleteTeamspace} 
         onSettings={onSettings}
         plusTrigger={
-          <CreateItemDropdown
-            onCreatePage={onCreatePage}
-            onCreateFolder={onCreateFolder}
-            triggerClassName="p-1 hover:bg-[#3f3f3f] rounded text-[#a3a3a3] hover:text-white"
-            iconSize={14}
-          />
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCreatePage(); }}
+            className="p-1 hover:bg-[#3f3f3f] rounded text-[#a3a3a3] hover:text-white transition-all"
+          >
+            <Plus size={14} />
+          </button>
         }
         dropdownTrigger={
           <button 
@@ -1770,11 +1674,10 @@ const DocumentItem = memo(({
   onClick, 
   onDelete, 
   onUpdate,
-  onTurnIntoFolder,
   onToggleFavorite,
   onDuplicate,
   depth = 0,
-  isFolder = false,
+  hasChildren = false,
   isExpanded = false,
   onToggleExpand,
   shouldAutoRename = false,
@@ -1787,11 +1690,10 @@ const DocumentItem = memo(({
   onClick: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Document>) => void;
-  onTurnIntoFolder?: (id: string) => void | Promise<void>;
   onToggleFavorite: (id: string) => void;
   onDuplicate: (id: string) => void;
   depth?: number;
-  isFolder?: boolean;
+  hasChildren?: boolean;
   isExpanded?: boolean;
   onToggleExpand?: (e: React.MouseEvent) => void;
   shouldAutoRename?: boolean;
@@ -1876,7 +1778,6 @@ const DocumentItem = memo(({
       <DocumentContextMenu 
         doc={doc}
         onUpdate={onUpdate}
-        onTurnIntoFolder={onTurnIntoFolder}
         onToggleFavorite={onToggleFavorite}
         onDelete={onDelete}
         onDuplicate={onDuplicate}
@@ -1935,7 +1836,7 @@ const DocumentItem = memo(({
           }}
         >
           <div className="flex items-center gap-2 flex-1 overflow-hidden pr-10">
-            {isFolder && (
+            {hasChildren && (
               <button
                 type="button"
                 onClick={onToggleExpand}
@@ -1945,12 +1846,11 @@ const DocumentItem = memo(({
                 <ChevronRight size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
               </button>
             )}
-            {!isFolder && <div className="w-4 shrink-0" />}
+            {!hasChildren && <div className="w-4 shrink-0" />}
             
             {doc.icon ? (
               <span className="shrink-0 mr-1 text-sm leading-none">{doc.icon}</span>
             ) : (
-              doc.type === 'folder' ? <Folder size={16} className="shrink-0 text-blue-400" /> :
               doc.type === 'database' ? <Database size={16} className="shrink-0 text-purple-400" /> :
               <FileText size={16} className="shrink-0 text-[#a3a3a3]" />
             )}

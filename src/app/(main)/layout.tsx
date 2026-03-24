@@ -7,7 +7,7 @@ import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { documents, createDocument, deleteDocument, updateDocument, turnIntoFolder, toggleFavorite, duplicateDocument } = useDocuments();
+  const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const params = useParams();
   const router = useRouter();
   const documentId = params.documentId as string | undefined;
@@ -30,7 +30,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             isShared: boolean,
             parentId?: string | null,
             teamspaceId?: string | null,
-            options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'folder' | 'database'; skipNavigation?: boolean }
+            options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'database'; skipNavigation?: boolean }
           ) => {
             const newDoc = await createDocument({
               title: options?.title ?? '',
@@ -48,12 +48,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             }
             return newDoc;
           }}
-          onDeleteDocument={async (id) => {
-            await deleteDocument(id);
-            if (documentId === id) router.push('/');
-          }}
+          onDeleteDocument={deleteDocument}
           onUpdateDocument={updateDocument}
-          onTurnIntoFolder={turnIntoFolder}
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />

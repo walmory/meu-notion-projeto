@@ -24,11 +24,6 @@ export interface Document {
   type?: string;
 }
 
-export interface TurnIntoFolderResult {
-  folder: Document;
-  child: Document;
-}
-
 const fetcher = async (url: string) => {
   const headers = getAuthHeaders();
   if (!headers.Authorization) {
@@ -144,7 +139,7 @@ export function useDocuments(workspaceId?: string) {
     workspace_id?: string | null;
     teamspace_id?: string | null;
     is_meeting_note?: boolean;
-    type?: 'page' | 'folder' | 'database';
+    type?: 'page' | 'database';
   };
 
   const createDocument = async (
@@ -384,74 +379,19 @@ export function useDocuments(workspaceId?: string) {
     }
   };
 
-  const turnIntoFolder = async (id: string): Promise<TurnIntoFolderResult> => {
-    const previousDocuments = documents || [];
-    const target = previousDocuments.find((doc) => String(doc.id) === String(id));
-    if (!target) {
-      throw new Error('Documento não encontrado para conversão');
-    }
-
-    const tempChildId = crypto.randomUUID();
-    const nowIso = new Date().toISOString();
-    const optimisticFolder: Document = { ...target, type: 'folder', updated_at: nowIso };
-    const optimisticChild: Document = {
-      id: tempChildId,
-      title: 'Untitled Page',
-      is_shared: false,
-      content: '[]',
-      parent_id: target.id,
-      workspace_id: target.workspace_id || null,
-      teamspace_id: target.teamspace_id || null,
-      is_private: target.teamspace_id ? false : true,
-      is_meeting_note: target.is_meeting_note ? true : false,
-      is_favorite: false,
-      is_trash: false,
-      updated_at: nowIso,
-      type: 'page'
-    };
-
-    const optimisticDocuments = previousDocuments.map((doc) => (
-      String(doc.id) === String(id) ? optimisticFolder : doc
-    ));
-    optimisticDocuments.push(optimisticChild);
-
-    mutate(optimisticDocuments, false);
+  const updateDocumentContentVersion = (id: string, version: number) => {
+    if (!documents) return;
+    const nextDocuments = documents.map(doc => 
+      String(doc.id) === String(id) ? { ...doc, content_version: version } : doc
+    );
+    mutate(nextDocuments, false);
     const cacheKey = getDocumentsCacheKey();
     if (cacheKey && typeof window !== 'undefined') {
       try {
-        localStorage.setItem(cacheKey, JSON.stringify(optimisticDocuments));
+        localStorage.setItem(cacheKey, JSON.stringify(nextDocuments));
       } catch {
         // no-op
       }
-    }
-
-    try {
-      const response = await api.patch(`/documents/${id}/turn-into-folder`, {}, { headers: getAuthHeaders() });
-      const payload = response.data as TurnIntoFolderResult;
-      const nextDocuments = (previousDocuments || []).map((doc) => (
-        String(doc.id) === String(id) ? payload.folder : doc
-      ));
-      nextDocuments.push(payload.child);
-      mutate(nextDocuments, false);
-      if (cacheKey && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(nextDocuments));
-        } catch {
-          // no-op
-        }
-      }
-      return payload;
-    } catch (error) {
-      console.error('Error turning document into folder', error);
-      mutate(previousDocuments, false);
-      if (cacheKey && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(previousDocuments));
-        } catch {
-          // no-op
-        }
-      }
-      throw error;
     }
   };
 
@@ -487,8 +427,8 @@ export function useDocuments(workspaceId?: string) {
     duplicateDocument, 
     deleteDocument, 
     updateDocument, 
-    turnIntoFolder,
     toggleFavorite,
-    refetch: mutate 
+    refetch: mutate,
+    updateDocumentContentVersion
   };
 }
