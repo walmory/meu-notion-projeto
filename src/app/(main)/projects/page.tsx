@@ -32,6 +32,11 @@ export default function ProjectsDashboard() {
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [projectToRename, setProjectToRename] = useState<{id: string, name: string} | null>(null);
+  const [renameProjectName, setRenameProjectName] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspaceId');
     if (wsId) setActiveWorkspaceId(wsId);
@@ -79,15 +84,29 @@ export default function ProjectsDashboard() {
     }
   };
 
-  const handleRenameProject = async (id: string, currentName: string) => {
-    const newName = prompt('Enter new project name:', currentName);
-    if (newName && newName.trim() && newName.trim() !== currentName) {
-      try {
-        await api.patch(`/projects/${id}`, { name: newName.trim() });
-        mutateProjects();
-      } catch (error) {
-        console.error('Failed to rename project:', error);
-      }
+  const handleRenameProjectClick = (id: string, currentName: string) => {
+    setProjectToRename({ id, name: currentName });
+    setRenameProjectName(currentName);
+    setIsRenameOpen(true);
+  };
+
+  const handleRenameProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectToRename || !renameProjectName.trim() || isRenaming || renameProjectName.trim() === projectToRename.name) {
+        setIsRenameOpen(false);
+        return;
+    }
+
+    try {
+      setIsRenaming(true);
+      await api.patch(`/projects/${projectToRename.id}`, { name: renameProjectName.trim() });
+      mutateProjects();
+      setIsRenameOpen(false);
+    } catch (error) {
+      console.error('Failed to rename project:', error);
+    } finally {
+      setIsRenaming(false);
+      setProjectToRename(null);
     }
   };
 
@@ -167,7 +186,10 @@ export default function ProjectsDashboard() {
                           <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50">
                             <DropdownMenu.Item 
                               className="flex items-center gap-2 px-3 py-2 text-sm text-[#d4d4d4] hover:bg-white/10 rounded-sm cursor-pointer outline-none mb-1"
-                              onClick={() => handleRenameProject(project.id, project.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRenameProjectClick(project.id, project.name);
+                              }}
                             >
                               <Edit2 size={14} />
                               Rename
@@ -233,6 +255,52 @@ export default function ProjectsDashboard() {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isCreating ? 'Creating...' : 'Create Project'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Modal */}
+      <Dialog open={isRenameOpen} onOpenChange={(open) => {
+        setIsRenameOpen(open);
+        if (!open) setProjectToRename(null);
+      }}>
+        <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[425px]">
+          <form onSubmit={handleRenameProjectSubmit}>
+            <DialogHeader>
+              <DialogTitle className="text-white">Rename Project</DialogTitle>
+              <DialogDescription className="text-[#9b9b9b]">
+                Enter a new name for your project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <span className="text-sm font-medium text-white">Project Name</span>
+                <Input
+                  value={renameProjectName}
+                  onChange={(e) => setRenameProjectName(e.target.value)}
+                  placeholder="e.g. Q4 Marketing Campaign..."
+                  className="bg-[#2c2c2c] border-white/5 text-white placeholder:text-[#666]"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsRenameOpen(false)}
+                className="bg-transparent border-white/10 text-white hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!renameProjectName.trim() || isRenaming || (projectToRename ? renameProjectName.trim() === projectToRename.name : false)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isRenaming ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </form>
