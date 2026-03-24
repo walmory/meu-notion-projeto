@@ -79,17 +79,17 @@ const fetcher = async (url: string) => {
 };
 
 const STATUS_CONFIG = {
-  'To Do': { color: 'bg-[#6b7280] text-white', icon: Circle },
-  'In Progress': { color: 'bg-[#3b82f6] text-white', icon: Clock },
-  'Done': { color: 'bg-[#22c55e] text-white', icon: CheckCircle2 },
-  'Stuck': { color: 'bg-[#ef4444] text-white', icon: AlertCircle },
+  'To Do': { color: 'text-gray-500', bg: 'bg-gray-100', icon: Circle },
+  'In Progress': { color: 'text-blue-500', bg: 'bg-blue-100', icon: Clock },
+  'Done': { color: 'text-green-500', bg: 'bg-green-100', icon: CheckCircle2 },
+  'Stuck': { color: 'text-red-500', bg: 'bg-red-100', icon: AlertCircle },
 };
 
 const PRIORITY_CONFIG = {
-  'High': { color: 'text-[#e2445c]', bg: 'bg-[#e2445c]/10' },
-  'Medium': { color: 'text-[#fdab3d]', bg: 'bg-[#fdab3d]/10' },
-  'Low': { color: 'text-[#00c875]', bg: 'bg-[#00c875]/10' },
-  'Normal': { color: 'text-[#a3a3a3]', bg: 'bg-[#a3a3a3]/10' },
+  'High': { color: 'text-red-600', bg: 'bg-red-100' },
+  'Medium': { color: 'text-orange-600', bg: 'bg-orange-100' },
+  'Low': { color: 'text-green-600', bg: 'bg-green-100' },
+  'Normal': { color: 'text-blue-600', bg: 'bg-blue-100' },
 };
 
 const STATUS_LABELS: Record<Task['status'], string> = {
@@ -150,8 +150,23 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
       <div 
         ref={setNodeRef} 
         style={style} 
-        className="w-full bg-[#1e1e1e]/50 border-dashed border-2 border-[#4f4f4f] rounded-xl opacity-50 min-h-[100px] mb-3"
-      />
+        className="w-full border-dashed border-2 border-gray-300 rounded-xl bg-white/30 opacity-50 flex flex-col mb-3 p-4 gap-3 pointer-events-none"
+      >
+        <div className="font-bold text-gray-800 text-[15px] leading-tight break-words opacity-30">
+          {task.title}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-auto opacity-30">
+          <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
+            <Flag size={12} />
+            {task.priority || 'Normal'}
+          </div>
+          {task.assigned_to && (
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-2 ring-white shadow-sm">
+              {(members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()}
+            </div>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -161,7 +176,7 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
       style={style} 
       {...attributes}
       {...listeners}
-      className="group/card w-full bg-white text-[#333333] rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 mb-3 cursor-grab active:cursor-grabbing border border-gray-200 flex flex-col gap-3 relative"
+      className="group/card w-full bg-white text-[#333333] rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:-translate-y-[2px] hover:shadow-[0_4px_8px_rgba(0,0,0,0.12)] transition-all duration-200 mb-3 cursor-grab active:cursor-grabbing border border-gray-100 flex flex-col gap-3 relative"
     >
       <div className="flex justify-between items-start gap-2">
         {isEditing ? (
@@ -169,6 +184,7 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
             value={localTitle}
             onChange={(e) => setLocalTitle(e.target.value)}
             onBlur={handleSaveInlineEdit}
+            onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSaveInlineEdit();
               if (e.key === 'Escape') {
@@ -177,11 +193,15 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
               }
             }}
             ref={(input) => { if (input) input.focus(); }}
-            className="flex-1 bg-gray-50 border border-blue-300 rounded outline-none text-[14px] font-semibold text-gray-800 px-2 py-1"
+            className="flex-1 bg-gray-50 border border-blue-300 rounded outline-none text-[15px] font-bold text-gray-800 px-2 py-1"
           />
         ) : (
           <button
             type="button"
+            onPointerDown={(e) => {
+              // Prevent drag from starting on double click
+              if (e.detail > 1) e.stopPropagation();
+            }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
@@ -190,20 +210,25 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
               e.stopPropagation();
               openTaskDrawer(task);
             }}
-            className="flex-1 font-semibold text-gray-800 text-[14px] leading-tight break-words cursor-pointer hover:text-blue-600 transition-colors text-left"
+            className="flex-1 font-bold text-gray-800 text-[15px] leading-tight break-words cursor-pointer hover:text-blue-600 transition-colors text-left"
           >
             {task.title}
           </button>
         )}
         
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover/card:opacity-100 transition-opacity">
-            <MoreHorizontal size={16} />
-          </DropdownMenu.Trigger>
+            <DropdownMenu.Trigger asChild>
+              <button type="button" onPointerDown={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover/card:opacity-100 transition-opacity outline-none">
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[140px] z-50">
+            <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[140px] z-[9999]">
               <DropdownMenu.Item
-                onClick={() => handleDeleteTask(task.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteTask(task.id);
+                }}
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded cursor-pointer outline-none"
               >
                 <Trash2 size={14} />
@@ -215,9 +240,60 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
-        <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg.replace('/10', '/20')} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
-          <Flag size={12} />
-          {task.priority || 'Normal'}
+        <div className="flex items-center gap-2">
+          {/* Priority Dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button type="button" onPointerDown={(e) => e.stopPropagation()} className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 hover:brightness-95 transition-all ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
+                <Flag size={12} />
+                {task.priority || 'Normal'}
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[120px] z-[9999]">
+                {Object.keys(PRIORITY_CONFIG).map((p) => (
+                  <DropdownMenu.Item
+                    key={p}
+                    onClick={() => handleUpdateTask(task.id, { priority: p as Task['priority'] })}
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer outline-none"
+                  >
+                    <div className={`w-2 h-2 rounded-full ${PRIORITY_CONFIG[p as keyof typeof PRIORITY_CONFIG].bg.replace('bg-', 'bg-').replace('-100', '-500')}`} />
+                    {p}
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+
+          {/* Status Dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button type="button" onPointerDown={(e) => e.stopPropagation()} className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 hover:brightness-95 transition-all ${STATUS_CONFIG[task.status]?.bg} ${STATUS_CONFIG[task.status]?.color}`}>
+                {(() => {
+                  const Icon = STATUS_CONFIG[task.status]?.icon || Circle;
+                  return <Icon size={12} />;
+                })()}
+                {STATUS_LABELS[task.status]}
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[140px] z-[9999]">
+                {Object.keys(STATUS_CONFIG).map((s) => {
+                  const Icon = STATUS_CONFIG[s as keyof typeof STATUS_CONFIG].icon;
+                  return (
+                    <DropdownMenu.Item
+                      key={s}
+                      onClick={() => handleUpdateTask(task.id, { status: s as Task['status'] })}
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer outline-none"
+                    >
+                      <Icon size={14} className={STATUS_CONFIG[s as keyof typeof STATUS_CONFIG].color} />
+                      {STATUS_LABELS[s as keyof typeof STATUS_LABELS]}
+                    </DropdownMenu.Item>
+                  );
+                })}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
         
         <div className="flex items-center gap-2">
@@ -227,11 +303,40 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
               {new Date(task.due_date).toLocaleDateString()}
             </div>
           )}
-          {task.assigned_to && (
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-2 ring-white shadow-sm" title={members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to}>
-              {(members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()}
-            </div>
-          )}
+
+          {/* Assignee Dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button type="button" onPointerDown={(e) => e.stopPropagation()} className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-2 ring-white shadow-sm hover:ring-blue-200 transition-all outline-none" title={task.assigned_to ? (members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to) : 'Unassigned'}>
+                {task.assigned_to 
+                  ? (members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()
+                  : <UserIcon size={12} />}
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[180px] z-[9999] max-h-[300px] overflow-y-auto">
+                <DropdownMenu.Item
+                  onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer outline-none"
+                >
+                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center"><UserIcon size={10} /></div>
+                  Unassigned
+                </DropdownMenu.Item>
+                {members.map((m) => (
+                  <DropdownMenu.Item
+                    key={m.user_id}
+                    onClick={() => handleUpdateTask(task.id, { assigned_to: m.user_id })}
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer outline-none"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] font-bold">
+                      {(m.name?.charAt(0) || m.email?.charAt(0) || '?').toUpperCase()}
+                    </div>
+                    <span className="truncate">{m.name || m.email}</span>
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
       </div>
     </div>
@@ -241,18 +346,27 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
 function KanbanCardOverlay({ task, members }: { task: Task, members: TeamspaceMember[] }) {
   return (
     <div 
-      className="w-[320px] bg-white text-[#333333] rounded-xl p-4 shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 rotate-[3deg] scale-[1.05] cursor-grabbing z-[9999]"
+      className="w-[320px] bg-white text-[#333333] rounded-xl p-4 shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-gray-100 flex flex-col gap-3 rotate-[3deg] scale-[1.05] cursor-grabbing z-[9999]"
     >
       <div className="flex justify-between items-start gap-2">
-        <div className="flex-1 font-semibold text-gray-800 text-[14px] leading-tight break-words">
+        <div className="flex-1 font-bold text-gray-800 text-[15px] leading-tight break-words">
           {task.title}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
-        <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg.replace('/10', '/20')} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
-          <Flag size={12} />
-          {task.priority || 'Normal'}
+        <div className="flex items-center gap-2">
+          <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
+            <Flag size={12} />
+            {task.priority || 'Normal'}
+          </div>
+          <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${STATUS_CONFIG[task.status]?.bg} ${STATUS_CONFIG[task.status]?.color}`}>
+            {(() => {
+              const Icon = STATUS_CONFIG[task.status]?.icon || Circle;
+              return <Icon size={12} />;
+            })()}
+            {STATUS_LABELS[task.status]}
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -303,7 +417,7 @@ function NewTaskButton({ projectId, statusGroup, mutateTasks }: NewTaskRowProps)
         }).finally(() => {
           setIsCreating(false);
         });
-      }} className="w-full bg-[#1e1e1e] rounded-xl p-3 border border-white/10 mt-1 shrink-0">
+      }} className="w-full bg-white rounded-xl p-3 border border-gray-200 mt-1 shrink-0 shadow-sm">
         <input
           ref={(input) => { if (input) input.focus(); }}
           type="text"
@@ -313,14 +427,14 @@ function NewTaskButton({ projectId, statusGroup, mutateTasks }: NewTaskRowProps)
             if (!title.trim()) setIsInputMode(false);
           }}
           placeholder="What needs to be done?"
-          className="w-full bg-transparent border-none text-[13px] text-white placeholder:text-[#666] focus:outline-none focus:ring-0 mb-2"
+          className="w-full bg-transparent border-none text-[14px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 mb-2 font-medium"
           disabled={isCreating}
         />
         <div className="flex items-center gap-2">
           <button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors">
             Add
           </button>
-          <button type="button" onClick={() => setIsInputMode(false)} className="text-[#8a8a8a] hover:text-white text-[12px] font-medium px-2 py-1.5 transition-colors">
+          <button type="button" onClick={() => setIsInputMode(false)} className="text-gray-500 hover:text-gray-700 text-[12px] font-medium px-2 py-1.5 transition-colors">
             Cancel
           </button>
         </div>
@@ -332,7 +446,7 @@ function NewTaskButton({ projectId, statusGroup, mutateTasks }: NewTaskRowProps)
     <button
       type="button"
       onClick={() => setIsInputMode(true)}
-      className="w-full flex items-center gap-2 text-[#8a8a8a] hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors mt-1 text-[13px] font-medium shrink-0"
+      className="w-full flex items-center gap-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 px-3 py-2 rounded-lg transition-colors mt-1 text-[14px] font-semibold shrink-0"
     >
       <Plus size={16} />
       Add a card
@@ -358,20 +472,19 @@ function KanbanColumn({
   });
 
   const config = STATUS_CONFIG[statusGroup as keyof typeof STATUS_CONFIG];
+  const Icon = config?.icon || Circle;
 
   return (
-    <div ref={setNodeRef} className={`flex flex-col min-w-[320px] w-[320px] shrink-0 bg-[#252525] rounded-xl transition-colors duration-200 ${isOver ? 'bg-[#2a2a2a] ring-2 ring-blue-500/30' : ''} p-3 max-h-full`}>
+    <div ref={setNodeRef} className={`flex flex-col min-w-[320px] w-[320px] shrink-0 bg-[#ebecf0]/50 rounded-[12px] transition-colors duration-200 ${isOver ? 'bg-[#e4e5e9] ring-2 ring-blue-400/30' : ''} p-3 max-h-full`}>
       <div className="flex items-center justify-between mb-4 px-1 shrink-0">
         <div className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: config?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
-          />
-          <h2 className="text-[14px] font-bold text-white tracking-wide">
-            {STATUS_LABELS[statusGroup]} <span className="text-[#8a8a8a] ml-1 font-medium">{taskCount}</span>
+          <Icon size={16} className={config?.color || 'text-gray-500'} />
+          <h2 className="text-[15px] font-bold text-gray-800 tracking-wide flex items-center gap-2">
+            {STATUS_LABELS[statusGroup]} 
+            <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full font-semibold">{taskCount}</span>
           </h2>
         </div>
-        <button type="button" className="text-[#8a8a8a] hover:text-white transition-colors">
+        <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
            <MoreHorizontal size={18} />
          </button>
       </div>
@@ -714,10 +827,10 @@ export default function ProjectPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-8 relative">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto h-full">
           
           {activeTab === 'tasks' ? (
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col bg-[#f5f7fb] rounded-2xl p-6 shadow-inner border border-gray-200/50">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex gap-6 overflow-x-auto pb-4 h-full items-start custom-scrollbar">
                   {STATUS_ORDER.map((statusGroup) => {
