@@ -237,7 +237,7 @@ export function Sidebar({
 
   const { data: teamspacesData, mutate: mutateTeamspaces } = useSWR<Teamspace[]>(activeWorkspaceId ? `/teamspaces?workspace_id=${activeWorkspaceId}` : null, fetcher);
 
-  const { data: projectsData, mutate: mutateProjects } = useSWR<Project[]>('/projects', fetcher);
+  const { data: projectsData, mutate: mutateProjects } = useSWR<Project[]>(activeWorkspaceId ? `/projects?workspace_id=${activeWorkspaceId}` : null, fetcher);
   const projects = projectsData || [];
   const teamspaces = useMemo(
     () => (

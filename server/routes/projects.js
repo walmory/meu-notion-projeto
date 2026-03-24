@@ -12,10 +12,18 @@ router.use(authMiddleware);
 // Get all projects for a user
 router.get('/', async (req, res) => {
   try {
-    const [projects] = await pool.query(
-      'SELECT * FROM projects WHERE owner_id = ? ORDER BY created_at DESC',
-      [req.user.id]
-    );
+    const workspaceId = req.query.workspace_id || req.headers['x-workspace-id'];
+    let query = 'SELECT * FROM projects WHERE owner_id = ?';
+    let params = [req.user.id];
+    
+    if (workspaceId) {
+      query += ' AND workspace_id = ?';
+      params.push(workspaceId);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const [projects] = await pool.query(query, params);
     res.json(projects);
   } catch (err) {
     console.error(err);
