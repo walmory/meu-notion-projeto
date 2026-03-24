@@ -146,14 +146,14 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 transition-colors group/row bg-[#1e1e1e] ${isDragging ? 'opacity-50 ring-2 ring-blue-500' : 'hover:bg-white/[0.03]'}`}
+      className={`grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 transition-all duration-200 ease-in-out group/row bg-[#1e1e1e] ${isDragging ? 'opacity-50 ring-2 ring-blue-500 scale-[1.01] shadow-xl z-50' : 'hover:bg-white/[0.03]'}`}
     >
       {/* Title */}
       <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors relative">
         <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
         
         {/* Drag Handle */}
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[#4f4f4f] hover:text-[#a3a3a3] mr-2 opacity-0 group-hover/row:opacity-100 transition-opacity" title="Drag to reorder">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[#4f4f4f] hover:text-[#a3a3a3] mr-2 opacity-0 group-hover/row:opacity-100 transition-all duration-200" title="Drag to reorder">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Drag handle">
             <title>Drag handle</title>
             <circle cx="9" cy="12" r="1"></circle>
@@ -202,7 +202,7 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
       <div className="border-r border-white/5 relative">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
-            <div className={`flex items-center justify-center w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all hover:brightness-110 ${STATUS_CONFIG[task.status as Task['status']]?.color || 'bg-gray-500 text-white'}`}>
+            <div className={`flex items-center justify-center w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 hover:brightness-110 active:scale-[0.98] ${STATUS_CONFIG[task.status as Task['status']]?.color || 'bg-gray-500 text-white'}`}>
               <span className="font-bold">{STATUS_LABELS[task.status as Task['status']]}</span>
             </div>
           </DropdownMenu.Trigger>
@@ -227,7 +227,7 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
       <div className="border-r border-white/5 relative">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
-            <div className={`flex items-center justify-center gap-2 w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all hover:brightness-110 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
+            <div className={`flex items-center justify-center gap-2 w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 hover:brightness-110 active:scale-[0.98] ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
               <Flag size={14} className="opacity-80" />
               <span>{task.priority || 'Normal'}</span>
             </div>
@@ -250,11 +250,11 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
       </div>
 
       {/* Assignee */}
-      <div className="px-4 py-2 border-r border-white/5 flex items-center justify-center">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
-            <div className="flex items-center justify-center gap-3 text-[13px] text-[#8a8a8a] hover:bg-white/5 px-3 py-1.5 rounded-full cursor-pointer transition-colors w-fit mx-auto border border-transparent hover:border-white/10">
-              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px] font-bold text-blue-400 shrink-0 shadow-sm ring-1 ring-blue-500/30">
+          <div className="px-4 py-2 border-r border-white/5 flex items-center justify-center">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
+                <div className="flex items-center justify-center gap-3 text-[13px] text-[#8a8a8a] hover:bg-white/5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 active:scale-[0.98] w-fit mx-auto border border-transparent hover:border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px] font-bold text-blue-400 shrink-0 shadow-sm ring-1 ring-blue-500/30">
                 {task.assigned_to ? ((members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()) : <UserIcon size={12} className="text-[#8a8a8a]" />}
               </div>
               <span className="truncate max-w-[100px] font-medium group-hover/row:text-[#d4d4d4] transition-colors">{task.assigned_to ? members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Assign'}</span>
@@ -290,15 +290,15 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
       </div>
 
       {/* Due Date */}
-      <div className="px-6 py-3 border-r border-white/5 flex items-center justify-center gap-2 text-[13px] text-[#8a8a8a] group-hover/row:text-[#d4d4d4] transition-colors">
-        <CalendarIcon size={14} className="opacity-50" />
-        {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
-      </div>
+        <div className="px-6 py-3 border-r border-white/5 flex items-center justify-center gap-2 text-[13px] text-[#8a8a8a] group-hover/row:text-[#d4d4d4] transition-colors duration-200">
+          <CalendarIcon size={14} className="opacity-50" />
+          {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
+        </div>
 
-      {/* Actions */}
-      <div className="px-2 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-colors outline-none">
+        {/* Actions */}
+        <div className="px-2 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger className="p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-all duration-200 active:scale-95 outline-none">
             <MoreHorizontal size={16} />
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
@@ -605,7 +605,7 @@ export default function ProjectPage() {
             <button 
               type="button"
               onClick={() => router.push('/projects')}
-              className="p-1.5 rounded-md text-[#8a8a8a] hover:text-white hover:bg-white/10 transition-colors mr-2"
+              className="p-1.5 rounded-md text-[#8a8a8a] hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-95 mr-2"
               title="Back to Projects"
             >
               <ArrowLeft size={20} />
@@ -646,7 +646,7 @@ export default function ProjectPage() {
               </div>
 
               <DropdownMenu.Root>
-                <DropdownMenu.Trigger className="outline-none focus:outline-none p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-colors ml-1">
+                <DropdownMenu.Trigger className="outline-none focus:outline-none p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-all duration-200 active:scale-95 ml-1">
                   <ChevronDown size={18} />
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
@@ -681,7 +681,7 @@ export default function ProjectPage() {
             <div className="text-[12px] font-semibold text-[#8a8a8a]">Progress</div>
             <div className="w-32 h-1.5 bg-[#2c2c2c] rounded-full overflow-hidden">
               <div 
-                className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
@@ -694,21 +694,21 @@ export default function ProjectPage() {
           <button
             type="button"
             onClick={() => setActiveTab('tasks')}
-            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-colors ${activeTab === 'tasks' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
+            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-all duration-200 ease-out ${activeTab === 'tasks' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
           >
             Tasks
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('members')}
-            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-colors ${activeTab === 'members' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
+            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-all duration-200 ease-out ${activeTab === 'members' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
           >
             Members
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('timeline')}
-            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-colors ${activeTab === 'timeline' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
+            className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-all duration-200 ease-out ${activeTab === 'timeline' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
           >
             Timeline
           </button>

@@ -137,8 +137,9 @@ export default function ProjectsDashboard() {
           </div>
           
           <button
+            type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm shadow-blue-900/20 active:scale-95"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-sm shadow-blue-900/20 active:scale-95"
           >
             <Plus size={18} />
             New Project
@@ -155,8 +156,9 @@ export default function ProjectsDashboard() {
               <h3 className="text-xl font-semibold text-white mb-2">No projects found</h3>
               <p className="text-[#8a8a8a] mb-6 text-center max-w-md">Create your first project to start organizing your tasks, assigning members, and tracking progress.</p>
               <button
+                type="button"
                 onClick={() => setIsCreateOpen(true)}
-                className="bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-lg font-medium transition-colors"
+                className="bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-lg font-medium transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
               >
                 Create First Project
               </button>
@@ -167,7 +169,7 @@ export default function ProjectsDashboard() {
                 <div 
                   key={project.id}
                   onClick={() => router.push(`/projects/${project.id}`)}
-                  className="group flex flex-col bg-[#252525] border border-white/5 rounded-xl p-5 hover:bg-[#2a2a2a] hover:border-white/10 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 relative"
+                  className="group flex flex-col bg-[#252525] border border-white/5 rounded-xl p-5 hover:bg-[#2a2a2a] hover:border-white/10 transition-all duration-300 ease-out cursor-pointer shadow-sm hover:shadow-xl hover:shadow-black/40 hover:-translate-y-1 active:scale-[0.98] relative"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div 
