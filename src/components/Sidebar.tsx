@@ -235,6 +235,11 @@ export function Sidebar({
     ),
     [teamspacesData]
   );
+  const documentsRef = useRef<Document[]>(documents);
+
+  useEffect(() => {
+    documentsRef.current = documents;
+  }, [documents]);
 
   const handleWorkspaceSwitch = (id: string) => {
     const clearAppState = () => {
@@ -251,22 +256,81 @@ export function Sidebar({
     router.push(`/workspace/${id}`);
   };
 
+  const applyLiveTitleSync = useCallback((documentId: string, nextTitle: string) => {
+    const currentDocument = documentsRef.current.find((doc) => String(doc.id) === String(documentId));
+    if (!currentDocument || currentDocument.title === nextTitle) {
+      return;
+    }
+
+    globalMutate(
+      '/documents',
+      (current: Document[] | undefined) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        const targetIndex = current.findIndex((doc) => String(doc.id) === String(documentId));
+        if (targetIndex === -1 || current[targetIndex].title === nextTitle) {
+          return current;
+        }
+        const next = [...current];
+        next[targetIndex] = { ...next[targetIndex], title: nextTitle };
+        return next;
+      },
+      false
+    );
+
+    const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspaceId');
+    const recentKey = workspaceId ? `/documents/recent?workspace_id=${workspaceId}` : '/documents/recent';
+    globalMutate(
+      recentKey,
+      (current: Array<{ id: string; title: string; icon?: string; updated_at?: string; is_trash?: boolean | 0 | 1 }> | undefined) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        const targetIndex = current.findIndex((doc) => String(doc.id) === String(documentId));
+        if (targetIndex === -1 || current[targetIndex].title === nextTitle) {
+          return current;
+        }
+        const next = [...current];
+        next[targetIndex] = { ...next[targetIndex], title: nextTitle };
+        return next;
+      },
+      false
+    );
+
+    globalMutate(
+      `/documents/${documentId}`,
+      (current: Document | null | undefined) => {
+        if (!current || current.title === nextTitle) {
+          return current;
+        }
+        return { ...current, title: nextTitle };
+      },
+      false
+    );
+
+    window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: documentId, title: nextTitle } }));
+  }, [globalMutate, activeWorkspaceId]);
+
   const handleDocumentUpdate = useCallback((documentId: string, updates: Partial<Document>) => {
     onUpdateDocument(documentId, updates);
     if (typeof updates.title !== 'string') {
       return;
     }
+    applyLiveTitleSync(documentId, updates.title);
     const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspaceId');
-    window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: documentId, title: updates.title } }));
-    if (socketRef.current && workspaceId) {
-      socketRef.current.emit('document:update-title', {
-        docId: documentId,
-        newTitle: updates.title,
-        workspaceId,
-      });
-      console.log(`[Sincronia Victor] Sidebar emitiu document:update-title doc=${documentId} workspace=${workspaceId}`);
+    try {
+      if (socketRef.current && workspaceId) {
+        socketRef.current.emit('document:update-title', {
+          docId: documentId,
+          newTitle: updates.title,
+          workspaceId,
+        });
+      }
+    } catch (error) {
+      console.error('[Sincronia Victor] Falha ao emitir atualização de título', error);
     }
-  }, [onUpdateDocument, activeWorkspaceId]);
+  }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
 
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
@@ -335,8 +399,7 @@ export function Sidebar({
     // Escutando eventos de título e conteúdo para atualizar a Sidebar (AAA)
     socket.on('document:update-title', (payload: { docId?: string; newTitle?: string }) => {
       if (payload?.docId && payload?.newTitle) {
-        console.log(`[Sincronia Victor] Sidebar recebeu document:update-title doc=${payload.docId}`);
-        window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: payload.docId, title: payload.newTitle } }));
+        applyLiveTitleSync(payload.docId, payload.newTitle);
       }
     });
 
@@ -350,10 +413,6 @@ export function Sidebar({
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
 
-    socket.on('document-moving', (payload) => {
-      console.log('[Sincronia Victor] User moving document:', payload);
-    });
-
     return () => {
       socket.off('document:update-title');
       socket.off('document_moved');
@@ -362,7 +421,7 @@ export function Sidebar({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, applyLiveTitleSync]);
 
   // Resizing state
   const [isResizing, setIsResizing] = useState(false);

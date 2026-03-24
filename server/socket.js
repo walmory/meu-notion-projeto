@@ -105,10 +105,6 @@ async function processDocQueue(socket, docId) {
   const iconValue = msg.icon;
   const coverValue = msg.cover;
 
-  console.log(
-    `[Sincronia Victor] processando — doc=${docId} seq=${msg.seq} contentLength=${jsonContent.length}`
-  );
-
   try {
     const sql = `UPDATE documents
       SET title = COALESCE(?, title),
@@ -296,8 +292,7 @@ export const initSocket = (httpServer) => {
       if (!docId || typeof newTitle !== 'string' || !workspaceId) return;
       const workspaceRoom = getWorkspaceRoom(workspaceId);
       if (!socket.rooms.has(workspaceRoom)) return;
-      console.log(`[Sincronia Victor] broadcast title workspace=${workspaceId} doc=${docId}`);
-      socket.to(workspaceRoom).emit('document:update-title', {
+      socket.broadcast.to(workspaceRoom).emit('document:update-title', {
         senderId: socket.id,
         workspaceId,
         docId,

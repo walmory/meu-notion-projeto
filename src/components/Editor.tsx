@@ -262,7 +262,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
       if (typeof payload.newTitle !== 'string') return;
       if (payload.newTitle === titleRef.current) return;
-      console.log(`[Sincronia Victor] Editor recebeu document:update-title doc=${currentDocumentId}`);
       syncSharedTitle(currentDocumentId, payload.newTitle);
     });
 
@@ -561,12 +560,15 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         if (!workspaceId) {
           return;
         }
-        socket.emit('document:update-title', {
-          docId: id,
-          newTitle: nextTitle,
-          workspaceId,
-        });
-        console.log(`[Sincronia Victor] Editor emitiu document:update-title doc=${id} workspace=${workspaceId}`);
+        try {
+          socket.emit('document:update-title', {
+            docId: id,
+            newTitle: nextTitle,
+            workspaceId,
+          });
+        } catch (error) {
+          console.error('[Sincronia Victor] Falha ao emitir atualização de título', error);
+        }
       }, 500),
     [socket, document?.workspace_id]
   );
