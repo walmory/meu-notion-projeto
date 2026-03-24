@@ -171,13 +171,10 @@ export default function ProfilePage() {
   const initial = displayData?.name ? displayData.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div 
-      className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto"
-      style={{ boxSizing: 'border-box' }}
-    >
+    <div className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto">
       {/* Banner/Header */}
       <div className="w-full h-48 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 relative">
-        <div className="absolute top-12 left-8 sm:left-12 md:left-24">
+        <div className="absolute top-6 left-8 sm:left-12 md:left-24">
           <span className="text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
             Public Profile of {displayData?.name?.split(' ')[0] || 'User'}
           </span>
@@ -186,7 +183,7 @@ export default function ProfilePage() {
 
       <div className="flex-1 max-w-[1000px] w-full mx-auto px-6 sm:px-10 md:px-16 relative pb-24">
         {/* Avatar Section */}
-        <div className="relative -mt-16 sm:-mt-20 mb-8 sm:mb-10 flex items-end">
+        <div className="relative -mt-16 sm:-mt-20 mb-4 sm:mb-6 flex items-end">
           <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0 z-10">
             {displayData?.avatar_url ? (
               <img 
@@ -201,15 +198,15 @@ export default function ProfilePage() {
         </div>
 
         {/* Layout Integrado: View (Esquerda) e Edit (Direita/Abaixo) */}
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start mt-6">
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start mt-2">
           
           {/* Coluna da Esquerda: Info e Activity */}
           <div className="w-full lg:w-[40%] xl:w-[35%] shrink-0">
-            <div className="mb-12">
-              <h1 className="text-4xl font-bold text-white mb-3 leading-tight">
+            <div className="mb-10">
+              <h1 className="text-4xl font-bold text-white mb-2 leading-tight">
                 {displayData?.name || 'User'}
               </h1>
-              <div className="flex items-center text-[#a3a3a3] mb-8">
+              <div className="flex items-center text-[#a3a3a3] mb-6">
                 <Mail className="w-4 h-4 mr-2 shrink-0" />
                 <span className="text-sm truncate">{displayData?.email || 'No email provided'}</span>
               </div>
@@ -227,11 +224,11 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="h-px bg-white/10 w-full mb-10" />
+            <div className="h-px bg-white/10 w-full mb-8" />
 
             {/* Recent Activity Skeleton */}
             <section>
-              <h2 className="text-sm font-semibold text-[#8a8a8a] uppercase tracking-wider mb-6">Recent Activity</h2>
+              <h2 className="text-sm font-semibold text-[#8a8a8a] uppercase tracking-wider mb-4">Recent Activity</h2>
               
               <div className="space-y-3">
                 <div className="p-3 rounded-lg border border-white/5 bg-[#262626]/50 flex items-center justify-between">
@@ -261,56 +258,56 @@ export default function ProfilePage() {
           <div className="hidden lg:block w-px bg-white/5 self-stretch" />
 
           {/* Coluna da Direita: Settings / Forms */}
-          <div className="w-full lg:flex-1 space-y-16">
+          <div className="w-full lg:flex-1 space-y-12">
             
             {/* Profile Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-8 flex items-center">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
                 <Edit className="w-5 h-5 mr-2 text-[#a3a3a3]" />
                 Profile Settings
               </h2>
-              <form onSubmit={handleUpdateProfile} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
+              <form onSubmit={handleUpdateProfile} className="space-y-5">
+                <div className="space-y-2.5">
                   <label htmlFor="name" className="text-xs font-medium text-[#a3a3a3]">Name</label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                     required
                   />
                 </div>
                 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2.5">
                   <label htmlFor="bio" className="text-xs font-medium text-[#a3a3a3]">Bio</label>
                   <Input
                     id="bio"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell us a little about yourself"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2.5">
                   <label htmlFor="avatarUrl" className="text-xs font-medium text-[#a3a3a3]">Avatar URL</label>
                   <Input
                     id="avatarUrl"
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
                     placeholder="https://example.com/avatar.jpg"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                   />
                 </div>
 
-                <div className="pt-6 pb-2 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <Button
                     type="submit"
                     disabled={profileLoading || !name.trim()}
-                    className="bg-white hover:bg-gray-200 text-black transition-all px-6 py-2.5 h-auto text-sm font-medium rounded-md"
+                    className="bg-white hover:bg-gray-200 text-black transition-all px-4 py-2 h-auto text-xs font-medium rounded-md"
                   >
-                    {profileLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    {profileLoading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
                     Save Profile
                   </Button>
                 </div>
@@ -321,12 +318,12 @@ export default function ProfilePage() {
 
             {/* Email Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">Account Email</h2>
-              <p className="text-[#8a8a8a] mb-8 text-sm">
+              <h2 className="text-xl font-semibold text-white mb-2">Account Email</h2>
+              <p className="text-[#8a8a8a] mb-6 text-xs">
                 Confirm your identity using your current password to change your email.
               </p>
-              <form onSubmit={handleUpdateEmail} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
+              <form onSubmit={handleUpdateEmail} className="space-y-5">
+                <div className="space-y-2.5">
                   <label htmlFor="newEmail" className="text-xs font-medium text-[#a3a3a3]">New Email</label>
                   <Input
                     id="newEmail"
@@ -334,12 +331,12 @@ export default function ProfilePage() {
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="example@email.com"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                     required
                   />
                 </div>
                 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2.5">
                   <label htmlFor="currentPasswordForEmail" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
                   <Input
                     id="currentPasswordForEmail"
@@ -347,18 +344,18 @@ export default function ProfilePage() {
                     value={currentPasswordForEmail}
                     onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
                     placeholder="Your current password"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                     required
                   />
                 </div>
                 
-                <div className="pt-6 pb-2 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <Button
                     type="submit"
                     disabled={emailLoading || !newEmail.trim() || !currentPasswordForEmail}
-                    className="bg-white hover:bg-gray-200 text-black transition-all px-6 py-2.5 h-auto text-sm font-medium rounded-md"
+                    className="bg-white hover:bg-gray-200 text-black transition-all px-4 py-2 h-auto text-xs font-medium rounded-md"
                   >
-                    {emailLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    {emailLoading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
                     Update Email
                   </Button>
                 </div>
@@ -369,12 +366,12 @@ export default function ProfilePage() {
 
             {/* Password Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">Security</h2>
-              <p className="text-[#8a8a8a] mb-8 text-sm">
+              <h2 className="text-xl font-semibold text-white mb-2">Security</h2>
+              <p className="text-[#8a8a8a] mb-6 text-xs">
                 Change your account password. Confirm your current password for security.
               </p>
-              <form onSubmit={handleUpdatePassword} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
+              <form onSubmit={handleUpdatePassword} className="space-y-5">
+                <div className="space-y-2.5">
                   <label htmlFor="currentPassword" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
                   <Input
                     id="currentPassword"
@@ -382,13 +379,13 @@ export default function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Your current password"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2.5">
                     <label htmlFor="newPassword" className="text-xs font-medium text-[#a3a3a3]">New Password</label>
                     <Input
                       id="newPassword"
@@ -396,12 +393,12 @@ export default function ProfilePage() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Your new password"
-                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                       required
                     />
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2.5">
                     <label htmlFor="confirmPassword" className="text-xs font-medium text-[#a3a3a3]">Confirm Password</label>
                     <Input
                       id="confirmPassword"
@@ -409,19 +406,19 @@ export default function ProfilePage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
-                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-11 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
+                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
                       required
                     />
                   </div>
                 </div>
                 
-                <div className="pt-6 pb-2 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <Button
                     type="submit"
                     disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-                    className="bg-white hover:bg-gray-200 text-black transition-all px-6 py-2.5 h-auto text-sm font-medium rounded-md"
+                    className="bg-white hover:bg-gray-200 text-black transition-all px-4 py-2 h-auto text-xs font-medium rounded-md"
                   >
-                    {passwordLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    {passwordLoading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
                     Update Password
                   </Button>
                 </div>
