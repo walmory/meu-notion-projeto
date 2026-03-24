@@ -61,8 +61,10 @@ export const updateEmail = async (req, res) => {
     const { newEmail, currentPassword } = req.body;
     const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
 
+    console.log('[Security Check - updateEmail] userId from token:', userId);
+
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Unauthorized: User ID missing from token' });
     }
 
     if (!newEmail || !currentPassword) {
@@ -77,6 +79,8 @@ export const updateEmail = async (req, res) => {
     const user = userRows[0];
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
     
+    console.log('[Security Check - updateEmail] password match:', isPasswordValid);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Senha atual incorreta' });
     }
@@ -100,8 +104,10 @@ export const updatePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
 
+    console.log('[Security Check - updatePassword] userId from token:', userId);
+
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Unauthorized: User ID missing from token' });
     }
 
     if (!currentPassword || !newPassword) {
@@ -116,6 +122,8 @@ export const updatePassword = async (req, res) => {
     const user = userRows[0];
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
     
+    console.log('[Security Check - updatePassword] password match:', isPasswordValid);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Senha atual incorreta' });
     }
