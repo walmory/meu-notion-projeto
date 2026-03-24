@@ -181,10 +181,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-[900px] w-full mx-auto px-8 sm:px-12 md:px-24 relative pb-24">
+      <div className="flex-1 max-w-[1000px] w-full mx-auto px-6 sm:px-10 md:px-16 relative pb-24">
         {/* Avatar Section */}
-        <div className="relative -mt-20 mb-6 flex items-end">
-          <div className="w-32 h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+        <div className="relative -mt-16 sm:-mt-20 mb-4 sm:mb-6 flex items-end">
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0 z-10">
             {displayData?.avatar_url ? (
               <img 
                 src={displayData.avatar_url} 
@@ -192,16 +192,16 @@ export default function ProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-5xl font-medium text-white">{initial}</span>
+              <span className="text-4xl sm:text-5xl font-medium text-white">{initial}</span>
             )}
           </div>
         </div>
 
         {/* Layout Integrado: View (Esquerda) e Edit (Direita/Abaixo) */}
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start mt-4">
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start mt-2">
           
           {/* Coluna da Esquerda: Info e Activity */}
-          <div className="w-full lg:w-[35%] shrink-0">
+          <div className="w-full lg:w-[40%] xl:w-[35%] shrink-0">
             <div className="mb-10">
               <h1 className="text-4xl font-bold text-white mb-2 leading-tight">
                 {displayData?.name || 'User'}
