@@ -173,18 +173,18 @@ export default function ProfilePage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#191919]">
       {/* Banner/Header */}
-      <div className="w-full h-44 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 pt-10 px-8 sm:px-12 md:px-24">
+      <div className="w-full h-32 sm:h-44 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 pt-8 sm:pt-10 px-4 sm:px-8 md:px-12 lg:px-24">
         <div>
-          <span className="text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
+          <span className="text-[10px] sm:text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
             Public Profile of {displayData?.name?.split(' ')[0] || 'User'}
           </span>
         </div>
       </div>
 
-      <div className="max-w-4xl w-full mx-auto px-8 relative pb-24">
+      <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 md:px-12 lg:px-24 relative pb-24">
         {/* Avatar Section */}
-        <div className="-mt-16 relative z-10 mb-4 sm:mb-6 flex items-end">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+        <div className="-mt-12 sm:-mt-16 relative z-10 mb-4 sm:mb-6 flex items-end">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
             {displayData?.avatar_url ? (
               <img 
                 src={displayData.avatar_url} 
@@ -192,18 +192,18 @@ export default function ProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-4xl sm:text-5xl font-medium text-white">{initial}</span>
+              <span className="text-3xl sm:text-5xl font-medium text-white">{initial}</span>
             )}
           </div>
         </div>
 
         {/* Layout Integrado: View (Esquerda) e Edit (Direita/Abaixo) */}
-        <div className="flex flex-col md:flex-row gap-10 lg:gap-16 items-start mt-2">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start mt-2">
           
           {/* Coluna da Esquerda: Info e Activity */}
           <div className="w-full md:w-[40%] xl:w-[35%] shrink-0">
-            <div className="mb-10">
-              <h1 className="text-3xl font-bold text-white mb-2 leading-tight">
+            <div className="mb-8 md:mb-10">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">
                 {displayData?.name || 'User'}
               </h1>
               <div className="flex items-center text-[#a3a3a3] mb-6">
@@ -262,8 +262,8 @@ export default function ProfilePage() {
             
             {/* Profile Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
-                <Edit className="w-5 h-5 mr-2 text-[#a3a3a3]" />
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-6 flex items-center">
+                <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#a3a3a3]" />
                 Profile Settings
               </h2>
               <form onSubmit={handleUpdateProfile} className="space-y-5">
@@ -318,8 +318,8 @@ export default function ProfilePage() {
 
             {/* Email Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-2">Account Email</h2>
-              <p className="text-[#8a8a8a] mb-6 text-xs">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">Account Email</h2>
+              <p className="text-[#8a8a8a] mb-6 text-xs sm:text-sm">
                 Confirm your identity using your current password to change your email.
               </p>
               <form onSubmit={handleUpdateEmail} className="space-y-5">
@@ -366,8 +366,8 @@ export default function ProfilePage() {
 
             {/* Password Form */}
             <section>
-              <h2 className="text-xl font-semibold text-white mb-2">Security</h2>
-              <p className="text-[#8a8a8a] mb-6 text-xs">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">Security</h2>
+              <p className="text-[#8a8a8a] mb-6 text-xs sm:text-sm">
                 Change your account password. Confirm your current password for security.
               </p>
               <form onSubmit={handleUpdatePassword} className="space-y-5">
