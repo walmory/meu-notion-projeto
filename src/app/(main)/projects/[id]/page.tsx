@@ -30,12 +30,14 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  DragOverlay,
+  type DragStartEvent,
   type DragEndEvent
 } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -77,10 +79,10 @@ const fetcher = async (url: string) => {
 };
 
 const STATUS_CONFIG = {
-  'To Do': { color: 'bg-[#e2e2e2] text-[#333333]', icon: Circle },
-  'In Progress': { color: 'bg-[#fdab3d] text-white', icon: Clock },
-  'Done': { color: 'bg-[#00c875] text-white', icon: CheckCircle2 },
-  'Stuck': { color: 'bg-[#e2445c] text-white', icon: AlertCircle },
+  'To Do': { color: 'bg-[#6b7280] text-white', icon: Circle },
+  'In Progress': { color: 'bg-[#3b82f6] text-white', icon: Clock },
+  'Done': { color: 'bg-[#22c55e] text-white', icon: CheckCircle2 },
+  'Stuck': { color: 'bg-[#ef4444] text-white', icon: AlertCircle },
 };
 
 const PRIORITY_CONFIG = {
@@ -97,11 +99,11 @@ const STATUS_LABELS: Record<Task['status'], string> = {
   'Stuck': 'Stuck'
 };
 
-const STATUS_ORDER: Task['status'][] = ['To Do', 'In Progress', 'Done', 'Stuck'];
+const STATUS_ORDER: Task['status'][] = ['To Do', 'In Progress', 'Done'];
 
 const getStatusDropId = (status: Task['status']) => `status:${status}`;
 
-interface SortableTaskRowProps {
+interface KanbanCardProps {
   task: Task;
   members: TeamspaceMember[];
   statusGroup: string;
@@ -110,7 +112,7 @@ interface SortableTaskRowProps {
   openTaskDrawer: (task: Task) => void;
 }
 
-function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleDeleteTask, openTaskDrawer }: SortableTaskRowProps) {
+function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTaskDrawer }: KanbanCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localTitle, setLocalTitle] = useState(task.title);
 
@@ -143,29 +145,25 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
     setIsEditing(false);
   };
 
+  if (isDragging) {
+    return (
+      <div 
+        ref={setNodeRef} 
+        style={style} 
+        className="w-full bg-[#1e1e1e]/50 border-dashed border-2 border-[#4f4f4f] rounded-xl opacity-50 min-h-[100px] mb-3"
+      />
+    );
+  }
+
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 transition-all duration-200 ease-in-out group/row bg-[#1e1e1e] ${isDragging ? 'opacity-50 ring-2 ring-blue-500 scale-[1.01] shadow-xl z-50' : 'hover:bg-white/[0.03]'}`}
+      {...attributes}
+      {...listeners}
+      className="group/card w-full bg-white text-[#333333] rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 mb-3 cursor-grab active:cursor-grabbing border border-gray-200 flex flex-col gap-3 relative"
     >
-      {/* Title */}
-      <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors relative">
-        <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
-        
-        {/* Drag Handle */}
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[#4f4f4f] hover:text-[#a3a3a3] mr-2 opacity-0 group-hover/row:opacity-100 transition-all duration-200" title="Drag to reorder">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Drag handle">
-            <title>Drag handle</title>
-            <circle cx="9" cy="12" r="1"></circle>
-            <circle cx="9" cy="5" r="1"></circle>
-            <circle cx="9" cy="19" r="1"></circle>
-            <circle cx="15" cy="12" r="1"></circle>
-            <circle cx="15" cy="5" r="1"></circle>
-            <circle cx="15" cy="19" r="1"></circle>
-          </svg>
-        </div>
-
+      <div className="flex justify-between items-start gap-2">
         {isEditing ? (
           <input
             value={localTitle}
@@ -179,141 +177,97 @@ function SortableTaskRow({ task, members, statusGroup, handleUpdateTask, handleD
               }
             }}
             ref={(input) => { if (input) input.focus(); }}
-            className="w-full bg-transparent border-none outline-none text-[13px] font-medium text-white pl-1"
+            className="flex-1 bg-gray-50 border border-blue-300 rounded outline-none text-[14px] font-semibold text-gray-800 px-2 py-1"
           />
         ) : (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openTaskDrawer(task);
-            }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors pl-1 text-left w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              openTaskDrawer(task);
+            }}
+            className="flex-1 font-semibold text-gray-800 text-[14px] leading-tight break-words cursor-pointer hover:text-blue-600 transition-colors text-left"
           >
             {task.title}
           </button>
         )}
-      </div>
-
-      {/* Status Badge with Dropdown - Full Cell */}
-      <div className="border-r border-white/5 relative">
+        
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
-            <div className={`flex items-center justify-center w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 hover:brightness-110 active:scale-[0.98] ${STATUS_CONFIG[task.status as Task['status']]?.color || 'bg-gray-500 text-white'}`}>
-              <span className="font-bold">{STATUS_LABELS[task.status as Task['status']]}</span>
-            </div>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50 animate-in fade-in zoom-in-95">
-              {Object.entries(STATUS_CONFIG).map(([statusName, config]) => (
-                <DropdownMenu.Item
-                  key={statusName}
-                  onClick={() => handleUpdateTask(task.id, { status: statusName as Task['status'] })}
-                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
-                >
-                  <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: config.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
-                  {STATUS_LABELS[statusName as Task['status']]}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      </div>
-
-      {/* Priority Badge with Dropdown - Full Cell */}
-      <div className="border-r border-white/5 relative">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
-            <div className={`flex items-center justify-center gap-2 w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 hover:brightness-110 active:scale-[0.98] ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
-              <Flag size={14} className="opacity-80" />
-              <span>{task.priority || 'Normal'}</span>
-            </div>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50 animate-in fade-in zoom-in-95">
-              {Object.keys(PRIORITY_CONFIG).map((priorityName) => (
-                <DropdownMenu.Item
-                  key={priorityName}
-                  onClick={() => handleUpdateTask(task.id, { priority: priorityName as Task['priority'] })}
-                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
-                >
-                  <Flag size={14} className={PRIORITY_CONFIG[priorityName as Task['priority']]?.color} />
-                  {priorityName}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      </div>
-
-      {/* Assignee */}
-          <div className="px-4 py-2 border-r border-white/5 flex items-center justify-center">
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
-                <div className="flex items-center justify-center gap-3 text-[13px] text-[#8a8a8a] hover:bg-white/5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 active:scale-[0.98] w-fit mx-auto border border-transparent hover:border-white/10">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px] font-bold text-blue-400 shrink-0 shadow-sm ring-1 ring-blue-500/30">
-                {task.assigned_to ? ((members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()) : <UserIcon size={12} className="text-[#8a8a8a]" />}
-              </div>
-              <span className="truncate max-w-[100px] font-medium group-hover/row:text-[#d4d4d4] transition-colors">{task.assigned_to ? members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Assign'}</span>
-            </div>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[200px] z-50 animate-in fade-in zoom-in-95">
-              <DropdownMenu.Item
-                onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
-                className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#8a8a8a] rounded-sm hover:bg-white/10 cursor-pointer outline-none italic mb-1"
-              >
-                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                  <UserIcon size={12} />
-                </div>
-                Unassigned
-              </DropdownMenu.Item>
-              <div className="h-px w-full bg-white/5 mb-1" />
-              {members.map((member) => (
-                <DropdownMenu.Item
-                  key={member.user_id}
-                  onClick={() => handleUpdateTask(task.id, { assigned_to: member.user_id })}
-                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
-                >
-                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold shrink-0 shadow-sm ring-1 ring-blue-500/30">
-                    {(member?.name || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <span className="truncate font-medium">{member?.name || member?.email || 'Unknown User'}</span>
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      </div>
-
-      {/* Due Date */}
-        <div className="px-6 py-3 border-r border-white/5 flex items-center justify-center gap-2 text-[13px] text-[#8a8a8a] group-hover/row:text-[#d4d4d4] transition-colors duration-200">
-          <CalendarIcon size={14} className="opacity-50" />
-          {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
-        </div>
-
-        {/* Actions */}
-        <div className="px-2 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger className="p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-all duration-200 active:scale-95 outline-none">
+          <DropdownMenu.Trigger className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover/card:opacity-100 transition-opacity">
             <MoreHorizontal size={16} />
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[140px] z-50">
+            <DropdownMenu.Content className="bg-white border border-gray-200 rounded-md shadow-lg p-1 min-w-[140px] z-50">
               <DropdownMenu.Item
                 onClick={() => handleDeleteTask(task.id)}
-                className="flex items-center gap-3 px-3 py-2 text-[13px] text-red-400 font-medium rounded-sm hover:bg-red-500/10 cursor-pointer outline-none"
+                className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded cursor-pointer outline-none"
               >
                 <Trash2 size={14} />
-                Delete Task
+                Delete
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
+        <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg.replace('/10', '/20')} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
+          <Flag size={12} />
+          {task.priority || 'Normal'}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {task.due_date && (
+            <div className="flex items-center gap-1 text-[11px] text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-md">
+              <CalendarIcon size={12} />
+              {new Date(task.due_date).toLocaleDateString()}
+            </div>
+          )}
+          {task.assigned_to && (
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-2 ring-white shadow-sm" title={members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to}>
+              {(members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KanbanCardOverlay({ task, members }: { task: Task, members: TeamspaceMember[] }) {
+  return (
+    <div 
+      className="w-[320px] bg-white text-[#333333] rounded-xl p-4 shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 rotate-[3deg] scale-[1.05] cursor-grabbing z-[9999]"
+    >
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 font-semibold text-gray-800 text-[14px] leading-tight break-words">
+          {task.title}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
+        <div className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg.replace('/10', '/20')} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color}`}>
+          <Flag size={12} />
+          {task.priority || 'Normal'}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {task.due_date && (
+            <div className="flex items-center gap-1 text-[11px] text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-md">
+              <CalendarIcon size={12} />
+              {new Date(task.due_date).toLocaleDateString()}
+            </div>
+          )}
+          {task.assigned_to && (
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-2 ring-white shadow-sm">
+              {(members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -325,46 +279,68 @@ interface NewTaskRowProps {
   mutateTasks: () => void;
 }
 
-function NewTaskRow({ projectId, statusGroup, mutateTasks }: NewTaskRowProps) {
-  const [title, setTitle] = useState('');
+function NewTaskButton({ projectId, statusGroup, mutateTasks }: NewTaskRowProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isInputMode, setIsInputMode] = useState(false);
+  const [title, setTitle] = useState('');
+
+  if (isInputMode) {
+    return (
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (!title.trim() || isCreating) return;
+        
+        setIsCreating(true);
+        api.post(`/projects/${projectId}/tasks`, {
+          title: title.trim(),
+          status: statusGroup
+        }).then(() => {
+          setTitle('');
+          setIsInputMode(false);
+          mutateTasks();
+        }).catch(error => {
+          console.error('Failed to create task:', error);
+        }).finally(() => {
+          setIsCreating(false);
+        });
+      }} className="w-full bg-[#1e1e1e] rounded-xl p-3 border border-white/10 mt-1 shrink-0">
+        <input
+          ref={(input) => { if (input) input.focus(); }}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            if (!title.trim()) setIsInputMode(false);
+          }}
+          placeholder="What needs to be done?"
+          className="w-full bg-transparent border-none text-[13px] text-white placeholder:text-[#666] focus:outline-none focus:ring-0 mb-2"
+          disabled={isCreating}
+        />
+        <div className="flex items-center gap-2">
+          <button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors">
+            Add
+          </button>
+          <button type="button" onClick={() => setIsInputMode(false)} className="text-[#8a8a8a] hover:text-white text-[12px] font-medium px-2 py-1.5 transition-colors">
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 border-b border-white/5 bg-[#191919]">
-      <div className="px-6 py-2">
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          if (!title.trim() || isCreating) return;
-          
-          setIsCreating(true);
-          api.post(`/projects/${projectId}/tasks`, {
-            title: title.trim(),
-            status: statusGroup
-          }).then(() => {
-            setTitle('');
-            mutateTasks();
-          }).catch(error => {
-            console.error('Failed to create task:', error);
-          }).finally(() => {
-            setIsCreating(false);
-          });
-        }} className="flex items-center gap-3 w-full">
-          <Plus size={16} className="text-[#8a8a8a]" />
-          <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={`+ Add task to ${STATUS_LABELS[statusGroup as Task['status']]}...`}
-              className="flex-1 bg-transparent border-none text-[13px] text-white placeholder:text-[#666] focus:outline-none focus:ring-0 py-1"
-              disabled={isCreating}
-            />
-        </form>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={() => setIsInputMode(true)}
+      className="w-full flex items-center gap-2 text-[#8a8a8a] hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors mt-1 text-[13px] font-medium shrink-0"
+    >
+      <Plus size={16} />
+      Add a card
+    </button>
   );
 }
 
-function TaskStatusGroup({
+function KanbanColumn({
   statusGroup,
   taskCount,
   children
@@ -381,21 +357,27 @@ function TaskStatusGroup({
     }
   });
 
+  const config = STATUS_CONFIG[statusGroup as keyof typeof STATUS_CONFIG];
+
   return (
-    <div ref={setNodeRef} className={`flex flex-col transition-colors ${isOver ? 'bg-white/[0.02]' : ''}`}>
-      <div className="sticky top-[45px] z-10 flex items-center gap-3 px-6 py-2.5 bg-[#252525] border-b border-white/5 shadow-sm group/header">
-        <div
-          className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
-          style={{ backgroundColor: STATUS_CONFIG[statusGroup]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
-        >
-          {taskCount}
+    <div ref={setNodeRef} className={`flex flex-col min-w-[320px] w-[320px] shrink-0 bg-[#252525] rounded-xl transition-colors duration-200 ${isOver ? 'bg-[#2a2a2a] ring-2 ring-blue-500/30' : ''} p-3 max-h-full`}>
+      <div className="flex items-center justify-between mb-4 px-1 shrink-0">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: config?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
+          />
+          <h2 className="text-[14px] font-bold text-white tracking-wide">
+            {STATUS_LABELS[statusGroup]} <span className="text-[#8a8a8a] ml-1 font-medium">{taskCount}</span>
+          </h2>
         </div>
-        <h2 className="text-[13px] font-semibold text-white tracking-wide" style={{ color: STATUS_CONFIG[statusGroup]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#ffffff' }}>
-          {STATUS_LABELS[statusGroup]}
-        </h2>
-        <div className="h-px flex-1 bg-white/5 ml-4 group-hover/header:bg-white/10 transition-colors" />
+        <button type="button" className="text-[#8a8a8a] hover:text-white transition-colors">
+           <MoreHorizontal size={18} />
+         </button>
       </div>
-      {children}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-2 custom-scrollbar">
+        {children}
+      </div>
     </div>
   );
 }
@@ -444,7 +426,15 @@ export default function ProjectPage() {
     'Stuck': tasks.filter(t => t.status === 'Stuck').sort((a, b) => a.position - b.position)
   };
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeTaskForOverlay = tasks.find(t => t.id === activeId);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
     
     if (!over) return;
@@ -727,29 +717,17 @@ export default function ProjectPage() {
         <div className="max-w-7xl mx-auto">
           
           {activeTab === 'tasks' ? (
-            <div className="bg-[#1f1f1f] border border-white/10 rounded-lg shadow-xl overflow-hidden flex flex-col">
-              
-              {/* Table Global Header */}
-              <div className="grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 border-b border-white/10 bg-[#2a2b2f] text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                <div className="px-6 py-3 border-r border-white/5">Task Name</div>
-                <div className="px-6 py-3 border-r border-white/5 text-center">Status</div>
-                <div className="px-6 py-3 border-r border-white/5 text-center">Priority</div>
-                <div className="px-6 py-3 border-r border-white/5">Assignee</div>
-                <div className="px-6 py-3 border-r border-white/5">Due Date</div>
-                <div className="px-6 py-3"></div>
-              </div>
-
-              {/* Table Body - Single Table with Sticky Groups */}
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <div className="flex flex-col bg-[#191919]">
+            <div className="h-full flex flex-col">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex gap-6 overflow-x-auto pb-4 h-full items-start custom-scrollbar">
                   {STATUS_ORDER.map((statusGroup) => {
                     const groupTasks = groupedTasks[statusGroup];
                     return (
-                      <TaskStatusGroup key={statusGroup} statusGroup={statusGroup} taskCount={groupTasks.length}>
-                        <SortableContext items={groupTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                          <div className="flex flex-col">
+                      <KanbanColumn key={statusGroup} statusGroup={statusGroup} taskCount={groupTasks.length}>
+                        <SortableContext items={groupTasks.map((t) => t.id)} strategy={rectSortingStrategy}>
+                          <div className="flex flex-col min-h-[10px]">
                             {groupTasks.map((task) => (
-                              <SortableTaskRow
+                              <KanbanCard
                                 key={task.id}
                                 task={task}
                                 members={members}
@@ -759,17 +737,25 @@ export default function ProjectPage() {
                                 openTaskDrawer={openTaskDrawer}
                               />
                             ))}
-                            <NewTaskRow 
-                              projectId={projectId} 
-                              statusGroup={statusGroup} 
-                              mutateTasks={mutateTasks} 
-                            />
                           </div>
                         </SortableContext>
-                      </TaskStatusGroup>
+                        <NewTaskButton 
+                          projectId={projectId} 
+                          statusGroup={statusGroup} 
+                          mutateTasks={mutateTasks} 
+                        />
+                      </KanbanColumn>
                     );
                   })}
                 </div>
+                <DragOverlay>
+                  {activeTaskForOverlay ? (
+                    <KanbanCardOverlay 
+                      task={activeTaskForOverlay} 
+                      members={members} 
+                    />
+                  ) : null}
+                </DragOverlay>
               </DndContext>
             </div>
           ) : activeTab === 'members' ? (
