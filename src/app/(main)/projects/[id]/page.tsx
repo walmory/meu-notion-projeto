@@ -598,46 +598,64 @@ export default function ProjectPage() {
       <div className="flex flex-col border-b border-white/10 shrink-0 bg-[#252525] w-full shadow-sm z-10 sticky top-0">
         <div className="flex items-center justify-between px-8 py-5">
           <div className="flex items-center gap-4">
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger className="outline-none focus:outline-none flex items-center gap-2 hover:bg-white/5 px-2 py-1 -ml-2 rounded-md transition-colors">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center shadow-sm" style={{ backgroundColor: project.color || '#3b82f6' }}>
-                  <span className="text-white text-xs font-bold">{project.name.charAt(0).toUpperCase()}</span>
-                </div>
-                <h1 className="text-2xl font-bold text-white tracking-tight flex items-center">
-                  <input
-                    value={project.name}
-                    onChange={(e) => {
-                      // Optimistic UI update (mutate local SWR data immediately)
-                      const newName = e.target.value;
-                      mutateTasks(); // trigger re-render if needed, though SWR handles projects in parent usually
+            <div className="flex items-center gap-1">
+              <div className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm" style={{ backgroundColor: project.color || '#3b82f6' }}>
+                <span className="text-white text-xs font-bold">{project.name.charAt(0).toUpperCase()}</span>
+              </div>
+              
+              <div className="relative group/title flex items-center">
+                <input
+                  defaultValue={project.name}
+                  onBlur={(e) => {
+                    const newName = e.target.value.trim();
+                    if (newName && newName !== project.name) {
                       api.patch(`/projects/${project.id}`, { name: newName }).then(() => {
-                        window.dispatchEvent(new Event('projectsChanged')); // Notify Sidebar
+                        window.dispatchEvent(new Event('projectsChanged'));
                       });
-                    }}
-                    className="bg-transparent border-none outline-none w-auto max-w-[300px] focus:ring-0"
-                    onClick={(e) => e.stopPropagation()} // Prevent dropdown from opening when clicking input
-                  />
-                </h1>
-                <ChevronDown size={18} className="text-[#8a8a8a] mt-1" />
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1 min-w-[220px] z-50">
-                  <div className="px-2 py-2 text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-wider">
-                    {project.teamspace_id ? 'Teamspace Projects' : 'My Projects'}
-                  </div>
-                  {projectsData?.filter((p) => p.teamspace_id === project.teamspace_id).map((p) => (
-                    <DropdownMenu.Item
-                      key={p.id}
-                      onClick={() => router.push(`/projects/${p.id}`)}
-                      className={`flex items-center gap-3 px-2 py-2 text-sm rounded cursor-pointer outline-none ${p.id === projectId ? 'bg-blue-500/10 text-blue-400 font-medium' : 'text-[#d4d4d4] hover:bg-white/5'}`}
-                    >
-                      <div className="w-4 h-4 rounded-sm shadow-sm" style={{ backgroundColor: p.color || '#3b82f6' }} />
-                      <span className="truncate">{p.name}</span>
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+                    } else {
+                      e.target.value = project.name;
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                    if (e.key === 'Escape') {
+                      e.currentTarget.value = project.name;
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="bg-transparent border border-transparent hover:bg-white/5 focus:bg-[#1f1f1f] focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 rounded-md px-2 py-1 outline-none text-2xl font-bold text-white tracking-tight w-auto transition-all text-ellipsis"
+                  style={{ width: `${Math.max(project.name.length + 2, 10)}ch` }}
+                  onChange={(e) => {
+                    e.target.style.width = `${Math.max(e.target.value.length + 2, 10)}ch`;
+                  }}
+                />
+              </div>
+
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger className="outline-none focus:outline-none p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-colors ml-1">
+                  <ChevronDown size={18} />
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1 min-w-[220px] z-50">
+                    <div className="px-2 py-2 text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-wider">
+                      {project.teamspace_id ? 'Teamspace Projects' : 'My Projects'}
+                    </div>
+                    {projectsData?.filter((p) => p.teamspace_id === project.teamspace_id).map((p) => (
+                      <DropdownMenu.Item
+                        key={p.id}
+                        onClick={() => router.push(`/projects/${p.id}`)}
+                        className={`flex items-center gap-3 px-2 py-2 text-sm rounded cursor-pointer outline-none ${p.id === projectId ? 'bg-blue-500/10 text-blue-400 font-medium' : 'text-[#d4d4d4] hover:bg-white/5'}`}
+                      >
+                        <div className="w-4 h-4 rounded-sm shadow-sm" style={{ backgroundColor: p.color || '#3b82f6' }} />
+                        <span className="truncate">{p.name}</span>
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            </div>
             
             <div className="h-5 w-px bg-white/10 ml-2" />
             <p className="text-[13px] font-medium text-[#8a8a8a] flex items-center gap-2 ml-2">
