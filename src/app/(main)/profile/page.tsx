@@ -174,7 +174,7 @@ export default function ProfilePage() {
     <div className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto">
       {/* Banner/Header */}
       <div className="w-full h-48 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 relative">
-        <div className="absolute top-6 left-8 sm:left-12 md:left-24">
+        <div className="absolute top-4 left-8 sm:left-12 md:left-24">
           <span className="text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
             Public Profile of {displayData?.name?.split(' ')[0] || 'User'}
           </span>

@@ -826,7 +826,7 @@ export function Sidebar({
       <aside 
         ref={sidebarRef}
         style={{ width: mounted ? `${sidebarWidth}px` : '256px' }}
-        className="flex h-screen flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0"
+        className="flex h-full flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0"
       >
         {/* Resize Handle */}
         <button 
@@ -838,7 +838,7 @@ export function Sidebar({
           <div className={`h-full w-[2px] transition-colors ${isResizing ? 'bg-[#4f4f4f]' : 'group-hover/resizer:bg-[#3f3f3f]'}`} />
         </button>
         
-        <div className="relative group/switcher m-2">
+        <div className="relative group/switcher m-2 pb-5">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button type="button" className="flex items-center justify-between p-2 hover:bg-[#2c2c2c] transition outline-none rounded-md cursor-pointer w-full border-none bg-transparent text-left">
