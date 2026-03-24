@@ -153,3 +153,125 @@ export const updatePassword = async (req, res) => {
     res.status(500).json({ error: 'Erro interno no servidor' });
   }
 };
+
+// --- Members and Connections ---
+
+export const getConnections = async (req, res) => {
+  const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT u.id, u.name, u.email, u.avatar_url
+       FROM users u
+       JOIN workspace_members wm ON u.id = wm.user_id
+       WHERE wm.workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ?
+         UNION
+         SELECT id FROM workspaces WHERE owner_id = ?
+       )
+       AND u.id != ?`,
+      [userId, userId, userId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar conexões:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
+export const breakConnection = async (req, res) => {
+  const currentUserId = (req.user && req.user.id) ? req.user.id : req.user_id;
+  const targetUserId = req.params.id;
+
+  try {
+    // Remove target user from all workspaces owned by current user
+    await pool.query(
+      `DELETE FROM workspace_members 
+       WHERE user_id = ? 
+         AND workspace_id IN (SELECT id FROM workspaces WHERE owner_id = ?)`,
+      [targetUserId, currentUserId]
+    );
+
+    // Remove current user from all workspaces owned by target user
+    await pool.query(
+      `DELETE FROM workspace_members 
+       WHERE user_id = ? 
+         AND workspace_id IN (SELECT id FROM workspaces WHERE owner_id = ?)`,
+      [currentUserId, targetUserId]
+    );
+
+    // Optionally delete any pending invitations between them
+    const [targetUsers] = await pool.query('SELECT email FROM users WHERE id = ? LIMIT 1', [targetUserId]);
+    const [currentUsers] = await pool.query('SELECT email FROM users WHERE id = ? LIMIT 1', [currentUserId]);
+    
+    if (targetUsers.length > 0 && currentUsers.length > 0) {
+      await pool.query(
+        `DELETE FROM workspace_invitations 
+         WHERE (invited_by = ? AND email = ?)
+            OR (invited_by = ? AND email = ?)`,
+        [currentUserId, targetUsers[0].email, targetUserId, currentUsers[0].email]
+      );
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Erro ao romper conexão:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
+export const getInvitations = async (req, res) => {
+  const email = String(req.user_email || '').trim().toLowerCase();
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT wi.id, wi.workspace_id, w.name as workspace_name, wi.status, u.name as inviter_name, u.avatar_url as inviter_avatar
+       FROM workspace_invitations wi
+       JOIN workspaces w ON wi.workspace_id = w.id
+       JOIN users u ON wi.invited_by = u.id
+       WHERE LOWER(wi.email) = ? AND wi.status IN ('pending', 'dismissed')`,
+      [email]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar convites:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
+export const updateInvitation = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // 'accepted', 'declined', 'dismissed'
+  const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
+
+  try {
+    const [invites] = await pool.query('SELECT * FROM workspace_invitations WHERE id = ?', [id]);
+    if (invites.length === 0) {
+      return res.status(404).json({ error: 'Convite não encontrado' });
+    }
+    const invite = invites[0];
+
+    if (status === 'accepted') {
+      // Add to workspace_members
+      const [existing] = await pool.query(
+        'SELECT * FROM workspace_members WHERE workspace_id = ? AND user_id = ?',
+        [invite.workspace_id, userId]
+      );
+      if (existing.length === 0) {
+        await pool.query(
+          'INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)',
+          [invite.workspace_id, userId]
+        );
+      }
+      await pool.query('DELETE FROM workspace_invitations WHERE id = ?', [id]);
+    } else if (status === 'declined') {
+      await pool.query('DELETE FROM workspace_invitations WHERE id = ?', [id]);
+    } else if (status === 'dismissed') {
+      await pool.query('UPDATE workspace_invitations SET status = ? WHERE id = ?', [status, id]);
+    }
+
+    res.json({ success: true, message: 'Convite atualizado' });
+  } catch (error) {
+    console.error('Erro ao atualizar convite:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};

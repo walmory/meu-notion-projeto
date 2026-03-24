@@ -25,7 +25,9 @@ import {
   PenSquare,
   UserPlus,
   MonitorSmartphone,
-  Briefcase
+  Briefcase,
+  Check,
+  X
 } from 'lucide-react';
 import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { Document } from '@/hooks/useDocuments';
@@ -126,6 +128,7 @@ import { Switch } from '@/components/ui/switch';
 import { WorkspaceInviteModal } from './WorkspaceInviteModal';
 import { WorkspaceSettingsModal } from './WorkspaceSettingsModal';
 import { WorkspaceCreateModal } from './WorkspaceCreateModal';
+import { InvitationModal } from './InvitationModal';
 import { useUser } from '@/contexts/UserContext';
 
 export function Sidebar({ 
@@ -175,6 +178,16 @@ export function Sidebar({
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
 
+  // Invitation Modal State
+  const [activeInvitation, setActiveInvitation] = useState<{
+    id: string;
+    workspace_id: string;
+    workspace_name: string;
+    status: string;
+    inviter_name: string;
+    inviter_avatar: string | null;
+  } | null>(null);
+
   const { data: workspacesData, isLoading: isWorkspacesLoading, mutate: mutateWorkspaces } = useSWR<Workspace[]>('/workspaces', fetcher);
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
   const hasValidSelectedWorkspace = selectedWorkspaceId ? workspaces.some((workspace) => workspace.id === selectedWorkspaceId) : false;
@@ -192,6 +205,15 @@ export function Sidebar({
     }
   );
   const hasPendingInvites = Number(pendingInvites?.count || 0) > 0;
+
+  const { data: globalInvites } = useSWR<{ id: string; status: string }[]>(
+    '/user/invitations',
+    async (url: string) => {
+      const response = await api.get(url, { headers: getAuthHeaders() });
+      return response.data;
+    }
+  );
+  const totalPendingInvites = globalInvites?.length || 0;
 
   useEffect(() => {
     if (isWorkspacesLoading || workspaces.length > 0 || isCreatingDefaultWorkspaceRef.current) {
@@ -455,11 +477,17 @@ export function Sidebar({
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
 
+    // Escutando convites em tempo real
+    socket.on('new-invitation', (invitation) => {
+      setActiveInvitation(invitation);
+    });
+
     return () => {
       socket.off('document:update-title');
       socket.off('document_moved');
       socket.off('document-updated');
       socket.off('document_updated');
+      socket.off('new-invitation');
       socket.disconnect();
       socketRef.current = null;
     };
@@ -1276,14 +1304,23 @@ export function Sidebar({
           </div>
         </div>
 
-        <div className="mt-auto border-t border-white/5 p-2 text-sm">
+        <div className="mt-auto border-t border-[#2c2c2c] p-2 text-sm">
           <SidebarItem 
             icon={<Trash size={16} className="text-[#a3a3a3]" />} 
             label="Trash" 
             onClick={() => setIsTrashOpen(true)}
           />
-          <SidebarItem icon={<Users size={16} className="text-[#a3a3a3]" />} label="Members" />
-          <SidebarItem icon={<Link size={16} className="text-[#a3a3a3]" />} label="Connections" onClick={() => router.push('/connections')} active={pathname === '/connections'} />
+          <SidebarItem 
+            icon={<Users size={16} className="text-[#a3a3a3]" />} 
+            label="Members & Connections" 
+            onClick={() => router.push('/settings/members')} 
+            active={pathname === '/settings/members'} 
+            rightElement={totalPendingInvites > 0 ? (
+              <span className="bg-[#2eaadc] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {totalPendingInvites}
+              </span>
+            ) : null}
+          />
         </div>
       </aside>
       
@@ -1324,6 +1361,11 @@ export function Sidebar({
           mutateWorkspaces();
           handleWorkspaceSwitch(newId);
         }}
+      />
+
+      <InvitationModal
+        invitation={activeInvitation}
+        onClose={() => setActiveInvitation(null)}
       />
 
       <Dialog
