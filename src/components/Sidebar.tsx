@@ -63,6 +63,13 @@ interface Teamspace {
   is_trash?: boolean | 0 | 1;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  owner_id: string;
+  color: string;
+}
+
 interface Workspace {
   id: string;
   name: string;
@@ -136,6 +143,7 @@ export function Sidebar({
   const [sharedExpanded, setSharedExpanded] = useState(true);
   const [privateExpanded, setPrivateExpanded] = useState(true);
   const [meetingsExpanded, setMeetingsExpanded] = useState(true);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
   
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [settingsTeamspace, setSettingsTeamspace] = useState<Teamspace | null>(null);
@@ -149,6 +157,9 @@ export function Sidebar({
   const [isWorkspaceInviteOpen, setIsWorkspaceInviteOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
@@ -225,6 +236,9 @@ export function Sidebar({
   }, [activeWorkspaceId]);
 
   const { data: teamspacesData, mutate: mutateTeamspaces } = useSWR<Teamspace[]>(activeWorkspaceId ? `/teamspaces?workspace_id=${activeWorkspaceId}` : null, fetcher);
+
+  const { data: projectsData, mutate: mutateProjects } = useSWR<Project[]>('/projects', fetcher);
+  const projects = projectsData || [];
   const teamspaces = useMemo(
     () => (
       Array.isArray(teamspacesData)
@@ -613,6 +627,26 @@ export function Sidebar({
       console.error('Failed to delete teamspace', error);
       alert('Failed to delete teamspace');
       mutateTeamspaces(previousTeamspaces, { revalidate: false }); // Rollback se der erro
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectName.trim() || isCreatingProject) return;
+
+    try {
+      setIsCreatingProject(true);
+      await api.post('/projects', {
+        name: newProjectName.trim(),
+        workspace_id: activeWorkspaceId
+      });
+      mutateProjects();
+      setNewProjectName('');
+      setIsCreateProjectOpen(false);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -1068,6 +1102,34 @@ export function Sidebar({
           </div>
 
           <div className="mt-4">
+            <DroppableSection 
+              id="section-projects"
+              title="Projects" 
+              expanded={projectsExpanded} 
+              onToggle={() => setProjectsExpanded(!projectsExpanded)}
+              onAdd={() => setIsCreateProjectOpen(true)}
+            />
+            <div className={`grid transition-all duration-200 ease-in-out ${projectsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
+              <div className="overflow-hidden space-y-0.5">
+                {projects.map((project: Project) => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => router.push(`/projects/${project.id}`)}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${pathname === `/projects/${project.id}` ? 'bg-[#2c2c2c] text-white' : 'hover:bg-[#2c2c2c] text-[#a3a3a3]'}`}
+                  >
+                    <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: project.color || '#3b82f6' }} />
+                    <span className="truncate text-[13px]">{project.name}</span>
+                  </button>
+                ))}
+                {projects.length === 0 && (
+                  <div className="px-6 py-1 text-xs text-gray-500">No projects yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
             <TeamspaceSectionDropZone
               isDragSuggestionActive={isDraggingPrivateDoc}
               showEmptyDropState={showEmptyTeamspaceDropCard}
@@ -1210,6 +1272,51 @@ export function Sidebar({
           handleWorkspaceSwitch(newId);
         }}
       />
+
+      <Dialog
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+      >
+        <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[425px]">
+          <form onSubmit={handleCreateProject}>
+            <DialogHeader>
+              <DialogTitle className="text-white">Create Project</DialogTitle>
+              <DialogDescription className="text-[#9b9b9b]">
+                Add a new project to organize your tasks.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <span className="text-sm font-medium text-white">Name</span>
+                <Input
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="e.g. Website Redesign..."
+                  className="bg-[#2c2c2c] border-white/5 text-white placeholder:text-[#9b9b9b]"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateProjectOpen(false)}
+                className="bg-transparent border-white/10 text-white hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!newProjectName.trim() || isCreatingProject}
+                className="bg-white text-black hover:bg-gray-200"
+              >
+                {isCreatingProject ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={isCreateTeamspaceOpen}

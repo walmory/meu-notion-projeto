@@ -11,6 +11,7 @@ import teamspaceRoutes from './routes/teamspaces.js';
 import documentRoutes from './routes/documents.js';
 import meetingRoutes from './routes/meetings.js';
 import uploadRoutes from './routes/upload.js';
+import projectRoutes from './routes/projects.js';
 import { initSocket } from './socket.js';
 
 import path from 'path';
@@ -47,6 +48,7 @@ app.use('/teamspaces', teamspaceRoutes);
 app.use('/documents', documentRoutes);
 app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
+app.use('/projects', projectRoutes);
 
 const httpServer = createServer(app);
 
