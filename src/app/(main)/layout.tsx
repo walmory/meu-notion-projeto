@@ -54,7 +54,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />
-        <div className="flex-1 flex flex-col h-full overflow-y-auto pt-6">
+        <div className="flex-1 flex flex-col h-full overflow-y-auto">
           {children}
         </div>
         <SidePeekDrawer />
