@@ -14,7 +14,11 @@ import {
   User as UserIcon,
   ChevronDown,
   Flag,
-  X
+  X,
+  ArrowLeft,
+  MessageSquare,
+  Paperclip,
+  AlignLeft
 } from 'lucide-react';
 import useSWR from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
@@ -598,6 +602,14 @@ export default function ProjectPage() {
       <div className="flex flex-col border-b border-white/10 shrink-0 bg-[#252525] w-full shadow-sm z-10 sticky top-0">
         <div className="flex items-center justify-between px-8 py-5">
           <div className="flex items-center gap-4">
+            <button 
+              type="button"
+              onClick={() => router.push('/projects')}
+              className="p-1.5 rounded-md text-[#8a8a8a] hover:text-white hover:bg-white/10 transition-colors mr-2"
+              title="Back to Projects"
+            >
+              <ArrowLeft size={20} />
+            </button>
             <div className="flex items-center gap-1">
               <div className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm" style={{ backgroundColor: project.color || '#3b82f6' }}>
                 <span className="text-white text-xs font-bold">{project.name.charAt(0).toUpperCase()}</span>
