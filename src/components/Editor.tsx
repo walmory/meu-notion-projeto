@@ -1083,7 +1083,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
                 value={title}
                 onChange={handleTitleChange}
                 placeholder="Untitled"
-                autoFocus={!normalizeEditorTitle(document.title).trim()}
+                autoFocus={true}
                 className="mb-8 w-full resize-none appearance-none overflow-hidden bg-transparent text-4xl md:text-5xl font-bold text-white outline-none placeholder-[#3f3f3f]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

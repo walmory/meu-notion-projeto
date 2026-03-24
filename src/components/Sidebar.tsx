@@ -175,12 +175,6 @@ export function Sidebar({
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
 
-  // Modal de criação de documentos/pastas
-  const [isCreateDocModalOpen, setIsCreateDocModalOpen] = useState(false);
-  const [createDocType, setCreateDocType] = useState<'page' | 'database'>('page');
-  const [createDocTitle, setCreateDocTitle] = useState('');
-  const [createDocParams, setCreateDocParams] = useState<{ isShared: boolean, teamspaceId?: string | null, parentId?: string | null } | null>(null);
-  
   const { data: workspacesData, isLoading: isWorkspacesLoading, mutate: mutateWorkspaces } = useSWR<Workspace[]>('/workspaces', fetcher);
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
   const hasValidSelectedWorkspace = selectedWorkspaceId ? workspaces.some((workspace) => workspace.id === selectedWorkspaceId) : false;
@@ -359,32 +353,26 @@ export function Sidebar({
     }
   }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
 
-  const handleCreatePage = useCallback((isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
-    setCreateDocType('page');
-    setCreateDocParams({ isShared, teamspaceId, parentId });
-    setCreateDocTitle('');
-    setIsCreateDocModalOpen(true);
-  }, []);
-
-  const handleConfirmCreateDoc = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createDocParams) return;
-    
-    setIsCreateDocModalOpen(false);
-    
-    const { isShared, teamspaceId, parentId } = createDocParams;
-    const finalTitle = createDocTitle.trim() || 'Untitled';
-    
+  const handleCreatePage = useCallback(async (isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
     try {
-      await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { 
-        title: finalTitle, 
-        type: createDocType
+      const newDoc = await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { 
+        title: '', // Título vazio, que será tratado como 'Untitled' no backend/frontend
+        type: 'page'
       });
+      
+      // Expande a pasta pai automaticamente se existir
+      if (parentId) {
+        setExpandedFolders((prev) => {
+          const next = new Set(prev);
+          next.add(parentId);
+          return next;
+        });
+      }
     } catch (error) {
       console.error('Falha ao criar documento', error);
       toast.error('Failed to create item');
     }
-  };
+  }, [onCreateDocument]);
 
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
@@ -1387,58 +1375,6 @@ export function Sidebar({
                 className="bg-[#2383e2] hover:bg-[#2383e2]/90 text-white"
               >
                 {isCreatingTeamspace ? 'Creating...' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog
-        open={isCreateDocModalOpen}
-        onOpenChange={(open) => {
-          setIsCreateDocModalOpen(open);
-          if (!open) {
-            setCreateDocTitle('');
-            setCreateDocParams(null);
-          }
-        }}
-      >
-        <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[425px]">
-          <form onSubmit={handleConfirmCreateDoc}>
-            <DialogHeader>
-              <DialogTitle className="text-white text-lg leading-tight flex items-center gap-2">
-                New Page
-              </DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 mt-2">
-              <div className="grid gap-2">
-                <Input
-                  value={createDocTitle}
-                  onChange={(e) => setCreateDocTitle(e.target.value)}
-                  placeholder="Page Title"
-                  className="bg-[#252525] border-[#2c2c2c] text-white focus-visible:ring-1 focus-visible:ring-white/20 h-9 text-sm"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <DialogFooter className="border-t border-[#2c2c2c] pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setIsCreateDocModalOpen(false);
-                  setCreateDocTitle('');
-                  setCreateDocParams(null);
-                }}
-                className="bg-transparent border-[#3f3f3f] text-[#d4d4d4] hover:bg-[#2c2c2c] hover:text-white"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-[#2383e2] hover:bg-[#2383e2]/90 text-white"
-              >
-                Create
               </Button>
             </DialogFooter>
           </form>
