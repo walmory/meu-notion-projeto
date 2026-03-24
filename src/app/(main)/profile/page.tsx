@@ -171,9 +171,9 @@ export default function ProfilePage() {
   const initial = displayData?.name ? displayData.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0 bg-[#191919]">
       {/* Banner/Header */}
-      <div className="w-full h-48 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 px-8 sm:px-12 md:px-24">
+      <div className="w-full h-44 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 pt-10 px-8 sm:px-12 md:px-24">
         <div>
           <span className="text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
             Public Profile of {displayData?.name?.split(' ')[0] || 'User'}
@@ -181,10 +181,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-[1000px] w-full mx-auto px-6 sm:px-10 md:px-16 relative pb-24">
+      <div className="max-w-4xl w-full mx-auto px-8 relative pb-24">
         {/* Avatar Section */}
-        <div className="relative mt-[-64px] mb-4 sm:mb-6 flex items-end">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0 z-10">
+        <div className="-mt-16 relative z-10 mb-4 sm:mb-6 flex items-end">
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
             {displayData?.avatar_url ? (
               <img 
                 src={displayData.avatar_url} 
@@ -198,10 +198,10 @@ export default function ProfilePage() {
         </div>
 
         {/* Layout Integrado: View (Esquerda) e Edit (Direita/Abaixo) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-2">
+        <div className="flex flex-col md:flex-row gap-10 lg:gap-16 items-start mt-2">
           
           {/* Coluna da Esquerda: Info e Activity */}
-          <div className="w-full">
+          <div className="w-full md:w-[40%] xl:w-[35%] shrink-0">
             <div className="mb-10">
               <h1 className="text-3xl font-bold text-white mb-2 leading-tight">
                 {displayData?.name || 'User'}
@@ -254,8 +254,11 @@ export default function ProfilePage() {
             </section>
           </div>
 
+          {/* Divisor Vertical (Apenas Desktop) */}
+          <div className="hidden md:block w-px bg-white/5 self-stretch" />
+
           {/* Coluna da Direita: Settings / Forms */}
-          <div className="w-full space-y-12">
+          <div className="w-full md:flex-1 space-y-12">
             
             {/* Profile Form */}
             <section>

@@ -14,7 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <SidePeekProvider>
-      <div className="flex flex-row h-screen w-full bg-background text-white overflow-hidden">
+      <div className="flex flex-row h-screen w-full bg-background text-white">
         <Sidebar 
           documents={documents || []}
           selectedDocId={documentId}
