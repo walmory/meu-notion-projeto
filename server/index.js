@@ -12,6 +12,7 @@ import documentRoutes from './routes/documents.js';
 import meetingRoutes from './routes/meetings.js';
 import uploadRoutes from './routes/upload.js';
 import projectRoutes from './routes/projects.js';
+import taskRoutes from './routes/tasks.js';
 import { initSocket } from './socket.js';
 
 import path from 'path';
@@ -49,6 +50,7 @@ app.use('/documents', documentRoutes);
 app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/projects', projectRoutes);
+app.use('/tasks', taskRoutes);
 
 const httpServer = createServer(app);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Plus, 
@@ -16,9 +16,6 @@ import {
   Flag,
   X,
   ArrowLeft,
-  MessageSquare,
-  Paperclip,
-  AlignLeft
 } from 'lucide-react';
 import useSWR from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
@@ -30,12 +27,12 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
-  DragEndEvent
+  type DragEndEvent
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -99,6 +96,10 @@ const STATUS_LABELS: Record<Task['status'], string> = {
   'Done': 'Done',
   'Stuck': 'Stuck'
 };
+
+const STATUS_ORDER: Task['status'][] = ['To Do', 'In Progress', 'Done', 'Stuck'];
+
+const getStatusDropId = (status: Task['status']) => `status:${status}`;
 
 interface SortableTaskRowProps {
   task: Task;
@@ -363,6 +364,42 @@ function NewTaskRow({ projectId, statusGroup, mutateTasks }: NewTaskRowProps) {
   );
 }
 
+function TaskStatusGroup({
+  statusGroup,
+  taskCount,
+  children
+}: {
+  statusGroup: Task['status'];
+  taskCount: number;
+  children: ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: getStatusDropId(statusGroup),
+    data: {
+      type: 'status-group',
+      status: statusGroup
+    }
+  });
+
+  return (
+    <div ref={setNodeRef} className={`flex flex-col transition-colors ${isOver ? 'bg-white/[0.02]' : ''}`}>
+      <div className="sticky top-[45px] z-10 flex items-center gap-3 px-6 py-2.5 bg-[#252525] border-b border-white/5 shadow-sm group/header">
+        <div
+          className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
+          style={{ backgroundColor: STATUS_CONFIG[statusGroup]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
+        >
+          {taskCount}
+        </div>
+        <h2 className="text-[13px] font-semibold text-white tracking-wide" style={{ color: STATUS_CONFIG[statusGroup]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#ffffff' }}>
+          {STATUS_LABELS[statusGroup]}
+        </h2>
+        <div className="h-px flex-1 bg-white/5 ml-4 group-hover/header:bg-white/10 transition-colors" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -400,8 +437,6 @@ export default function ProjectPage() {
   const { data: tasksData, mutate: mutateTasks } = useSWR<Task[]>(`/projects/${projectId}/tasks`, fetcher);
   const tasks = tasksData || [];
 
-  // Group tasks by status with strict ordering
-  const STATUS_ORDER: Task['status'][] = ['To Do', 'In Progress', 'Done', 'Stuck'];
   const groupedTasks = {
     'To Do': tasks.filter(t => t.status === 'To Do').sort((a, b) => a.position - b.position),
     'In Progress': tasks.filter(t => t.status === 'In Progress').sort((a, b) => a.position - b.position),
@@ -414,73 +449,45 @@ export default function ProjectPage() {
     
     if (!over) return;
 
-    if (active.id !== over.id) {
-      const activeId = active.id as string;
-      const overId = over.id as string;
-      
-      const activeTask = tasks.find((t) => t.id === activeId);
-      const overTask = tasks.find((t) => t.id === overId);
-      
-      if (!activeTask || !overTask) return;
+    const activeId = active.id as string;
+    const activeTask = tasks.find((task) => task.id === activeId);
 
-      const activeStatus = activeTask.status;
-      const overStatus = overTask.status;
+    if (!activeTask) return;
 
-      // Optimistic update for UI
-      mutateTasks((current = []) => {
-        const newTasks = [...current];
-        const activeIndex = newTasks.findIndex((t) => t.id === activeId);
-        const overIndex = newTasks.findIndex((t) => t.id === overId);
-        
-        const [movedTask] = newTasks.splice(activeIndex, 1);
-        movedTask.status = overStatus; // Update status if moved to different group
-        newTasks.splice(overIndex, 0, movedTask);
-        
-        // Reassign positions for the affected group(s)
-        const updatePositions = (status: Task['status']) => {
-          const groupTasks = newTasks.filter((t) => t.status === status);
-          groupTasks.forEach((t, idx) => {
-            const tIndex = newTasks.findIndex((nt) => nt.id === t.id);
-            newTasks[tIndex].position = idx;
-          });
-        };
-        
-        updatePositions(activeStatus);
-        if (activeStatus !== overStatus) updatePositions(overStatus);
-        
-        return newTasks;
-      }, { revalidate: false });
+    const overTask = tasks.find((task) => task.id === String(over.id));
+    const destinationStatus =
+      over.data.current?.type === 'status-group'
+        ? over.data.current.status as Task['status']
+        : overTask?.status;
 
-      // Calculate new position
-      const overGroupTasks = tasks.filter((t) => t.status === overStatus).sort((a, b) => a.position - b.position);
-      const overIndexInGroup = overGroupTasks.findIndex((t) => t.id === overId);
-      let newPosition = 0;
+    if (!destinationStatus || destinationStatus === activeTask.status) return;
 
-      if (overGroupTasks.length > 0) {
-         if (activeStatus === overStatus) {
-            // Same group reorder
-            const activeIndexInGroup = overGroupTasks.findIndex((t) => t.id === activeId);
-            if (activeIndexInGroup < overIndexInGroup) {
-               newPosition = overTask.position; // Moving down
-            } else {
-               newPosition = overIndexInGroup === 0 ? overTask.position - 1 : overTask.position; // Moving up
-            }
-         } else {
-            // Different group
-            newPosition = overTask.position;
-         }
-      }
+    const destinationTasks = tasks.filter(
+      (task) => task.status === destinationStatus && task.id !== activeTask.id
+    );
+    const nextPosition = destinationTasks.length > 0
+      ? Math.max(...destinationTasks.map((task) => task.position ?? 0)) + 1
+      : 0;
+    const previousTasks = tasks;
 
-      try {
-        await api.patch(`/projects/tasks/${activeId}`, { 
-          status: overStatus,
-          position: newPosition 
-        });
-        mutateTasks();
-      } catch (error) {
-        console.error('Failed to update task position:', error);
-        mutateTasks(); // Revert on failure
-      }
+    mutateTasks(
+      (current = []) => current.map((task) => (
+        task.id === activeId
+          ? { ...task, status: destinationStatus, position: nextPosition }
+          : task
+      )),
+      { revalidate: false }
+    );
+
+    try {
+      await api.patch(`/tasks/${activeId}`, {
+        status: destinationStatus,
+        position: nextPosition
+      });
+      await mutateTasks();
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      await mutateTasks(previousTasks, { revalidate: false });
     }
   };
 
@@ -540,7 +547,7 @@ export default function ProjectPage() {
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
       mutateTasks((current = []) => current.map((t) => t.id === taskId ? { ...t, ...updates } : t), { revalidate: false });
-      await api.patch(`/projects/tasks/${taskId}`, updates);
+      await api.patch(`/tasks/${taskId}`, updates);
       mutateTasks();
     } catch (error) {
       console.error('Failed to update task:', error);
@@ -738,46 +745,28 @@ export default function ProjectPage() {
                   {STATUS_ORDER.map((statusGroup) => {
                     const groupTasks = groupedTasks[statusGroup];
                     return (
-                    <div key={statusGroup} className="flex flex-col">
-                    
-                    {/* Group Sticky Header */}
-                    <div className="sticky top-[45px] z-10 flex items-center gap-3 px-6 py-2.5 bg-[#252525] border-b border-white/5 shadow-sm group/header">
-                      <div 
-                        className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold text-white shadow-sm" 
-                        style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
-                      >
-                        {groupTasks.length}
-                      </div>
-                      <h2 className="text-[13px] font-semibold text-white tracking-wide" style={{ color: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#ffffff' }}>
-                        {STATUS_LABELS[statusGroup as Task['status']]}
-                      </h2>
-                      <div className="h-px flex-1 bg-white/5 ml-4 group-hover/header:bg-white/10 transition-colors" />
-                    </div>
-
-                      {/* Group Tasks */}
-                      <SortableContext items={groupTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                        <div className="flex flex-col">
-                          {groupTasks.map((task) => (
-                            <SortableTaskRow
-                              key={task.id}
-                              task={task}
-                              members={members}
-                              statusGroup={statusGroup}
-                              handleUpdateTask={handleUpdateTask}
-                              handleDeleteTask={handleDeleteTask}
-                              openTaskDrawer={openTaskDrawer}
+                      <TaskStatusGroup key={statusGroup} statusGroup={statusGroup} taskCount={groupTasks.length}>
+                        <SortableContext items={groupTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                          <div className="flex flex-col">
+                            {groupTasks.map((task) => (
+                              <SortableTaskRow
+                                key={task.id}
+                                task={task}
+                                members={members}
+                                statusGroup={statusGroup}
+                                handleUpdateTask={handleUpdateTask}
+                                handleDeleteTask={handleDeleteTask}
+                                openTaskDrawer={openTaskDrawer}
+                              />
+                            ))}
+                            <NewTaskRow 
+                              projectId={projectId} 
+                              statusGroup={statusGroup} 
+                              mutateTasks={mutateTasks} 
                             />
-                          ))}
-                          
-                          {/* Add New Task Row for Group */}
-                          <NewTaskRow 
-                            projectId={projectId} 
-                            statusGroup={statusGroup} 
-                            mutateTasks={mutateTasks} 
-                          />
-                        </div>
-                      </SortableContext>
-                    </div>
+                          </div>
+                        </SortableContext>
+                      </TaskStatusGroup>
                     );
                   })}
                 </div>

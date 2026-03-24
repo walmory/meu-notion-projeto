@@ -8,6 +8,52 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+export const updateTask = async (req, res) => {
+  try {
+    const taskId = req.params.taskId || req.params.id;
+    const { title, status, assigned_to, due_date, position, priority, description } = req.body;
+    
+    const updateFields = [];
+    const values = [];
+    
+    if (title !== undefined) { updateFields.push('title = ?'); values.push(title); }
+    if (status !== undefined) { updateFields.push('status = ?'); values.push(status); }
+    if (assigned_to !== undefined) { updateFields.push('assigned_to = ?'); values.push(assigned_to); }
+    if (due_date !== undefined) { updateFields.push('due_date = ?'); values.push(due_date); }
+    if (position !== undefined) { updateFields.push('position = ?'); values.push(position); }
+    if (priority !== undefined) { updateFields.push('priority = ?'); values.push(priority); }
+    if (description !== undefined) { updateFields.push('description = ?'); values.push(description); }
+    
+    if (updateFields.length > 0) {
+      values.push(taskId);
+      await pool.query(
+        `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ?`,
+        values
+      );
+    }
+    
+    const [updatedTask] = await pool.query(`
+      SELECT t.*, p.workspace_id 
+      FROM tasks t 
+      JOIN projects p ON t.project_id = p.id 
+      WHERE t.id = ?
+    `, [taskId]);
+
+    if (updatedTask.length === 0) {
+      return res.status(404).json({ error: 'Task não encontrada' });
+    }
+    
+    if (updatedTask[0].workspace_id) {
+      emitToWorkspace(updatedTask[0].workspace_id, 'task-updated', updatedTask[0]);
+    }
+    
+    res.json(updatedTask[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar task' });
+  }
+};
+
 // Get all projects for a user
 router.get('/', async (req, res) => {
   try {
@@ -88,47 +134,7 @@ router.post('/:id/tasks', async (req, res) => {
   }
 });
 
-// Update a task (e.g. status)
-router.patch('/tasks/:taskId', async (req, res) => {
-  try {
-    const { title, status, assigned_to, due_date, position, priority, description } = req.body;
-    
-    let updateFields = [];
-    let values = [];
-    
-    if (title !== undefined) { updateFields.push('title = ?'); values.push(title); }
-    if (status !== undefined) { updateFields.push('status = ?'); values.push(status); }
-    if (assigned_to !== undefined) { updateFields.push('assigned_to = ?'); values.push(assigned_to); }
-    if (due_date !== undefined) { updateFields.push('due_date = ?'); values.push(due_date); }
-    if (position !== undefined) { updateFields.push('position = ?'); values.push(position); }
-    if (priority !== undefined) { updateFields.push('priority = ?'); values.push(priority); }
-    if (description !== undefined) { updateFields.push('description = ?'); values.push(description); }
-    
-    if (updateFields.length > 0) {
-      values.push(req.params.taskId);
-      await pool.query(
-        `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ?`,
-        values
-      );
-    }
-    
-    const [updatedTask] = await pool.query(`
-      SELECT t.*, p.workspace_id 
-      FROM tasks t 
-      JOIN projects p ON t.project_id = p.id 
-      WHERE t.id = ?
-    `, [req.params.taskId]);
-    
-    if (updatedTask.length > 0 && updatedTask[0].workspace_id) {
-      emitToWorkspace(updatedTask[0].workspace_id, 'task-updated', updatedTask[0]);
-    }
-    
-    res.json(updatedTask[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao atualizar task' });
-  }
-});
+router.patch('/tasks/:taskId', updateTask);
 
 // Update a project
 router.patch('/:id', async (req, res) => {
