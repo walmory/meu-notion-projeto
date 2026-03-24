@@ -13,12 +13,18 @@ router.use(authMiddleware);
 router.get('/', async (req, res) => {
   try {
     const workspaceId = req.query.workspace_id || req.headers['x-workspace-id'];
+    const teamspaceId = req.query.teamspace_id;
     let query = 'SELECT * FROM projects WHERE owner_id = ?';
     let params = [req.user.id];
     
     if (workspaceId) {
       query += ' AND workspace_id = ?';
       params.push(workspaceId);
+    }
+
+    if (teamspaceId) {
+      query += ' AND teamspace_id = ?';
+      params.push(teamspaceId);
     }
     
     query += ' ORDER BY created_at DESC';
@@ -34,12 +40,12 @@ router.get('/', async (req, res) => {
 // Create a project
 router.post('/', async (req, res) => {
   try {
-    const { name, color, workspace_id, id } = req.body;
+    const { name, color, workspace_id, teamspace_id, id } = req.body;
     const projectId = id || crypto.randomUUID();
     
     await pool.query(
-      'INSERT INTO projects (id, name, owner_id, workspace_id, color) VALUES (?, ?, ?, ?, ?)',
-      [projectId, name, req.user.id, workspace_id || null, color || 'blue']
+      'INSERT INTO projects (id, name, owner_id, workspace_id, teamspace_id, color) VALUES (?, ?, ?, ?, ?, ?)',
+      [projectId, name, req.user.id, workspace_id || null, teamspace_id || null, color || 'blue']
     );
     
     const [newProject] = await pool.query('SELECT * FROM projects WHERE id = ?', [projectId]);
@@ -67,12 +73,12 @@ router.get('/:id/tasks', async (req, res) => {
 // Create a task
 router.post('/:id/tasks', async (req, res) => {
   try {
-    const { title, status, assigned_to, due_date, id } = req.body;
+    const { title, status, assigned_to, due_date, priority, id } = req.body;
     const taskId = id || crypto.randomUUID();
     
     await pool.query(
-      'INSERT INTO tasks (id, project_id, title, status, assigned_to, due_date) VALUES (?, ?, ?, ?, ?, ?)',
-      [taskId, req.params.id, title, status || 'To Do', assigned_to || null, due_date || null]
+      'INSERT INTO tasks (id, project_id, title, status, assigned_to, due_date, priority) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [taskId, req.params.id, title, status || 'To Do', assigned_to || null, due_date || null, priority || 'Normal']
     );
     
     const [newTask] = await pool.query('SELECT * FROM tasks WHERE id = ?', [taskId]);
@@ -86,7 +92,7 @@ router.post('/:id/tasks', async (req, res) => {
 // Update a task (e.g. status)
 router.patch('/tasks/:taskId', async (req, res) => {
   try {
-    const { title, status, assigned_to, due_date, position } = req.body;
+    const { title, status, assigned_to, due_date, position, priority } = req.body;
     
     let updateFields = [];
     let values = [];
@@ -96,6 +102,7 @@ router.patch('/tasks/:taskId', async (req, res) => {
     if (assigned_to !== undefined) { updateFields.push('assigned_to = ?'); values.push(assigned_to); }
     if (due_date !== undefined) { updateFields.push('due_date = ?'); values.push(due_date); }
     if (position !== undefined) { updateFields.push('position = ?'); values.push(position); }
+    if (priority !== undefined) { updateFields.push('priority = ?'); values.push(priority); }
     
     if (updateFields.length > 0) {
       values.push(req.params.taskId);

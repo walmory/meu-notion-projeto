@@ -12,7 +12,8 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   User as UserIcon,
-  ChevronDown
+  ChevronDown,
+  Flag
 } from 'lucide-react';
 import useSWR from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
@@ -24,6 +25,7 @@ interface Task {
   project_id: string;
   title: string;
   status: 'To Do' | 'In Progress' | 'Done' | 'Stuck';
+  priority: 'High' | 'Medium' | 'Low' | 'Normal';
   assigned_to: string | null;
   due_date: string | null;
   position: number;
@@ -34,7 +36,15 @@ interface Project {
   name: string;
   owner_id: string;
   workspace_id: string;
+  teamspace_id?: string;
   color: string;
+}
+
+interface TeamspaceMember {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
 }
 
 const fetcher = async (url: string) => {
@@ -44,10 +54,17 @@ const fetcher = async (url: string) => {
 };
 
 const STATUS_CONFIG = {
-  'To Do': { color: 'bg-[#4b5563] text-white', icon: Circle },
-  'In Progress': { color: 'bg-[#eab308] text-white', icon: Clock },
-  'Done': { color: 'bg-[#22c55e] text-white', icon: CheckCircle2 },
-  'Stuck': { color: 'bg-[#ef4444] text-white', icon: AlertCircle },
+  'To Do': { color: 'bg-[#e2e2e2] text-[#333333]', icon: Circle },
+  'In Progress': { color: 'bg-[#fdab3d] text-white', icon: Clock },
+  'Done': { color: 'bg-[#00c875] text-white', icon: CheckCircle2 },
+  'Stuck': { color: 'bg-[#e2445c] text-white', icon: AlertCircle },
+};
+
+const PRIORITY_CONFIG = {
+  'High': { color: 'text-[#e2445c]', bg: 'bg-[#e2445c]/10' },
+  'Medium': { color: 'text-[#fdab3d]', bg: 'bg-[#fdab3d]/10' },
+  'Low': { color: 'text-[#00c875]', bg: 'bg-[#00c875]/10' },
+  'Normal': { color: 'text-[#a3a3a3]', bg: 'bg-[#a3a3a3]/10' },
 };
 
 export default function ProjectPage() {
@@ -58,6 +75,7 @@ export default function ProjectPage() {
   const [userName, setUserName] = useState('User');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'members'>('tasks');
 
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
@@ -79,6 +97,9 @@ export default function ProjectPage() {
   
   const { data: tasksData, mutate: mutateTasks } = useSWR<Task[]>(`/projects/${projectId}/tasks`, fetcher);
   const tasks = tasksData || [];
+
+  const { data: membersData } = useSWR<TeamspaceMember[]>(activeWorkspaceId ? `/workspaces/members?workspace_id=${activeWorkspaceId}` : null, fetcher);
+  const members = membersData || [];
 
   useEffect(() => {
     const user = getUserFromToken();
@@ -129,14 +150,13 @@ export default function ProjectPage() {
     }
   };
 
-  const handleUpdateStatus = async (taskId: string, newStatus: string) => {
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      // Optimistic update
-      mutateTasks((current = []) => current.map(t => t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t), { revalidate: false });
-      await api.patch(`/projects/tasks/${taskId}`, { status: newStatus });
+      mutateTasks((current = []) => current.map(t => t.id === taskId ? { ...t, ...updates } : t), { revalidate: false });
+      await api.patch(`/projects/tasks/${taskId}`, updates);
       mutateTasks();
     } catch (error) {
-      console.error('Failed to update task status:', error);
+      console.error('Failed to update task:', error);
     }
   };
 
@@ -157,25 +177,72 @@ export default function ProjectPage() {
   return (
     <div className="flex flex-col h-full bg-[#191919] text-[#d4d4d4] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: project.color || '#3b82f6' }} />
-            {project.name}
-          </h1>
-          <p className="text-sm text-[#a3a3a3]">Tasks for {project.name} — {userName}&apos;s Workspace</p>
+      <div className="flex flex-col border-b border-white/5 shrink-0 bg-[#1f1f1f]">
+        <div className="flex items-center justify-between px-8 py-4">
+          <div className="flex items-center gap-4">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger className="outline-none focus:outline-none flex items-center gap-2 hover:bg-white/5 px-2 py-1 -ml-2 rounded-md transition-colors">
+                <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: project.color || '#3b82f6' }} />
+                <h1 className="text-xl font-semibold text-white">{project.name}</h1>
+                <ChevronDown size={16} className="text-[#a3a3a3]" />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[200px] z-50">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-[#a3a3a3] uppercase tracking-wider">
+                    {project.teamspace_id ? 'Teamspace Projects' : 'My Projects'}
+                  </div>
+                  {projectsData?.filter(p => p.teamspace_id === project.teamspace_id).map(p => (
+                    <DropdownMenu.Item
+                      key={p.id}
+                      onClick={() => router.push(`/projects/${p.id}`)}
+                      className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded cursor-pointer outline-none ${p.id === projectId ? 'bg-white/10 text-white' : 'text-[#d4d4d4] hover:bg-white/5'}`}
+                    >
+                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: p.color || '#3b82f6' }} />
+                      <span className="truncate">{p.name}</span>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+            
+            <div className="h-4 w-px bg-white/10" />
+            <p className="text-sm text-[#a3a3a3] flex items-center gap-2">
+              <UserIcon size={14} />
+              {userName}&apos;s Workspace
+            </p>
+          </div>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex items-center gap-6 px-8 mt-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('tasks')}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tasks' ? 'border-blue-500 text-white' : 'border-transparent text-[#a3a3a3] hover:text-[#d4d4d4]'}`}
+          >
+            Tasks
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('members')}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'members' ? 'border-blue-500 text-white' : 'border-transparent text-[#a3a3a3] hover:text-[#d4d4d4]'}`}
+          >
+            Members
+          </button>
         </div>
       </div>
 
-      {/* Task Board */}
+      {/* Content */}
       <div className="flex-1 overflow-auto p-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           
-          <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden">
-            {/* Table Header */}
-            <div className="grid grid-cols-[minmax(300px,1fr)_150px_150px_150px_50px] gap-4 px-6 py-3 border-b border-white/5 bg-[#252525] text-xs font-semibold text-[#a3a3a3] uppercase tracking-wider">
+          {activeTab === 'tasks' ? (
+            <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden">
+              {/* Table Header */}
+            <div className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-3 border-b border-white/5 bg-[#2a2b2f] text-[11px] font-semibold text-[#a3a3a3] uppercase tracking-wider">
               <div>Task Name</div>
-              <div>Status</div>
+              <div className="text-center">Status</div>
+              <div className="text-center">Priority</div>
               <div>Assignee</div>
               <div>Due Date</div>
               <div></div>
@@ -184,7 +251,7 @@ export default function ProjectPage() {
             {/* Table Body */}
             <div className="divide-y divide-white/5">
               {tasks.map(task => (
-                <div key={task.id} className="grid grid-cols-[minmax(300px,1fr)_150px_150px_150px_50px] gap-4 px-6 py-3 items-center hover:bg-white/[0.02] transition-colors group">
+                <div key={task.id} className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-2 items-center hover:bg-white/[0.02] transition-colors group">
                   
                   {/* Title */}
                   <div className="font-medium text-white truncate pr-4">
@@ -192,12 +259,11 @@ export default function ProjectPage() {
                   </div>
 
                   {/* Status Badge with Dropdown */}
-                  <div>
+                  <div className="h-full flex items-center">
                     <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
-                        <div className={`flex items-center justify-between w-full px-3 py-1.5 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${STATUS_CONFIG[task.status]?.color || 'bg-gray-500 text-white'}`}>
+                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                        <div className={`flex items-center justify-center w-full h-full min-h-[32px] px-2 rounded-sm text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${STATUS_CONFIG[task.status]?.color || 'bg-gray-500 text-white'}`}>
                           <span>{task.status}</span>
-                          <ChevronDown size={14} className="opacity-50" />
                         </div>
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Portal>
@@ -205,7 +271,7 @@ export default function ProjectPage() {
                           {Object.entries(STATUS_CONFIG).map(([statusName, config]) => (
                             <DropdownMenu.Item
                               key={statusName}
-                              onClick={() => handleUpdateStatus(task.id, statusName)}
+                              onClick={() => handleUpdateTask(task.id, { status: statusName as Task['status'] })}
                               className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
                             >
                               <config.icon size={14} className={config.color.replace('bg-', 'text-').split(' ')[0]} />
@@ -217,12 +283,67 @@ export default function ProjectPage() {
                     </DropdownMenu.Root>
                   </div>
 
+                  {/* Priority Badge with Dropdown */}
+                  <div className="h-full flex items-center">
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                        <div className={`flex items-center justify-center gap-1.5 w-full h-full min-h-[32px] px-2 rounded-sm text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
+                          <Flag size={12} className={PRIORITY_CONFIG[task.priority || 'Normal']?.color} />
+                          <span>{task.priority || 'Normal'}</span>
+                        </div>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-50 animate-in fade-in zoom-in-95">
+                          {Object.keys(PRIORITY_CONFIG).map((priorityName) => (
+                            <DropdownMenu.Item
+                              key={priorityName}
+                              onClick={() => handleUpdateTask(task.id, { priority: priorityName as Task['priority'] })}
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
+                            >
+                              <Flag size={14} className={PRIORITY_CONFIG[priorityName as Task['priority']]?.color} />
+                              {priorityName}
+                            </DropdownMenu.Item>
+                          ))}
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
+                  </div>
+
                   {/* Assignee */}
-                  <div className="flex items-center gap-2 text-sm text-[#a3a3a3]">
-                    <div className="w-6 h-6 rounded-full bg-[#3f3f3f] flex items-center justify-center text-xs text-white shrink-0">
-                      {task.assigned_to ? task.assigned_to.charAt(0).toUpperCase() : <UserIcon size={12} />}
-                    </div>
-                    <span className="truncate">{task.assigned_to || 'Unassigned'}</span>
+                  <div className="h-full flex items-center">
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                        <div className="flex items-center gap-2 text-sm text-[#a3a3a3] hover:bg-white/5 px-2 py-1.5 rounded cursor-pointer transition-colors w-full">
+                          <div className="w-6 h-6 rounded-full bg-[#3f3f3f] flex items-center justify-center text-xs text-white shrink-0">
+                            {task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name.charAt(0).toUpperCase() || task.assigned_to.charAt(0).toUpperCase() : <UserIcon size={12} />}
+                          </div>
+                          <span className="truncate">{task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Unassigned'}</span>
+                        </div>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[180px] z-50 animate-in fade-in zoom-in-95">
+                          <DropdownMenu.Item
+                            onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
+                            className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#a3a3a3] rounded hover:bg-white/10 cursor-pointer outline-none italic"
+                          >
+                            <UserIcon size={14} />
+                            Unassigned
+                          </DropdownMenu.Item>
+                          {members.map((member) => (
+                            <DropdownMenu.Item
+                              key={member.user_id}
+                              onClick={() => handleUpdateTask(task.id, { assigned_to: member.user_id })}
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] shrink-0">
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="truncate">{member.name}</span>
+                            </DropdownMenu.Item>
+                          ))}
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                   </div>
 
                   {/* Due Date */}
@@ -268,8 +389,34 @@ export default function ProjectPage() {
                 </form>
               </div>
             </div>
-          </div>
-
+            </div>
+          ) : (
+            <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Project Members</h2>
+              <p className="text-sm text-[#a3a3a3] mb-6">
+                These are the members of the {project.teamspace_id ? 'Teamspace' : 'Workspace'} who have access to this project.
+              </p>
+              
+              <div className="grid gap-4">
+                {members.map(member => (
+                  <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-[#252525]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-semibold text-lg shrink-0">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">{member.name}</div>
+                        <div className="text-sm text-[#a3a3a3]">{member.email}</div>
+                      </div>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-white/5 text-xs text-[#a3a3a3] capitalize">
+                      {member.role}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

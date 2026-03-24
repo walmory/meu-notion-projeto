@@ -67,6 +67,7 @@ interface Project {
   id: string;
   name: string;
   owner_id: string;
+  teamspace_id?: string;
   color: string;
 }
 
@@ -159,6 +160,7 @@ export function Sidebar({
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectTeamspaceId, setNewProjectTeamspaceId] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
@@ -638,10 +640,12 @@ export function Sidebar({
       setIsCreatingProject(true);
       await api.post('/projects', {
         name: newProjectName.trim(),
-        workspace_id: activeWorkspaceId
+        workspace_id: activeWorkspaceId,
+        teamspace_id: newProjectTeamspaceId
       });
       mutateProjects();
       setNewProjectName('');
+      setNewProjectTeamspaceId(null);
       setIsCreateProjectOpen(false);
     } catch (error) {
       console.error('Failed to create project:', error);
@@ -1111,7 +1115,7 @@ export function Sidebar({
             />
             <div className={`grid transition-all duration-200 ease-in-out ${projectsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden space-y-0.5">
-                {projects.map((project: Project) => (
+                {projects.filter(p => !p.teamspace_id).map((project: Project) => (
                   <button
                     key={project.id}
                     type="button"
@@ -1122,7 +1126,7 @@ export function Sidebar({
                     <span className="truncate text-[13px]">{project.name}</span>
                   </button>
                 ))}
-                {projects.length === 0 && (
+                {projects.filter(p => !p.teamspace_id).length === 0 && (
                   <div className="px-6 py-1 text-xs text-gray-500">No projects yet</div>
                 )}
               </div>
@@ -1149,11 +1153,12 @@ export function Sidebar({
                     const tsDocs = documentsByTeamspace.get(String(ts.id)) || [];
                     return (
                       <TeamspaceItem 
-                        key={ts.id}
-                        teamspace={ts}
-                        docs={tsDocs}
-                        isActiveDropTarget={overId === ts.id}
-                        selectedDocId={selectedDocId}
+                      key={ts.id}
+                      teamspace={ts}
+                      docs={tsDocs}
+                      projects={projects.filter(p => p.teamspace_id === ts.id)}
+                      isActiveDropTarget={overId === ts.id}
+                      selectedDocId={selectedDocId}
                         onSelectDocument={onSelectDocument}
                         onDeleteDocument={onDeleteDocument}
                         onUpdateDocument={onUpdateDocument}
@@ -1296,6 +1301,20 @@ export function Sidebar({
                   autoFocus
                 />
               </div>
+              <div className="grid gap-2">
+                <span className="text-sm font-medium text-white">Teamspace</span>
+                <select
+                  value={newProjectTeamspaceId || ''}
+                  onChange={(e) => setNewProjectTeamspaceId(e.target.value)}
+                  className="bg-[#2c2c2c] border border-white/5 text-white text-sm rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="" disabled>Select a teamspace...</option>
+                  {teamspaces.map(ts => (
+                    <option key={ts.id} value={ts.id}>{ts.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <DialogFooter>
               <Button 
@@ -1308,7 +1327,7 @@ export function Sidebar({
               </Button>
               <Button 
                 type="submit" 
-                disabled={!newProjectName.trim() || isCreatingProject}
+                disabled={!newProjectName.trim() || !newProjectTeamspaceId || isCreatingProject}
                 className="bg-white text-black hover:bg-gray-200"
               >
                 {isCreatingProject ? 'Creating...' : 'Create'}
@@ -1480,6 +1499,7 @@ function TeamspaceItem({
   teamspace, 
   docs,
   isActiveDropTarget,
+  projects,
   selectedDocId,
   onSelectDocument,
   onDeleteDocument,
@@ -1492,6 +1512,7 @@ function TeamspaceItem({
 }: { 
   teamspace: Teamspace; 
   docs: Document[];
+  projects: Project[];
   isActiveDropTarget: boolean;
   selectedDocId?: string;
   onSelectDocument: (doc: Document) => void;
@@ -1583,8 +1604,22 @@ function TeamspaceItem({
       
       <div className={`grid transition-all duration-200 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100 mt-0.5' : 'grid-rows-[0fr] opacity-0'}`}>
         <div className="overflow-hidden">
+          {projects.map((project: Project) => (
+            <button
+              key={project.id}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/projects/${project.id}`);
+              }}
+              className={`w-full flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md transition-colors hover:bg-[#2c2c2c] text-[#a3a3a3]`}
+            >
+              <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: project.color || '#3b82f6' }} />
+              <span className="truncate text-[13px]">{project.name}</span>
+            </button>
+          ))}
           {docs.length > 0 ? renderDocs(docs, null, 1, 'draggable') : (
-            <div className="pl-9 pr-3 py-1 text-xs text-gray-500">No pages inside</div>
+            projects.length === 0 && <div className="pl-9 pr-3 py-1 text-xs text-gray-500">No pages inside</div>
           )}
         </div>
       </div>
