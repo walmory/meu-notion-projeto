@@ -102,10 +102,15 @@ export function DocumentContextMenu({
     navigator.clipboard.writeText(url);
     toast.success('Link copied to clipboard', {
       icon: '✅',
+      position: 'bottom-center',
       style: {
         background: '#191919',
         color: '#fff',
         border: '1px solid #333',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        fontSize: '14px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
       }
     });
   };

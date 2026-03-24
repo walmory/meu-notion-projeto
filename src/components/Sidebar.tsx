@@ -8,6 +8,8 @@ import {
   Users, 
   Plus, 
   FileText,
+  Folder,
+  Database,
   ChevronRight,
   ChevronDown,
   HelpCircle,
@@ -1648,6 +1650,8 @@ const DocumentItem = memo(({
             {doc.icon ? (
               <span className="shrink-0 mr-1 text-sm leading-none">{doc.icon}</span>
             ) : (
+              doc.type === 'folder' ? <Folder size={16} className="shrink-0 text-blue-400" /> :
+              doc.type === 'database' ? <Database size={16} className="shrink-0 text-purple-400" /> :
               <FileText size={16} className="shrink-0" />
             )}
             {isRenaming ? (

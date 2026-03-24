@@ -37,7 +37,7 @@ export default function RootLayout({
         <UserProvider>
           {children}
           <CommandPalette />
-          <Toaster theme="dark" position="top-center" />
+          <Toaster theme="dark" position="bottom-right" />
         </UserProvider>
       </body>
     </html>

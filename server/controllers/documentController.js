@@ -316,11 +316,12 @@ export const createDocument = async (req, res) => {
     const docContent = content ?? '[]';
     const contentForInsert = typeof docContent === 'string' ? docContent : JSON.stringify(docContent);
     const initialContentVersion = 0;
+    const docType = req.body.type || 'page';
 
     await pool.query(
-      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [documentId, normalizedTitle, contentForInsert, initialContentVersion, normalizedParentId, workspaceId, normalizedTeamspaceId, isPrivate, shouldBeMeetingNote ? 1 : 0, ownerId]
+      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [documentId, normalizedTitle, contentForInsert, initialContentVersion, normalizedParentId, workspaceId, normalizedTeamspaceId, isPrivate, shouldBeMeetingNote ? 1 : 0, ownerId, docType]
     );
 
     const [documents] = await pool.query(
@@ -364,11 +365,11 @@ export const duplicateDocument = async (req, res) => {
 
     const original = existing[0];
     const newId = uuidv4();
-    const newTitle = original.title ? `${original.title} (Copy)` : 'Untitled (Copy)';
+    const newTitle = original.title ? `Cópia de ${original.title}` : 'Cópia de Untitled';
 
     await pool.query(
-      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, icon, cover)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, icon, cover, type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newId, 
         newTitle, 
@@ -381,7 +382,8 @@ export const duplicateDocument = async (req, res) => {
         original.is_meeting_note, 
         ownerId,
         original.icon,
-        original.cover
+        original.cover,
+        original.type || 'page'
       ]
     );
 
