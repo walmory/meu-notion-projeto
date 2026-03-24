@@ -689,13 +689,13 @@ export default function ProjectPage() {
   }
 
   if (!project) {
-    return <div className="p-8 text-[#a3a3a3] bg-[#0b0e14] h-full">Project not found or you don&apos;t have access.</div>;
+    return <div className="p-8 text-[#a3a3a3] bg-[#1e1e1e] h-full">Project not found or you don&apos;t have access.</div>;
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0b0e14] text-[#d4d4d4] overflow-hidden w-full">
+    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#d4d4d4] overflow-hidden w-full">
       {/* Header Fixo de Topo */}
-      <div className="flex flex-col border-b border-white/5 shrink-0 bg-[#0b0e14] w-full z-10 sticky top-0">
+      <div className="flex flex-col border-b border-white/5 shrink-0 bg-[#252525] w-full z-10 sticky top-0">
         <div className="flex items-center justify-between px-8 py-5">
           <div className="flex items-center gap-4">
             <button 
