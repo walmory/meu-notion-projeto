@@ -172,8 +172,8 @@ export default function ProfilePage() {
 
   return (
     <div 
-      className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto !mt-[60px]"
-      style={{ marginTop: '60px' }}
+      className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto"
+      style={{ boxSizing: 'border-box' }}
     >
       {/* Banner/Header */}
       <div className="w-full h-48 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 relative">
