@@ -324,12 +324,41 @@ export const createDocument = async (req, res) => {
       [documentId, normalizedTitle, contentForInsert, initialContentVersion, normalizedParentId, workspaceId, normalizedTeamspaceId, isPrivate, shouldBeMeetingNote ? 1 : 0, ownerId, docType]
     );
 
+    let childDocument = null;
+    if (docType === 'folder') {
+      const childId = uuidv4();
+      await pool.query(
+        `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [childId, 'Untitled Page', '[]', 0, documentId, workspaceId, normalizedTeamspaceId, isPrivate, shouldBeMeetingNote ? 1 : 0, ownerId, 'page']
+      );
+      
+      const [childRows] = await pool.query(
+        'SELECT * FROM documents WHERE id = ? AND workspace_id = ? LIMIT 1',
+        [childId, workspaceId]
+      );
+      if (childRows.length > 0) {
+        childDocument = childRows[0];
+      }
+    }
+
     const [documents] = await pool.query(
       'SELECT * FROM documents WHERE id = ? AND workspace_id = ? LIMIT 1',
       [documentId, workspaceId]
     );
 
-    return res.status(201).json(documents[0]);
+    const mainDocument = documents[0];
+
+    // Se criou uma pasta atômicamente, também emitimos a criação do filho para o socket
+    if (childDocument) {
+      // Import the event emitter dynamically if needed or assume it exists in this file context
+      // Note: emitToWorkspace is available in the file context
+      emitToWorkspace(workspaceId, 'document_created', mainDocument);
+      emitToWorkspace(workspaceId, 'document_created', childDocument);
+      return res.status(201).json({ ...mainDocument, child: childDocument });
+    }
+
+    return res.status(201).json(mainDocument);
   } catch (error) {
     console.error(error);
     console.error('Erro ao criar documento:', {

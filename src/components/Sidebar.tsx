@@ -176,6 +176,12 @@ export function Sidebar({
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
   const isCreatingDefaultWorkspaceRef = useRef(false);
+
+  // Modal de criação de documentos/pastas
+  const [isCreateDocModalOpen, setIsCreateDocModalOpen] = useState(false);
+  const [createDocType, setCreateDocType] = useState<'page' | 'folder'>('page');
+  const [createDocTitle, setCreateDocTitle] = useState('');
+  const [createDocParams, setCreateDocParams] = useState<{ isShared: boolean, teamspaceId?: string | null, parentId?: string | null } | null>(null);
   
   const { data: workspacesData, isLoading: isWorkspacesLoading, mutate: mutateWorkspaces } = useSWR<Workspace[]>('/workspaces', fetcher);
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
@@ -370,21 +376,55 @@ export function Sidebar({
     }
   }, [onTurnIntoFolder]);
 
-  const handleCreatePage = useCallback(async (isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
-    await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { type: 'page' });
-  }, [onCreateDocument]);
+  const handleCreatePage = useCallback((isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
+    setCreateDocType('page');
+    setCreateDocParams({ isShared, teamspaceId, parentId });
+    setCreateDocTitle('');
+    setIsCreateDocModalOpen(true);
+  }, []);
 
-  const handleCreateFolder = useCallback(async (isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
-    const createdFolder = await onCreateDocument(
-      isShared,
-      parentId ?? null,
-      teamspaceId ?? null,
-      { title: 'Untitled Folder', type: 'folder', skipNavigation: true }
-    );
-    if (createdFolder?.id) {
-      await handleTurnIntoFolder(createdFolder.id);
+  const handleCreateFolder = useCallback((isShared: boolean, teamspaceId?: string | null, parentId?: string | null) => {
+    setCreateDocType('folder');
+    setCreateDocParams({ isShared, teamspaceId, parentId });
+    setCreateDocTitle('');
+    setIsCreateDocModalOpen(true);
+  }, []);
+
+  const handleConfirmCreateDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createDocParams) return;
+    
+    setIsCreateDocModalOpen(false);
+    
+    const { isShared, teamspaceId, parentId } = createDocParams;
+    const finalTitle = createDocTitle.trim() || (createDocType === 'folder' ? 'Untitled Folder' : 'Untitled');
+    
+    try {
+      const newDoc = await onCreateDocument(isShared, parentId ?? null, teamspaceId ?? null, { 
+        title: finalTitle, 
+        type: createDocType,
+        skipNavigation: createDocType === 'folder'
+      });
+
+      if (createDocType === 'folder' && newDoc) {
+        setExpandedFolders((prev) => {
+          const next = new Set(prev);
+          next.add(newDoc.id);
+          return next;
+        });
+        
+        // Se a API retornou o child (Ação atômica)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const childDoc = (newDoc as any).child;
+        if (childDoc?.id) {
+           router.push(`/documents/${childDoc.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Falha ao criar documento', error);
+      toast.error('Failed to create item');
     }
-  }, [onCreateDocument, handleTurnIntoFolder]);
+  };
 
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
@@ -1389,6 +1429,58 @@ export function Sidebar({
                 className="bg-[#2383e2] hover:bg-[#2383e2]/90 text-white"
               >
                 {isCreatingTeamspace ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog
+        open={isCreateDocModalOpen}
+        onOpenChange={(open) => {
+          setIsCreateDocModalOpen(open);
+          if (!open) {
+            setCreateDocTitle('');
+            setCreateDocParams(null);
+          }
+        }}
+      >
+        <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[425px]">
+          <form onSubmit={handleConfirmCreateDoc}>
+            <DialogHeader>
+              <DialogTitle className="text-white text-lg leading-tight flex items-center gap-2">
+                {createDocType === 'folder' ? 'New Folder' : 'New Page'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 mt-2">
+              <div className="grid gap-2">
+                <Input
+                  value={createDocTitle}
+                  onChange={(e) => setCreateDocTitle(e.target.value)}
+                  placeholder={createDocType === 'folder' ? 'Folder Name' : 'Page Title'}
+                  className="bg-[#252525] border-[#2c2c2c] text-white focus-visible:ring-1 focus-visible:ring-white/20 h-9 text-sm"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter className="border-t border-[#2c2c2c] pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsCreateDocModalOpen(false);
+                  setCreateDocTitle('');
+                  setCreateDocParams(null);
+                }}
+                className="bg-transparent border-[#3f3f3f] text-[#d4d4d4] hover:bg-[#2c2c2c] hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-[#2383e2] hover:bg-[#2383e2]/90 text-white"
+              >
+                Create
               </Button>
             </DialogFooter>
           </form>

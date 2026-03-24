@@ -208,8 +208,15 @@ export function useDocuments(workspaceId?: string) {
       const createPromise = async () => {
         const response = await api.post('/documents', payload, { headers: getAuthHeaders() });
         const newDoc = response.data;
-        // Obter estado atual diretamente e mapear
-        return nextDocuments.map(d => d.id === tempId ? newDoc : d);
+        const returnedChild = newDoc.child;
+        
+        const updatedDocs = nextDocuments.map(d => d.id === tempId ? newDoc : d);
+        if (returnedChild) {
+           updatedDocs.push(returnedChild);
+        }
+        
+        // Return updated list
+        return updatedDocs;
       };
 
       // Dispara a mutação assíncrona e aguarda a conclusão para garantir que o backend salvou (AAA+)
