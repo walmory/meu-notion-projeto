@@ -21,6 +21,24 @@ import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { io } from 'socket.io-client';
 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 interface Task {
   id: string;
   project_id: string;
@@ -78,6 +96,214 @@ const STATUS_LABELS: Record<Task['status'], string> = {
   'Stuck': 'Stuck'
 };
 
+interface SortableTaskRowProps {
+  task: Task;
+  members: TeamspaceMember[];
+  statusGroup: string;
+  isCreatingTask: boolean;
+  handleUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  handleDeleteTask: (taskId: string) => void;
+  handleStartInlineEdit: (task: Task) => void;
+  handleSaveInlineEdit: () => void;
+  editingTaskId: string | null;
+  editingTaskTitle: string;
+  setEditingTaskTitle: (title: string) => void;
+  setEditingTaskId: (id: string | null) => void;
+  openTaskDrawer: (task: Task) => void;
+}
+
+function SortableTaskRow({ task, members, statusGroup, isCreatingTask, handleUpdateTask, handleDeleteTask, handleStartInlineEdit, handleSaveInlineEdit, editingTaskId, editingTaskTitle, setEditingTaskTitle, setEditingTaskId, openTaskDrawer }: SortableTaskRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 1,
+    position: 'relative' as const,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 transition-colors group/row bg-[#1e1e1e] ${isDragging ? 'opacity-50 ring-2 ring-blue-500' : 'hover:bg-white/[0.03]'}`}
+    >
+      {/* Title */}
+      <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors relative">
+        <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
+        
+        {/* Drag Handle */}
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[#4f4f4f] hover:text-[#a3a3a3] mr-2 opacity-0 group-hover/row:opacity-100 transition-opacity" title="Drag to reorder">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Drag handle">
+            <title>Drag handle</title>
+            <circle cx="9" cy="12" r="1"></circle>
+            <circle cx="9" cy="5" r="1"></circle>
+            <circle cx="9" cy="19" r="1"></circle>
+            <circle cx="15" cy="12" r="1"></circle>
+            <circle cx="15" cy="5" r="1"></circle>
+            <circle cx="15" cy="19" r="1"></circle>
+          </svg>
+        </div>
+
+        {editingTaskId === task.id ? (
+          <input
+            value={editingTaskTitle}
+            onChange={(e) => setEditingTaskTitle(e.target.value)}
+            onBlur={handleSaveInlineEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveInlineEdit();
+              if (e.key === 'Escape') {
+                setEditingTaskId(null);
+                setEditingTaskTitle('');
+              }
+            }}
+            className="w-full bg-transparent border-none outline-none text-[13px] font-medium text-white pl-1"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openTaskDrawer(task);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              handleStartInlineEdit(task);
+            }}
+            className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors pl-1 text-left w-full"
+          >
+            {task.title}
+          </button>
+        )}
+      </div>
+
+      {/* Status Badge with Dropdown - Full Cell */}
+      <div className="border-r border-white/5 relative">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
+            <div className={`flex items-center justify-center w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all hover:brightness-110 ${STATUS_CONFIG[task.status as Task['status']]?.color || 'bg-gray-500 text-white'}`}>
+              <span className="font-bold">{STATUS_LABELS[task.status as Task['status']]}</span>
+            </div>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50 animate-in fade-in zoom-in-95">
+              {Object.entries(STATUS_CONFIG).map(([statusName, config]) => (
+                <DropdownMenu.Item
+                  key={statusName}
+                  onClick={() => handleUpdateTask(task.id, { status: statusName as Task['status'] })}
+                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
+                >
+                  <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: config.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
+                  {STATUS_LABELS[statusName as Task['status']]}
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
+
+      {/* Priority Badge with Dropdown - Full Cell */}
+      <div className="border-r border-white/5 relative">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
+            <div className={`flex items-center justify-center gap-2 w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all hover:brightness-110 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
+              <Flag size={14} className="opacity-80" />
+              <span>{task.priority || 'Normal'}</span>
+            </div>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[160px] z-50 animate-in fade-in zoom-in-95">
+              {Object.keys(PRIORITY_CONFIG).map((priorityName) => (
+                <DropdownMenu.Item
+                  key={priorityName}
+                  onClick={() => handleUpdateTask(task.id, { priority: priorityName as Task['priority'] })}
+                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
+                >
+                  <Flag size={14} className={PRIORITY_CONFIG[priorityName as Task['priority']]?.color} />
+                  {priorityName}
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
+
+      {/* Assignee */}
+      <div className="px-4 py-2 border-r border-white/5 flex items-center justify-center">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="outline-none focus:outline-none w-full">
+            <div className="flex items-center justify-center gap-3 text-[13px] text-[#8a8a8a] hover:bg-white/5 px-3 py-1.5 rounded-full cursor-pointer transition-colors w-fit mx-auto border border-transparent hover:border-white/10">
+              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px] font-bold text-blue-400 shrink-0 shadow-sm ring-1 ring-blue-500/30">
+                {task.assigned_to ? ((members.find((m) => m.user_id === task.assigned_to)?.name?.charAt(0) || members.find((m) => m.user_id === task.assigned_to)?.email?.charAt(0) || '?').toUpperCase()) : <UserIcon size={12} className="text-[#8a8a8a]" />}
+              </div>
+              <span className="truncate max-w-[100px] font-medium group-hover/row:text-[#d4d4d4] transition-colors">{task.assigned_to ? members.find((m) => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Assign'}</span>
+            </div>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[200px] z-50 animate-in fade-in zoom-in-95">
+              <DropdownMenu.Item
+                onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
+                className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#8a8a8a] rounded-sm hover:bg-white/10 cursor-pointer outline-none italic mb-1"
+              >
+                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                  <UserIcon size={12} />
+                </div>
+                Unassigned
+              </DropdownMenu.Item>
+              <div className="h-px w-full bg-white/5 mb-1" />
+              {members.map((member) => (
+                <DropdownMenu.Item
+                  key={member.user_id}
+                  onClick={() => handleUpdateTask(task.id, { assigned_to: member.user_id })}
+                  className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
+                >
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold shrink-0 shadow-sm ring-1 ring-blue-500/30">
+                    {(member?.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate font-medium">{member?.name || member?.email || 'Unknown User'}</span>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
+
+      {/* Due Date */}
+      <div className="px-6 py-3 border-r border-white/5 flex items-center justify-center gap-2 text-[13px] text-[#8a8a8a] group-hover/row:text-[#d4d4d4] transition-colors">
+        <CalendarIcon size={14} className="opacity-50" />
+        {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
+      </div>
+
+      {/* Actions */}
+      <div className="px-2 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="p-1.5 rounded-md hover:bg-white/10 text-[#8a8a8a] hover:text-white transition-colors outline-none">
+            <MoreHorizontal size={16} />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-2xl p-1.5 min-w-[140px] z-50">
+              <DropdownMenu.Item
+                onClick={() => handleDeleteTask(task.id)}
+                className="flex items-center gap-3 px-3 py-2 text-[13px] text-red-400 font-medium rounded-sm hover:bg-red-500/10 cursor-pointer outline-none"
+              >
+                <Trash2 size={14} />
+                Delete Task
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -119,13 +345,93 @@ export default function ProjectPage() {
   const { data: tasksData, mutate: mutateTasks } = useSWR<Task[]>(`/projects/${projectId}/tasks`, fetcher);
   const tasks = tasksData || [];
 
-  // Group tasks by status
+  // Group tasks by status with strict ordering
   const groupedTasks = {
-    'In Progress': tasks.filter(t => t.status === 'In Progress'),
-    'To Do': tasks.filter(t => t.status === 'To Do'),
-    'Stuck': tasks.filter(t => t.status === 'Stuck'),
-    'Done': tasks.filter(t => t.status === 'Done')
+    'To Do': tasks.filter(t => t.status === 'To Do').sort((a, b) => a.position - b.position),
+    'In Progress': tasks.filter(t => t.status === 'In Progress').sort((a, b) => a.position - b.position),
+    'Done': tasks.filter(t => t.status === 'Done').sort((a, b) => a.position - b.position),
+    'Stuck': tasks.filter(t => t.status === 'Stuck').sort((a, b) => a.position - b.position)
   };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    if (active.id !== over.id) {
+      const activeId = active.id as string;
+      const overId = over.id as string;
+      
+      const activeTask = tasks.find((t) => t.id === activeId);
+      const overTask = tasks.find((t) => t.id === overId);
+      
+      if (!activeTask || !overTask) return;
+
+      const activeStatus = activeTask.status;
+      const overStatus = overTask.status;
+
+      // Optimistic update for UI
+      mutateTasks((current = []) => {
+        const newTasks = [...current];
+        const activeIndex = newTasks.findIndex((t) => t.id === activeId);
+        const overIndex = newTasks.findIndex((t) => t.id === overId);
+        
+        const [movedTask] = newTasks.splice(activeIndex, 1);
+        movedTask.status = overStatus; // Update status if moved to different group
+        newTasks.splice(overIndex, 0, movedTask);
+        
+        // Reassign positions for the affected group(s)
+        const updatePositions = (status: Task['status']) => {
+          const groupTasks = newTasks.filter((t) => t.status === status);
+          groupTasks.forEach((t, idx) => {
+            const tIndex = newTasks.findIndex((nt) => nt.id === t.id);
+            newTasks[tIndex].position = idx;
+          });
+        };
+        
+        updatePositions(activeStatus);
+        if (activeStatus !== overStatus) updatePositions(overStatus);
+        
+        return newTasks;
+      }, { revalidate: false });
+
+      // Calculate new position
+      const overGroupTasks = tasks.filter((t) => t.status === overStatus).sort((a, b) => a.position - b.position);
+      const overIndexInGroup = overGroupTasks.findIndex((t) => t.id === overId);
+      let newPosition = 0;
+
+      if (overGroupTasks.length > 0) {
+         if (activeStatus === overStatus) {
+            // Same group reorder
+            const activeIndexInGroup = overGroupTasks.findIndex((t) => t.id === activeId);
+            if (activeIndexInGroup < overIndexInGroup) {
+               newPosition = overTask.position; // Moving down
+            } else {
+               newPosition = overIndexInGroup === 0 ? overTask.position - 1 : overTask.position; // Moving up
+            }
+         } else {
+            // Different group
+            newPosition = overTask.position;
+         }
+      }
+
+      try {
+        await api.patch(`/projects/tasks/${activeId}`, { 
+          status: overStatus,
+          position: newPosition 
+        });
+        mutateTasks();
+      } catch (error) {
+        console.error('Failed to update task position:', error);
+        mutateTasks(); // Revert on failure
+      }
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const { data: workspaceMembersData } = useSWR<TeamspaceMember[]>(
     project ? `/workspace/members?workspace_id=${project.workspace_id}` : null,
@@ -177,7 +483,7 @@ export default function ProjectPage() {
 
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      mutateTasks((current = []) => current.map(t => t.id === taskId ? { ...t, ...updates } : t), { revalidate: false });
+      mutateTasks((current = []) => current.map((t) => t.id === taskId ? { ...t, ...updates } : t), { revalidate: false });
       await api.patch(`/projects/tasks/${taskId}`, updates);
       mutateTasks();
     } catch (error) {
@@ -187,7 +493,7 @@ export default function ProjectPage() {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      mutateTasks((current = []) => current.filter(t => t.id !== taskId), { revalidate: false });
+      mutateTasks((current = []) => current.filter((t) => t.id !== taskId), { revalidate: false });
       await api.delete(`/projects/tasks/${taskId}`);
       mutateTasks();
     } catch (error) {
@@ -233,7 +539,7 @@ export default function ProjectPage() {
     });
   };
 
-  const completedTasks = tasks.filter(t => t.status === 'Done').length;
+  const completedTasks = tasks.filter((t) => t.status === 'Done').length;
   const totalTasks = tasks.length;
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -263,7 +569,21 @@ export default function ProjectPage() {
                 <div className="w-5 h-5 rounded-md flex items-center justify-center shadow-sm" style={{ backgroundColor: project.color || '#3b82f6' }}>
                   <span className="text-white text-xs font-bold">{project.name.charAt(0).toUpperCase()}</span>
                 </div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-white tracking-tight flex items-center">
+                  <input
+                    value={project.name}
+                    onChange={(e) => {
+                      // Optimistic UI update (mutate local SWR data immediately)
+                      const newName = e.target.value;
+                      mutateTasks(); // trigger re-render if needed, though SWR handles projects in parent usually
+                      api.patch(`/projects/${project.id}`, { name: newName }).then(() => {
+                        window.dispatchEvent(new Event('projectsChanged')); // Notify Sidebar
+                      });
+                    }}
+                    className="bg-transparent border-none outline-none w-auto max-w-[300px] focus:ring-0"
+                    onClick={(e) => e.stopPropagation()} // Prevent dropdown from opening when clicking input
+                  />
+                </h1>
                 <ChevronDown size={18} className="text-[#8a8a8a] mt-1" />
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
@@ -271,7 +591,7 @@ export default function ProjectPage() {
                   <div className="px-2 py-2 text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-wider">
                     {project.teamspace_id ? 'Teamspace Projects' : 'My Projects'}
                   </div>
-                  {projectsData?.filter(p => p.teamspace_id === project.teamspace_id).map(p => (
+                  {projectsData?.filter((p) => p.teamspace_id === project.teamspace_id).map((p) => (
                     <DropdownMenu.Item
                       key={p.id}
                       onClick={() => router.push(`/projects/${p.id}`)}
@@ -349,9 +669,10 @@ export default function ProjectPage() {
               </div>
 
               {/* Table Body - Single Table with Sticky Groups */}
-              <div className="flex flex-col bg-[#191919]">
-                {Object.entries(groupedTasks).map(([statusGroup, groupTasks]) => (
-                  <div key={statusGroup} className="flex flex-col">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <div className="flex flex-col bg-[#191919]">
+                  {Object.entries(groupedTasks).map(([statusGroup, groupTasks]) => (
+                    <div key={statusGroup} className="flex flex-col">
                     
                     {/* Group Sticky Header */}
                     <div className="sticky top-[45px] z-10 flex items-center gap-3 px-6 py-2.5 bg-[#252525] border-b border-white/5 shadow-sm group/header">
@@ -367,9 +688,10 @@ export default function ProjectPage() {
                       <div className="h-px flex-1 bg-white/5 ml-4 group-hover/header:bg-white/10 transition-colors" />
                     </div>
 
-                    {/* Group Tasks */}
-                    <div className="flex flex-col">
-                      {groupTasks.map(task => (
+                      {/* Group Tasks */}
+                      <SortableContext items={groupTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                        <div className="flex flex-col">
+                          {groupTasks.map((task) => (
                         <div key={task.id} className="grid grid-cols-[minmax(350px,1fr)_140px_140px_180px_150px_50px] gap-0 items-stretch border-b border-white/5 hover:bg-white/[0.03] transition-colors group/row bg-[#1e1e1e]">
                           
                           {/* Title */}
@@ -548,27 +870,42 @@ export default function ProjectPage() {
                           }} className="flex items-center gap-3 w-full">
                             <Plus size={16} className="text-[#8a8a8a]" />
                             <input
-                              type="text"
-                              value={newTaskTitle}
-                              onChange={(e) => setNewTaskTitle(e.target.value)}
-                              placeholder={`+ Add task to ${statusGroup}...`}
-                              className="flex-1 bg-transparent border-none text-[13px] text-white placeholder:text-[#666] focus:outline-none focus:ring-0 py-1"
-                              disabled={isCreatingTask}
-                            />
+                                type="text"
+                                value={newTaskTitle}
+                                onChange={(e) => setNewTaskTitle(e.target.value)}
+                                placeholder={`+ Add task to ${STATUS_LABELS[statusGroup as Task['status']]}...`}
+                                className="flex-1 bg-transparent border-none text-[13px] text-white placeholder:text-[#666] focus:outline-none focus:ring-0 py-1"
+                                disabled={isCreatingTask}
+                              />
                           </form>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      </SortableContext>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </DndContext>
             </div>
           ) : activeTab === 'members' ? (
             <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Project Members</h2>
-              <p className="text-sm text-[#a3a3a3] mb-6">
-                These are the members of the {project.teamspace_id ? 'Teamspace' : 'Workspace'} who have access to this project.
-              </p>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-white mb-1">Project Members</h2>
+                  <p className="text-sm text-[#a3a3a3]">
+                    These are the members of the {project.teamspace_id ? 'Teamspace' : 'Workspace'} who have access to this project.
+                  </p>
+                </div>
+                {project.teamspace_id && (
+                  <button 
+                    type="button"
+                    onClick={() => router.push('/settings/members')}
+                    className="bg-white/5 hover:bg-white/10 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+                  >
+                    Manage Teamspace
+                  </button>
+                )}
+              </div>
               
               <div className="grid gap-4">
                 {members.length === 0 ? (

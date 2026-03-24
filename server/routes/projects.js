@@ -130,9 +130,38 @@ router.patch('/tasks/:taskId', async (req, res) => {
   }
 });
 
+// Update a project
+router.patch('/:id', async (req, res) => {
+  try {
+    const { name, color } = req.body;
+    
+    let updateFields = [];
+    let values = [];
+    
+    if (name !== undefined) { updateFields.push('name = ?'); values.push(name); }
+    if (color !== undefined) { updateFields.push('color = ?'); values.push(color); }
+    
+    if (updateFields.length > 0) {
+      values.push(req.params.id);
+      values.push(req.user.id);
+      await pool.query(
+        `UPDATE projects SET ${updateFields.join(', ')} WHERE id = ? AND owner_id = ?`,
+        values
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar projeto' });
+  }
+});
+
 // Delete a project
 router.delete('/:id', async (req, res) => {
   try {
+    // Apagar tasks do projeto primeiro (caso a constraint ON DELETE CASCADE não esteja setada)
+    await pool.query('DELETE FROM tasks WHERE project_id = ?', [req.params.id]);
     await pool.query('DELETE FROM projects WHERE id = ? AND owner_id = ?', [req.params.id, req.user.id]);
     res.status(204).end();
   } catch (err) {
