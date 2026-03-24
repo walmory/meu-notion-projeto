@@ -46,7 +46,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { TrashModal } from './TrashModal';
 import { TeamspaceContextMenu } from './TeamspaceContextMenu';
 import { TeamspaceSettingsModal } from './TeamspaceSettingsModal';
-import { UserSettingsModal } from './UserSettingsModal';
 import useSWR, { useSWRConfig } from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import * as LucideIcons from 'lucide-react';
@@ -147,7 +146,6 @@ export function Sidebar({
   
   // Modals state for Workspace
   const [isWorkspaceSettingsOpen, setIsWorkspaceSettingsOpen] = useState(false);
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [isWorkspaceInviteOpen, setIsWorkspaceInviteOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
@@ -1164,7 +1162,8 @@ export function Sidebar({
           <SidebarItem 
             icon={<Settings size={16} className="text-[#a3a3a3]" />} 
             label="Settings" 
-            onClick={() => setIsUserSettingsOpen(true)}
+            onClick={() => router.push('/settings')}
+            active={pathname === '/settings'}
           />
           <SidebarItem icon={<Users size={16} className="text-[#a3a3a3]" />} label="Members" />
           <SidebarItem icon={<Link size={16} className="text-[#a3a3a3]" />} label="Connections" onClick={() => router.push('/connections')} active={pathname === '/connections'} />
@@ -1172,7 +1171,6 @@ export function Sidebar({
       </aside>
       
       <TrashModal isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
-      <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
       <TeamspaceSettingsModal 
         isOpen={!!settingsTeamspace} 
         onClose={() => setSettingsTeamspace(null)} 
