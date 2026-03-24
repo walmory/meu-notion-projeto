@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Editor } from '@/components/Editor';
 import { useDocuments, Document } from '@/hooks/useDocuments';
 import { EditorSkeleton } from '@/components/EditorSkeleton';
+import { FolderDashboard } from '@/components/FolderDashboard';
 import { api, getAuthHeaders } from '@/lib/api';
 import useSWR from 'swr';
 
@@ -13,7 +14,7 @@ export default function DocumentPage() {
   const params = useParams<{ documentId: string }>();
   const documentId = params.documentId;
   
-  const { documents, loading, refetch, updateDocument } = useDocuments();
+  const { documents, loading, refetch, updateDocument, deleteDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const [isAuthChecking] = useState(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('notion_token') : null;
     return !token;
@@ -70,6 +71,19 @@ export default function DocumentPage() {
 
   if (!loading && !selectedDocument && !editorDocument) {
     return <EditorSkeleton />;
+  }
+
+  if (editorDocument?.type === 'folder') {
+    return (
+      <FolderDashboard 
+        folder={editorDocument} 
+        documents={documents || []} 
+        onUpdateDocument={handleUpdateDocument}
+        onToggleFavorite={toggleFavorite}
+        onDeleteDocument={deleteDocument}
+        onDuplicateDocument={duplicateDocument}
+      />
+    );
   }
 
   return (

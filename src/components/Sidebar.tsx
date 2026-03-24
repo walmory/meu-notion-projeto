@@ -935,7 +935,13 @@ export function Sidebar({
                 doc={doc} 
                 active={doc.id === selectedDocId} 
                 isDropTarget={isFolder && doc.id === overId && doc.id !== activeId}
-                onClick={() => onSelectDocument(doc)}
+                onClick={() => {
+                  if (doc.type === 'folder') {
+                    toggleFolder(doc.id);
+                  } else {
+                    onSelectDocument(doc);
+                  }
+                }}
                 onDelete={onDeleteDocument}
                 onUpdate={handleDocumentUpdate}
                 onTurnIntoFolder={handleTurnIntoFolder}
