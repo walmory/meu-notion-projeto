@@ -1179,6 +1179,7 @@ export function Sidebar({
               title="Agents" 
               expanded={agentsExpanded} 
               onToggle={() => setAgentsExpanded(!agentsExpanded)}
+              hideChevron
               rightElement={<span className="text-[9px] font-bold bg-[#3f3f3f] text-[#ffffff] px-1.5 py-0.5 rounded uppercase tracking-wider">BETA</span>}
             />
           </div>
@@ -1510,13 +1511,15 @@ function CreateItemDropdown({
   );
 }
 
-function DroppableSection({ id, title, expanded, onToggle, onCreatePage, onCreateFolder, rightElement }: { id: string; title: string; expanded: boolean; onToggle: () => void; onCreatePage?: () => void; onCreateFolder?: () => void; rightElement?: React.ReactNode }) {
+function DroppableSection({ id, title, expanded, onToggle, onCreatePage, onCreateFolder, rightElement, hideChevron = false }: { id: string; title: string; expanded: boolean; onToggle: () => void; onCreatePage?: () => void; onCreateFolder?: () => void; rightElement?: React.ReactNode; hideChevron?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   
   return (
     <div ref={setNodeRef} className={`group flex cursor-pointer items-center justify-between px-3 py-1 text-[12px] font-semibold transition-colors rounded ${isOver ? 'bg-[#2eaadc]/20 text-white ring-1 ring-[#2eaadc]/50' : 'hover:bg-[#2c2c2c] text-[#a3a3a3]'}`}>
       <button type="button" className="flex items-center gap-1.5 flex-1 text-left" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}>
-        <ChevronRight size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''} ${isOver ? 'text-white' : 'text-[#a3a3a3]'}`} />
+        {!hideChevron && (
+          <ChevronRight size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''} ${isOver ? 'text-white' : 'text-[#a3a3a3]'}`} />
+        )}
         <span className={`font-medium text-[11px] ${isOver ? 'text-white' : 'text-[#9b9b9b]'}`}>{title}</span>
       </button>
       <div className="flex items-center gap-1">
