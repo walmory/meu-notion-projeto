@@ -1015,8 +1015,6 @@ export function Sidebar({
             />
             <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { router.push('/'); onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
             <SidebarItem icon={<CalendarCheck size={18} className="text-[#a3a3a3]" />} label="Meetings" onClick={() => router.push('/meetings')} active={pathname === '/meetings'} />
-            <SidebarItem icon={<Sparkles size={18} className="text-[#a3a3a3]" />} label={<span className="font-medium">Opta AI</span>} />
-            <SidebarItem icon={<Inbox size={18} className="text-[#a3a3a3]" />} label="Inbox" />
             <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => router.push('/projects')} active={pathname.startsWith('/projects')} />
             <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => router.push('/library')} active={pathname === '/library'} />
           </div>

@@ -47,7 +47,7 @@ interface Task {
   id: string;
   project_id: string;
   title: string;
-  status: 'To Do' | 'In Progress' | 'Done' | 'Stuck';
+  status: 'To Do' | 'In Progress' | 'Done';
   priority: 'High' | 'Medium' | 'Low' | 'Normal';
   description?: string | null;
   assigned_to: string | null;
@@ -83,7 +83,6 @@ const STATUS_CONFIG = {
   'To Do': { headerBg: 'bg-[#161b22]', color: 'text-gray-400', icon: Circle },
   'In Progress': { headerBg: 'bg-[#1e2a4f]', color: 'text-blue-400', icon: Clock },
   'Done': { headerBg: 'bg-[#1b3b2b]', color: 'text-green-400', icon: CheckCircle2 },
-  'Stuck': { headerBg: 'bg-[#4f1e1e]', color: 'text-red-400', icon: AlertCircle },
 };
 
 const PRIORITY_CONFIG = {
@@ -97,7 +96,6 @@ const STATUS_LABELS: Record<Task['status'], string> = {
   'To Do': 'To Do',
   'In Progress': 'Working on it',
   'Done': 'Done',
-  'Stuck': 'Stuck'
 };
 
 const STATUS_ORDER: Task['status'][] = ['To Do', 'In Progress', 'Done'];
@@ -522,7 +520,6 @@ export default function ProjectPage() {
     'To Do': tasks.filter(t => t.status === 'To Do').sort((a, b) => a.position - b.position),
     'In Progress': tasks.filter(t => t.status === 'In Progress').sort((a, b) => a.position - b.position),
     'Done': tasks.filter(t => t.status === 'Done').sort((a, b) => a.position - b.position),
-    'Stuck': tasks.filter(t => t.status === 'Stuck').sort((a, b) => a.position - b.position)
   };
 
   const [activeId, setActiveId] = useState<string | null>(null);
