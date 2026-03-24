@@ -172,8 +172,14 @@ async function processDocQueue(socket, docId) {
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: [/vercel\.app$/, 'https://meu-notion-projeto.vercel.app'],
-      methods: ['GET', 'POST'],
+      origin: function (origin, callback) {
+        if (!origin || origin.indexOf('vercel.app') !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error('CORS não permitido por segurança'));
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       credentials: true,
     },
   });
