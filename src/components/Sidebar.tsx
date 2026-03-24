@@ -930,16 +930,16 @@ export function Sidebar({
       <aside 
         ref={sidebarRef}
         style={{ width: mounted ? `${sidebarWidth}px` : '256px' }}
-        className="flex h-full flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0"
+        className="flex h-full flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0 border-r border-[#2c2c2c]"
       >
         {/* Resize Handle */}
         <button 
-          className="absolute right-0 top-0 h-full w-[10px] cursor-col-resize z-50 flex justify-center group/resizer border-none outline-none bg-transparent"
+          className="absolute -right-[2px] top-0 h-full w-[4px] cursor-col-resize z-50 flex justify-center group/resizer border-none outline-none bg-transparent"
           onMouseDown={() => setIsResizing(true)}
           aria-label="Resize sidebar"
           type="button"
         >
-          <div className={`h-full w-[2px] transition-colors ${isResizing ? 'bg-[#4f4f4f]' : 'group-hover/resizer:bg-[#3f3f3f]'}`} />
+          <div className={`h-full w-[2px] transition-colors ${isResizing ? 'bg-[#4f4f4f]' : 'bg-transparent group-hover/resizer:bg-[#4f4f4f]'}`} />
         </button>
         
         <div className="relative group/switcher m-2 pt-8 pb-5">
