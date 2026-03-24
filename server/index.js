@@ -18,7 +18,25 @@ import path from 'path';
 const PORT = Number(process.env.PORT || 3001);
 
 const app = express();
-app.use(cors({ origin: '*' }));
+
+const allowedOrigins = [
+  'https://meu-notion-projeto.vercel.app',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Rota de teste direto de isolamento
