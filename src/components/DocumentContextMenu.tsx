@@ -62,6 +62,7 @@ interface DocumentContextMenuProps {
   children: ReactNode;
   doc: Document;
   onUpdate: (id: string, updates: Partial<Document>) => void;
+  onTurnIntoFolder?: (id: string) => void | Promise<void>;
   onToggleFavorite?: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
@@ -74,6 +75,7 @@ export function DocumentContextMenu({
   children,
   doc,
   onUpdate,
+  onTurnIntoFolder,
   onToggleFavorite,
   onDelete,
   onDuplicate,
@@ -182,7 +184,7 @@ export function DocumentContextMenu({
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4]">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'page' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Page</DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if (onTurnIntoFolder) { void onTurnIntoFolder(doc.id); return; } onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'database' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Database</DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -194,7 +196,7 @@ export function DocumentContextMenu({
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4]">
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'page' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Page</ContextMenuItem>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</ContextMenuItem>
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); if (onTurnIntoFolder) { void onTurnIntoFolder(doc.id); return; } onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</ContextMenuItem>
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'database' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Database</ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>

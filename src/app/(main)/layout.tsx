@@ -7,7 +7,7 @@ import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
+  const { documents, createDocument, deleteDocument, updateDocument, turnIntoFolder, toggleFavorite, duplicateDocument } = useDocuments();
   const params = useParams();
   const router = useRouter();
   const documentId = params.documentId as string | undefined;
@@ -51,6 +51,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             if (documentId === id) router.push('/');
           }}
           onUpdateDocument={updateDocument}
+          onTurnIntoFolder={turnIntoFolder}
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />

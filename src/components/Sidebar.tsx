@@ -28,7 +28,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
-import { Document } from '@/hooks/useDocuments';
+import { Document, TurnIntoFolderResult } from '@/hooks/useDocuments';
 import { 
   DndContext, 
   DragEndEvent,
@@ -114,6 +114,7 @@ interface SidebarProps {
   ) => void;
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
+  onTurnIntoFolder: (id: string) => Promise<TurnIntoFolderResult>;
   onToggleFavorite: (id: string) => void;
   onDuplicateDocument: (id: string) => void;
 }
@@ -135,6 +136,7 @@ export function Sidebar({
   onCreateDocument,
   onDeleteDocument,
   onUpdateDocument,
+  onTurnIntoFolder,
   onToggleFavorite,
   onDuplicateDocument
 }: SidebarProps) {
@@ -162,6 +164,7 @@ export function Sidebar({
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateTeamspaceOpen, setIsCreateTeamspaceOpen] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [autoRenameDocId, setAutoRenameDocId] = useState<string | null>(null);
 
   const toggleFolder = useCallback((id: string) => {
     setExpandedFolders(prev => {
@@ -352,6 +355,21 @@ export function Sidebar({
       console.error('[UX-Sync] Falha ao emitir atualização de título', error);
     }
   }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
+
+  const handleTurnIntoFolder = useCallback(async (documentId: string) => {
+    try {
+      const result = await onTurnIntoFolder(documentId);
+      setExpandedFolders((prev) => {
+        const next = new Set(prev);
+        next.add(result.folder.id);
+        return next;
+      });
+      setAutoRenameDocId(result.child.id);
+    } catch (error) {
+      console.error('Falha ao converter em pasta', error);
+      toast.error('Failed to turn into folder');
+    }
+  }, [onTurnIntoFolder]);
 
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
@@ -850,7 +868,10 @@ export function Sidebar({
             return null;
           }
 
-          const isFolder = doc.type === 'folder';
+          const hasChildren = documents.some((childDoc) => (
+            (childDoc.parent_id || null) === doc.id && childDoc.is_trash !== true && childDoc.is_trash !== 1
+          ));
+          const isFolder = doc.type === 'folder' || hasChildren;
           const isExpanded = expandedFolders.has(doc.id);
 
           return (
@@ -858,15 +879,11 @@ export function Sidebar({
               <DocumentItem 
                 doc={doc} 
                 active={doc.id === selectedDocId} 
-                isDropTarget={doc.id === overId && doc.id !== activeId}
-                onClick={() => {
-                  if (isFolder) {
-                    toggleFolder(doc.id);
-                  }
-                  onSelectDocument(doc);
-                }}
+                isDropTarget={isFolder && doc.id === overId && doc.id !== activeId}
+                onClick={() => onSelectDocument(doc)}
                 onDelete={onDeleteDocument}
                 onUpdate={handleDocumentUpdate}
+                onTurnIntoFolder={handleTurnIntoFolder}
                 onToggleFavorite={handleToggleFavorite}
                 onDuplicate={onDuplicateDocument}
                 depth={depth}
@@ -874,15 +891,24 @@ export function Sidebar({
                 isFolder={isFolder}
                 isExpanded={isExpanded}
                 onToggleExpand={(e: React.MouseEvent) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   toggleFolder(doc.id);
                 }}
+                shouldAutoRename={autoRenameDocId === doc.id}
+                onAutoRenameHandled={(handledId: string) => {
+                  if (autoRenameDocId === handledId) {
+                    setAutoRenameDocId(null);
+                  }
+                }}
               />
-              <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                <div className="overflow-hidden">
-                  {isExpanded && renderDocs(documents, doc.id, depth + 1, dragMode)}
+              {isFolder && (
+                <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden">
+                    {isExpanded && renderDocs(documents, doc.id, depth + 1, dragMode)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
@@ -1570,12 +1596,15 @@ const DocumentItem = memo(({
   onClick, 
   onDelete, 
   onUpdate,
+  onTurnIntoFolder,
   onToggleFavorite,
   onDuplicate,
   depth = 0,
   isFolder = false,
   isExpanded = false,
-  onToggleExpand
+  onToggleExpand,
+  shouldAutoRename = false,
+  onAutoRenameHandled
 }: { 
   doc: Document; 
   active: boolean; 
@@ -1584,12 +1613,15 @@ const DocumentItem = memo(({
   onClick: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Document>) => void;
+  onTurnIntoFolder?: (id: string) => void | Promise<void>;
   onToggleFavorite: (id: string) => void;
   onDuplicate: (id: string) => void;
   depth?: number;
   isFolder?: boolean;
   isExpanded?: boolean;
   onToggleExpand?: (e: React.MouseEvent) => void;
+  shouldAutoRename?: boolean;
+  onAutoRenameHandled?: (id: string) => void;
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [title, setTitle] = useState(doc.title || '');
@@ -1642,6 +1674,18 @@ const DocumentItem = memo(({
     setIsRenaming(true);
   };
 
+  useEffect(() => {
+    if (!shouldAutoRename) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setTitle(hasVisibleTitle(doc.title) ? (doc.title || '') : '');
+      setIsRenaming(true);
+      onAutoRenameHandled?.(doc.id);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [shouldAutoRename, doc.id, doc.title, onAutoRenameHandled]);
+
   const style = {
     transform: CSS.Transform.toString(dragTransform),
     transition: dragTransition,
@@ -1658,6 +1702,7 @@ const DocumentItem = memo(({
       <DocumentContextMenu 
         doc={doc}
         onUpdate={onUpdate}
+        onTurnIntoFolder={onTurnIntoFolder}
         onToggleFavorite={onToggleFavorite}
         onDelete={onDelete}
         onDuplicate={onDuplicate}
@@ -1720,6 +1765,7 @@ const DocumentItem = memo(({
               <button
                 type="button"
                 onClick={onToggleExpand}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="p-0.5 hover:bg-[#3f3f3f] rounded transition-colors text-[#a3a3a3] shrink-0"
               >
                 <ChevronRight size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />

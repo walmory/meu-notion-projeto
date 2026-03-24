@@ -400,6 +400,108 @@ export const duplicateDocument = async (req, res) => {
   }
 };
 
+export const turnIntoFolderDocument = async (req, res) => {
+  const workspaceId = req.workspace_id;
+  const ownerId = req.user_id;
+  const { id } = req.params;
+
+  if (!workspaceId) {
+    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [existingRows] = await connection.query(
+      `SELECT id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, icon, cover, type
+       FROM documents
+       WHERE id = ? AND workspace_id = ?
+       LIMIT 1`,
+      [id, workspaceId]
+    );
+
+    if (!Array.isArray(existingRows) || existingRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Documento não encontrado' });
+    }
+
+    const current = existingRows[0];
+    const folderType = 'folder';
+
+    await connection.query(
+      `UPDATE documents
+       SET type = ?, updated_at = NOW()
+       WHERE id = ? AND workspace_id = ?`,
+      [folderType, id, workspaceId]
+    );
+
+    const childId = uuidv4();
+    const childTitle = 'Untitled Page';
+
+    await connection.query(
+      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, icon, cover, type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        childId,
+        childTitle,
+        '[]',
+        0,
+        id,
+        workspaceId,
+        current.teamspace_id ?? null,
+        current.teamspace_id ? 0 : 1,
+        current.is_meeting_note ? 1 : 0,
+        ownerId || current.owner_id || null,
+        null,
+        null,
+        'page'
+      ]
+    );
+
+    const [folderRows] = await connection.query(
+      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note, type
+       FROM documents
+       WHERE id = ? AND workspace_id = ?
+       LIMIT 1`,
+      [id, workspaceId]
+    );
+
+    const [childRows] = await connection.query(
+      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note, type
+       FROM documents
+       WHERE id = ? AND workspace_id = ?
+       LIMIT 1`,
+      [childId, workspaceId]
+    );
+
+    await connection.commit();
+
+    const folder = normalizeDocumentVisuals(folderRows[0]);
+    const child = normalizeDocumentVisuals(childRows[0]);
+
+    emitToWorkspace(workspaceId, 'document_updated', folder);
+    emitToWorkspace(workspaceId, 'document_created', child);
+
+    return res.status(200).json({ folder, child });
+  } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch {
+        // no-op
+      }
+    }
+    console.error('Erro ao converter documento em pasta:', error);
+    return res.status(500).json({ error: 'Falha ao converter documento em pasta', details: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
 export const updateDocument = async (req, res) => {
   const { id } = req.params;
   const workspaceId = req.workspace_id;
