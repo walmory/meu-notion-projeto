@@ -171,19 +171,10 @@ export default function ProfilePage() {
   const initial = displayData?.name ? displayData.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#191919]">
-      {/* Banner/Header */}
-      <div className="w-full h-32 sm:h-44 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 pt-8 sm:pt-10 px-4 sm:px-8 md:px-12 lg:px-24">
-        <div>
-          <span className="text-[10px] sm:text-xs font-semibold tracking-wider text-[#a3a3a3] uppercase">
-            Public Profile of {displayData?.name?.split(' ')[0] || 'User'}
-          </span>
-        </div>
-      </div>
-
+    <div className="flex-1 flex flex-col min-h-0 bg-[#191919] pt-8 md:pt-16">
       <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 md:px-12 lg:px-24 relative pb-24">
         {/* Avatar Section */}
-        <div className="-mt-12 sm:-mt-16 relative z-10 mb-4 sm:mb-6 flex items-end">
+        <div className="relative z-10 mb-4 sm:mb-6 flex items-end">
           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-[#262626] border-4 border-[#191919] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
             {displayData?.avatar_url ? (
               <img 
