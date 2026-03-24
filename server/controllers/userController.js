@@ -81,9 +81,11 @@ export const updateEmail = async (req, res) => {
     
     console.log('--- DEBUG SENHA ---');
     console.log('Senha vinda do form:', req.body.currentPassword);
-    console.log('Senha vinda do banco (hash):', user.password);
+    console.log('Senha vinda do banco (hash/texto):', user.password);
     
-    const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
+    // Se a senha no banco for igual à digitada (texto puro), considere como sucesso
+    // mas avise que precisamos atualizar para hash.
+    const isPasswordValid = (req.body.currentPassword === user.password) || await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updateEmail] password match:', isPasswordValid);
 
@@ -130,9 +132,11 @@ export const updatePassword = async (req, res) => {
     
     console.log('--- DEBUG SENHA (PASSWORD) ---');
     console.log('Senha vinda do form:', req.body.currentPassword);
-    console.log('Senha vinda do banco (hash):', user.password);
+    console.log('Senha vinda do banco (hash/texto):', user.password);
     
-    const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
+    // Se a senha no banco for igual à digitada (texto puro), considere como sucesso
+    // mas avise que precisamos atualizar para hash.
+    const isPasswordValid = (req.body.currentPassword === user.password) || await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updatePassword] password match:', isPasswordValid);
 
