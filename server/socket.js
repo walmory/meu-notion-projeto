@@ -106,7 +106,7 @@ async function processDocQueue(socket, docId) {
   const coverValue = msg.cover;
 
   console.log(
-    `[socket] processando — doc=${docId} seq=${msg.seq} contentLength=${jsonContent.length}`
+    `[Sincronia Victor] processando — doc=${docId} seq=${msg.seq} contentLength=${jsonContent.length}`
   );
 
   try {
@@ -286,6 +286,22 @@ export const initSocket = (httpServer) => {
         senderId: socket.id,
         docId,
         title,
+      });
+    });
+
+    socket.on('document:update-title', (payload) => {
+      const docId = payload?.docId;
+      const newTitle = payload?.newTitle;
+      const workspaceId = payload?.workspaceId;
+      if (!docId || typeof newTitle !== 'string' || !workspaceId) return;
+      const workspaceRoom = getWorkspaceRoom(workspaceId);
+      if (!socket.rooms.has(workspaceRoom)) return;
+      console.log(`[Sincronia Victor] broadcast title workspace=${workspaceId} doc=${docId}`);
+      socket.to(workspaceRoom).emit('document:update-title', {
+        senderId: socket.id,
+        workspaceId,
+        docId,
+        newTitle,
       });
     });
 

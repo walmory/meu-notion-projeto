@@ -251,6 +251,23 @@ export function Sidebar({
     router.push(`/workspace/${id}`);
   };
 
+  const handleDocumentUpdate = useCallback((documentId: string, updates: Partial<Document>) => {
+    onUpdateDocument(documentId, updates);
+    if (typeof updates.title !== 'string') {
+      return;
+    }
+    const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspaceId');
+    window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: documentId, title: updates.title } }));
+    if (socketRef.current && workspaceId) {
+      socketRef.current.emit('document:update-title', {
+        docId: documentId,
+        newTitle: updates.title,
+        workspaceId,
+      });
+      console.log(`[Sincronia Victor] Sidebar emitiu document:update-title doc=${documentId} workspace=${workspaceId}`);
+    }
+  }, [onUpdateDocument, activeWorkspaceId]);
+
   const handleWorkspaceDeleted = async (deletedWorkspaceId: string) => {
     // 3. Limpeza de Cache de Documentos para evitar rastro fantasma
     globalMutate(
@@ -316,10 +333,10 @@ export function Sidebar({
     });
 
     // Escutando eventos de título e conteúdo para atualizar a Sidebar (AAA)
-    socket.on('title-change', (payload: { docId?: string; title?: string }) => {
-      if (payload?.docId && payload?.title) {
-        // Atualização instantânea (Optimistic UI) — sem refetch de rede
-        window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: payload.docId, title: payload.title } }));
+    socket.on('document:update-title', (payload: { docId?: string; newTitle?: string }) => {
+      if (payload?.docId && payload?.newTitle) {
+        console.log(`[Sincronia Victor] Sidebar recebeu document:update-title doc=${payload.docId}`);
+        window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: payload.docId, title: payload.newTitle } }));
       }
     });
 
@@ -334,11 +351,11 @@ export function Sidebar({
     });
 
     socket.on('document-moving', (payload) => {
-      // Apenas PRESENCE: log para não encher a UI, mas evita loops de re-render com socket real.
-      console.log('User moving document:', payload);
+      console.log('[Sincronia Victor] User moving document:', payload);
     });
 
     return () => {
+      socket.off('document:update-title');
       socket.off('document_moved');
       socket.off('document-updated');
       socket.off('document_updated');
@@ -577,7 +594,7 @@ export function Sidebar({
       );
       const createdTeamspaceId = response.data?.id ? String(response.data.id) : null;
       if (pendingTeamspaceDropDocId && createdTeamspaceId) {
-        onUpdateDocument(pendingTeamspaceDropDocId, {
+        handleDocumentUpdate(pendingTeamspaceDropDocId, {
           is_meeting_note: false,
           teamspace_id: createdTeamspaceId,
           parent_id: null,
@@ -650,7 +667,7 @@ export function Sidebar({
     if (isTeamspaceDropTarget) {
       const targetTeamspaceId = String(dropTargetId);
       if (doc.teamspace_id !== targetTeamspaceId || doc.parent_id !== null || doc.is_shared_with_me) {
-        onUpdateDocument(documentId, { 
+        handleDocumentUpdate(documentId, { 
           is_meeting_note: false,
           teamspace_id: targetTeamspaceId, 
           parent_id: null,
@@ -663,7 +680,7 @@ export function Sidebar({
     // Dropped into Meeting Notes section
     if (dropTargetId === 'meeting-notes-section') {
       if (!isMeetingNoteDoc(doc) || doc.teamspace_id || doc.parent_id !== null || doc.is_private) {
-        onUpdateDocument(documentId, {
+        handleDocumentUpdate(documentId, {
           is_meeting_note: true,
           teamspace_id: null,
           parent_id: null,
@@ -676,7 +693,7 @@ export function Sidebar({
     // Dropped into Private section
     if (dropTargetId === 'section-private') {
       if (doc.teamspace_id || doc.parent_id !== null || isMeetingNoteDoc(doc)) {
-        onUpdateDocument(documentId, { 
+        handleDocumentUpdate(documentId, { 
           is_meeting_note: false,
           teamspace_id: null, 
           parent_id: null,
@@ -690,7 +707,7 @@ export function Sidebar({
     if (dropTargetId !== documentId) {
       const targetDoc = documents.find(d => d.id === dropTargetId);
       if (targetDoc) {
-        onUpdateDocument(documentId, { 
+        handleDocumentUpdate(documentId, { 
           parent_id: targetDoc.id,
           teamspace_id: targetDoc.teamspace_id,
           is_private: targetDoc.teamspace_id ? false : true,
@@ -727,7 +744,7 @@ export function Sidebar({
                 isDropTarget={doc.id === overId && doc.id !== activeId}
                 onClick={() => onSelectDocument(doc)}
                 onDelete={onDeleteDocument}
-                onUpdate={onUpdateDocument}
+                onUpdate={handleDocumentUpdate}
                 onToggleFavorite={handleToggleFavorite}
                 onDuplicate={onDuplicateDocument}
                 depth={depth}

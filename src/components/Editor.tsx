@@ -257,6 +257,15 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       syncSharedTitle(currentDocumentId, payload.title);
     });
 
+    socket.on('document:update-title', (payload: { senderId?: string; docId?: string; newTitle?: string }) => {
+      if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
+      if (payload.senderId && socket.id && payload.senderId === socket.id) return;
+      if (typeof payload.newTitle !== 'string') return;
+      if (payload.newTitle === titleRef.current) return;
+      console.log(`[Sincronia Victor] Editor recebeu document:update-title doc=${currentDocumentId}`);
+      syncSharedTitle(currentDocumentId, payload.newTitle);
+    });
+
     socket.on('icon-change', (payload: { senderId?: string; docId?: string; icon?: string | null }) => {
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
@@ -403,6 +412,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
 
     return () => {
       socket.off('title-change');
+      socket.off('document:update-title');
       socket.off('icon-change');
       socket.off('cover-change');
       socket.off('content-update');
@@ -411,6 +421,24 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       socket.off('save-version-conflict');
     };
   }, [socket, editor, document?.id, syncSharedTitle, syncSharedVisual]);
+
+  useEffect(() => {
+    const currentDocumentId = document?.id;
+    if (!currentDocumentId) {
+      return;
+    }
+    const handleLiveTitleUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ docId?: string; title?: string }>).detail;
+      if (!detail?.docId || String(detail.docId) !== String(currentDocumentId)) return;
+      if (typeof detail.title !== 'string') return;
+      if (detail.title === titleRef.current) return;
+      syncSharedTitle(currentDocumentId, detail.title);
+    };
+    window.addEventListener('live-title-update', handleLiveTitleUpdate);
+    return () => {
+      window.removeEventListener('live-title-update', handleLiveTitleUpdate);
+    };
+  }, [document?.id, syncSharedTitle]);
 
   useEffect(
     () => () => {
@@ -529,12 +557,18 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         if (activeDocumentIdRef.current && String(activeDocumentIdRef.current) !== String(id)) {
           return;
         }
-        socket.emit('title-change', {
+        const workspaceId = (document?.workspace_id ? String(document.workspace_id) : null) || localStorage.getItem('activeWorkspaceId');
+        if (!workspaceId) {
+          return;
+        }
+        socket.emit('document:update-title', {
           docId: id,
-          title: nextTitle,
+          newTitle: nextTitle,
+          workspaceId,
         });
-      }, 300),
-    [socket]
+        console.log(`[Sincronia Victor] Editor emitiu document:update-title doc=${id} workspace=${workspaceId}`);
+      }, 500),
+    [socket, document?.workspace_id]
   );
 
   const emitLiveIconViaSocket = useMemo(
