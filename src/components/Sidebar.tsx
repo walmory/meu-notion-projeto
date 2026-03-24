@@ -145,7 +145,6 @@ export function Sidebar({
   const { mutate: globalMutate } = useSWRConfig();
   const [favoritesExpanded, setFavoritesExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(false);
-  const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [teamspacesExpanded, setTeamspacesExpanded] = useState(true);
   const [sharedExpanded, setSharedExpanded] = useState(true);
   const [privateExpanded, setPrivateExpanded] = useState(true);
@@ -1171,17 +1170,6 @@ export function Sidebar({
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="mt-4">
-            <DroppableSection 
-              id="section-agents"
-              title="Agents" 
-              expanded={agentsExpanded} 
-              onToggle={() => setAgentsExpanded(!agentsExpanded)}
-              hideChevron
-              rightElement={<span className="text-[9px] font-bold bg-[#3f3f3f] text-[#ffffff] px-1.5 py-0.5 rounded uppercase tracking-wider">BETA</span>}
-            />
           </div>
 
           <div className="mt-4">
