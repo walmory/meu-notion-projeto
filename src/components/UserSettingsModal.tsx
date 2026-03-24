@@ -8,7 +8,6 @@ import { getAuthHeaders } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useUser } from '@/contexts/UserContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 
 interface UserSettingsModalProps {
@@ -95,7 +94,6 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       
       await refreshUser(); 
       toast.success('Perfil atualizado com sucesso!');
-      onClose();
     } catch (error) {
       console.error('Failed to update profile', error);
       if (user) setUser(user);
@@ -170,144 +168,137 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[425px]">
-        <Tabs defaultValue="profile" className="w-full">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-white">Configurações</DialogTitle>
-            <TabsList className="grid w-full grid-cols-2 bg-[#262626] mt-4">
-              <TabsTrigger value="profile">Perfil</TabsTrigger>
-              <TabsTrigger value="account">Conta</TabsTrigger>
-            </TabsList>
-          </DialogHeader>
+      <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-white">Configurações</DialogTitle>
+          <DialogDescription className="text-[#9b9b9b]">
+            Gerencie seu perfil, e-mail e senha de acesso.
+          </DialogDescription>
+        </DialogHeader>
 
-          <TabsContent value="profile">
-            <form onSubmit={handleUpdateProfile}>
-              <DialogDescription className="text-[#9b9b9b] mb-4">
-                Atualize suas informações pessoais aqui.
-              </DialogDescription>
-
-              <div className="py-4 space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium text-white">Nome</label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Seu nome"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="bio" className="text-sm font-medium text-white">Bio</label>
-                  <Input
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Fale um pouco sobre você"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="avatarUrl" className="text-sm font-medium text-white">URL do Avatar</label>
-                  <Input
-                    id="avatarUrl"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://exemplo.com/avatar.jpg"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                  />
-                </div>
+        <div className="space-y-10 py-2">
+          {/* Form de Perfil */}
+          <section>
+            <h3 className="text-lg font-medium text-white mb-4">Perfil Público</h3>
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-white">Nome</label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="bio" className="text-sm font-medium text-white">Bio</label>
+                <Input
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Fale um pouco sobre você"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                />
               </div>
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={onClose}
-                  className="text-[#9b9b9b] hover:text-white hover:bg-white/5"
-                >
-                  Cancelar
-                </Button>
+              <div className="space-y-2">
+                <label htmlFor="avatarUrl" className="text-sm font-medium text-white">URL do Avatar</label>
+                <Input
+                  id="avatarUrl"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://exemplo.com/avatar.jpg"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
                   disabled={loading || fetching || !name.trim()}
                   className="bg-white hover:bg-gray-200 text-black transition-all"
                 >
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Salvar
+                  Atualizar Perfil
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
-          </TabsContent>
+          </section>
 
-          <TabsContent value="account">
-            <div className="space-y-6 py-2">
-              {/* Form de Email */}
-              <form onSubmit={handleUpdateEmail} className="space-y-4">
-                <DialogDescription className="text-[#9b9b9b]">
-                  Altere seu endereço de e-mail. Confirme sua identidade usando sua senha atual.
-                </DialogDescription>
-                
-                <div className="space-y-2">
-                  <label htmlFor="newEmail" className="text-sm font-medium text-white">Novo E-mail</label>
-                  <Input
-                    id="newEmail"
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="exemplo@email.com"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="currentPasswordForEmail" className="text-sm font-medium text-white">Senha Atual</label>
-                  <Input
-                    id="currentPasswordForEmail"
-                    type="password"
-                    value={currentPasswordForEmail}
-                    onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                    placeholder="Sua senha atual"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                    required
-                  />
-                </div>
-                
+          <div className="h-px bg-white/10" />
+
+          {/* Form de Email */}
+          <section>
+            <h3 className="text-lg font-medium text-white mb-1">E-mail</h3>
+            <DialogDescription className="text-[#9b9b9b] mb-4 text-xs">
+              Confirme sua identidade usando sua senha atual para alterar.
+            </DialogDescription>
+            <form onSubmit={handleUpdateEmail} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="newEmail" className="text-sm font-medium text-white">Novo E-mail</label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="exemplo@email.com"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="currentPasswordForEmail" className="text-sm font-medium text-white">Senha Atual</label>
+                <Input
+                  id="currentPasswordForEmail"
+                  type="password"
+                  value={currentPasswordForEmail}
+                  onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                  placeholder="Sua senha atual"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
                   disabled={emailLoading || !newEmail.trim() || !currentPasswordForEmail}
-                  className="w-full bg-white hover:bg-gray-200 text-black transition-all"
+                  className="bg-white hover:bg-gray-200 text-black transition-all"
                 >
                   {emailLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Atualizar E-mail
                 </Button>
-              </form>
+              </div>
+            </form>
+          </section>
 
-              <div className="h-px bg-white/10 my-4" />
+          <div className="h-px bg-white/10" />
 
-              {/* Form de Senha */}
-              <form onSubmit={handleUpdatePassword} className="space-y-4">
-                <DialogDescription className="text-[#9b9b9b]">
-                  Altere sua senha de acesso. Confirme a senha atual por segurança.
-                </DialogDescription>
-                
-                <div className="space-y-2">
-                  <label htmlFor="currentPassword" className="text-sm font-medium text-white">Senha Atual</label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Sua senha atual"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
-                    required
-                  />
-                </div>
+          {/* Form de Senha */}
+          <section>
+            <h3 className="text-lg font-medium text-white mb-1">Senha</h3>
+            <DialogDescription className="text-[#9b9b9b] mb-4 text-xs">
+              Confirme a senha atual por segurança.
+            </DialogDescription>
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="currentPassword" className="text-sm font-medium text-white">Senha Atual</label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Sua senha atual"
+                  className="bg-[#262626] border-white/10 text-white placeholder:text-[#9b9b9b]"
+                  required
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="newPassword" className="text-sm font-medium text-white">Nova Senha</label>
                   <Input
@@ -322,7 +313,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="text-sm font-medium text-white">Confirmar Nova Senha</label>
+                  <label htmlFor="confirmPassword" className="text-sm font-medium text-white">Confirmar Senha</label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -333,19 +324,21 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                     required
                   />
                 </div>
-                
+              </div>
+              
+              <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
                   disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-                  className="w-full bg-white hover:bg-gray-200 text-black transition-all"
+                  className="bg-white hover:bg-gray-200 text-black transition-all"
                 >
                   {passwordLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Atualizar Senha
                 </Button>
-              </form>
-            </div>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </form>
+          </section>
+        </div>
       </DialogContent>
     </Dialog>
   );
