@@ -888,6 +888,14 @@ export function Sidebar({
                       </span>
                     </div>
                   </div>
+
+                  <DropdownMenu.Item 
+                    className="flex items-center gap-2 p-2 mb-2 w-full text-left rounded-md hover:bg-[#333333] transition-colors outline-none cursor-pointer text-[#d4d4d4]"
+                    onClick={() => router.push('/profile')}
+                  >
+                    <LucideIcons.User size={16} className="text-[#a3a3a3]" />
+                    <span>My Profile</span>
+                  </DropdownMenu.Item>
                   
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <button 
