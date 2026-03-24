@@ -1170,8 +1170,8 @@ export function Sidebar({
           <SidebarItem 
             icon={<Settings size={16} className="text-[#a3a3a3]" />} 
             label="Settings" 
-            onClick={() => router.push('/settings')}
-            active={pathname === '/settings'}
+            onClick={() => router.push('/profile')}
+            active={pathname === '/profile'}
           />
           <SidebarItem icon={<Users size={16} className="text-[#a3a3a3]" />} label="Members" />
           <SidebarItem icon={<Link size={16} className="text-[#a3a3a3]" />} label="Connections" onClick={() => router.push('/connections')} active={pathname === '/connections'} />
