@@ -2,7 +2,6 @@ import express from 'express';
 import pool from '../config/db.js';
 import crypto from 'crypto';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
 import { emitToWorkspace } from '../socket.js';
 
 const router = express.Router();
@@ -73,12 +72,12 @@ router.get('/:id/tasks', async (req, res) => {
 // Create a task
 router.post('/:id/tasks', async (req, res) => {
   try {
-    const { title, status, assigned_to, due_date, priority, id } = req.body;
+    const { title, status, assigned_to, due_date, priority, description, id } = req.body;
     const taskId = id || crypto.randomUUID();
     
     await pool.query(
-      'INSERT INTO tasks (id, project_id, title, status, assigned_to, due_date, priority) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [taskId, req.params.id, title, status || 'To Do', assigned_to || null, due_date || null, priority || 'Normal']
+      'INSERT INTO tasks (id, project_id, title, status, assigned_to, due_date, priority, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [taskId, req.params.id, title, status || 'To Do', assigned_to || null, due_date || null, priority || 'Normal', description || null]
     );
     
     const [newTask] = await pool.query('SELECT * FROM tasks WHERE id = ?', [taskId]);
@@ -92,7 +91,7 @@ router.post('/:id/tasks', async (req, res) => {
 // Update a task (e.g. status)
 router.patch('/tasks/:taskId', async (req, res) => {
   try {
-    const { title, status, assigned_to, due_date, position, priority } = req.body;
+    const { title, status, assigned_to, due_date, position, priority, description } = req.body;
     
     let updateFields = [];
     let values = [];
@@ -103,6 +102,7 @@ router.patch('/tasks/:taskId', async (req, res) => {
     if (due_date !== undefined) { updateFields.push('due_date = ?'); values.push(due_date); }
     if (position !== undefined) { updateFields.push('position = ?'); values.push(position); }
     if (priority !== undefined) { updateFields.push('priority = ?'); values.push(priority); }
+    if (description !== undefined) { updateFields.push('description = ?'); values.push(description); }
     
     if (updateFields.length > 0) {
       values.push(req.params.taskId);

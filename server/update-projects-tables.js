@@ -16,6 +16,12 @@ async function updateTables() {
     `);
     console.log('Coluna priority adicionada em tasks');
 
+    await pool.query(`
+      ALTER TABLE tasks
+      ADD COLUMN IF NOT EXISTS description TEXT
+    `);
+    console.log('Coluna description adicionada em tasks');
+
   } catch (err) {
     console.error('Erro ao atualizar tabelas:', err);
   } finally {

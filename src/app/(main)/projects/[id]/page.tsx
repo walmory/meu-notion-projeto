@@ -13,7 +13,8 @@ import {
   Calendar as CalendarIcon,
   User as UserIcon,
   ChevronDown,
-  Flag
+  Flag,
+  X
 } from 'lucide-react';
 import useSWR from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
@@ -26,6 +27,7 @@ interface Task {
   title: string;
   status: 'To Do' | 'In Progress' | 'Done' | 'Stuck';
   priority: 'High' | 'Medium' | 'Low' | 'Normal';
+  description?: string | null;
   assigned_to: string | null;
   due_date: string | null;
   position: number;
@@ -69,22 +71,39 @@ const PRIORITY_CONFIG = {
   'Normal': { color: 'text-[#a3a3a3]', bg: 'bg-[#a3a3a3]/10' },
 };
 
+const STATUS_LABELS: Record<Task['status'], string> = {
+  'To Do': 'To Do',
+  'In Progress': 'Working on it',
+  'Done': 'Done',
+  'Stuck': 'Stuck'
+};
+
 export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
   
-  const [userName, setUserName] = useState('User');
+  const [userName] = useState(() => {
+    const user = getUserFromToken();
+    return user?.name || 'User';
+  });
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'members' | 'timeline'>('tasks');
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskTitle, setEditingTaskTitle] = useState('');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [drawerDescription, setDrawerDescription] = useState('');
+  const [drawerPriority, setDrawerPriority] = useState<Task['priority']>('Normal');
+  const [drawerAssignee, setDrawerAssignee] = useState<string | null>(null);
+  const [drawerDueDate, setDrawerDueDate] = useState('');
 
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('activeWorkspaceId');
+  });
 
   useEffect(() => {
-    const wsId = localStorage.getItem('activeWorkspaceId');
-    if (wsId) setActiveWorkspaceId(wsId);
-    
     const handleWorkspaceChange = (e: Event) => {
       const customEvent = e as CustomEvent;
       setActiveWorkspaceId(customEvent.detail);
@@ -108,22 +127,25 @@ export default function ProjectPage() {
     'Done': tasks.filter(t => t.status === 'Done')
   };
 
-  const { data: membersData } = useSWR<TeamspaceMember[]>(
-    project ? `/workspaces/members?workspace_id=${project.workspace_id}` : null,
+  const { data: workspaceMembersData } = useSWR<TeamspaceMember[]>(
+    project ? `/workspace/members?workspace_id=${project.workspace_id}` : null,
     fetcher
   );
-  const members = (membersData || []).map((member) => ({
+
+  const { data: teamspaceMembersData } = useSWR<TeamspaceMember[]>(
+    project?.teamspace_id ? `/teamspaces/${project.teamspace_id}/members` : null,
+    fetcher
+  );
+
+  const membersSource = project?.teamspace_id && teamspaceMembersData && teamspaceMembersData.length > 0
+    ? teamspaceMembersData
+    : workspaceMembersData;
+
+  const members = (membersSource || []).map((member) => ({
     ...member,
     name: member.name || member.user_name || member.email || member.user_email || 'Unknown User',
     email: member.email || member.user_email || ''
   }));
-
-  useEffect(() => {
-    const user = getUserFromToken();
-    if (user && user.name) {
-      setUserName(user.name);
-    }
-  }, []);
 
   useEffect(() => {
     if (!project?.workspace_id) return;
@@ -153,24 +175,6 @@ export default function ProjectPage() {
     };
   }, [project?.workspace_id, projectId, mutateTasks]);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim() || isCreatingTask) return;
-    
-    try {
-      setIsCreatingTask(true);
-      await api.post(`/projects/${projectId}/tasks`, {
-        title: newTaskTitle.trim()
-      });
-      setNewTaskTitle('');
-      mutateTasks();
-    } catch (error) {
-      console.error('Failed to create task:', error);
-    } finally {
-      setIsCreatingTask(false);
-    }
-  };
-
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
       mutateTasks((current = []) => current.map(t => t.id === taskId ? { ...t, ...updates } : t), { revalidate: false });
@@ -191,11 +195,49 @@ export default function ProjectPage() {
     }
   };
 
+  const handleStartInlineEdit = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskTitle(task.title || '');
+  };
+
+  const handleSaveInlineEdit = async () => {
+    if (!editingTaskId) return;
+    const title = editingTaskTitle.trim();
+    if (!title) {
+      setEditingTaskId(null);
+      setEditingTaskTitle('');
+      return;
+    }
+    await handleUpdateTask(editingTaskId, { title });
+    setEditingTaskId(null);
+    setEditingTaskTitle('');
+  };
+
+  const selectedTask = selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) || null : null;
+
+  const openTaskDrawer = (task: Task) => {
+    setSelectedTaskId(task.id);
+    setDrawerDescription(task.description || '');
+    setDrawerPriority(task.priority || 'Normal');
+    setDrawerAssignee(task.assigned_to || null);
+    setDrawerDueDate(task.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : '');
+  };
+
+  const handleSaveDrawer = async () => {
+    if (!selectedTaskId) return;
+    await handleUpdateTask(selectedTaskId, {
+      description: drawerDescription || null,
+      priority: drawerPriority,
+      assigned_to: drawerAssignee,
+      due_date: drawerDueDate || null
+    });
+  };
+
   const completedTasks = tasks.filter(t => t.status === 'Done').length;
   const totalTasks = tasks.length;
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  if (!projectsData || !membersData) {
+  if (!projectsData || !workspaceMembersData) {
     return (
       <div className="flex items-center justify-center h-full bg-[#191919] text-[#a3a3a3]">
         <div className="flex flex-col items-center gap-4">
@@ -270,7 +312,7 @@ export default function ProjectPage() {
             onClick={() => setActiveTab('tasks')}
             className={`pb-3 text-[13px] font-semibold tracking-wide border-b-2 transition-colors ${activeTab === 'tasks' ? 'border-blue-500 text-blue-400' : 'border-transparent text-[#8a8a8a] hover:text-[#d4d4d4]'}`}
           >
-            Main Table
+            Tasks
           </button>
           <button
             type="button"
@@ -320,7 +362,7 @@ export default function ProjectPage() {
                         {groupTasks.length}
                       </div>
                       <h2 className="text-[13px] font-semibold text-white tracking-wide" style={{ color: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#ffffff' }}>
-                        {statusGroup}
+                        {STATUS_LABELS[statusGroup as Task['status']]}
                       </h2>
                       <div className="h-px flex-1 bg-white/5 ml-4 group-hover/header:bg-white/10 transition-colors" />
                     </div>
@@ -333,9 +375,36 @@ export default function ProjectPage() {
                           {/* Title */}
                           <div className="px-6 py-3 border-r border-white/5 flex items-center group-hover/row:bg-white/[0.01] transition-colors relative">
                             <div className="w-1.5 h-full absolute left-0 top-0 bottom-0 transition-opacity" style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
-                            <div className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors pl-2">
-                              {task.title}
-                            </div>
+                            {editingTaskId === task.id ? (
+                              <input
+                                value={editingTaskTitle}
+                                onChange={(e) => setEditingTaskTitle(e.target.value)}
+                                onBlur={handleSaveInlineEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveInlineEdit();
+                                  if (e.key === 'Escape') {
+                                    setEditingTaskId(null);
+                                    setEditingTaskTitle('');
+                                  }
+                                }}
+                                className="w-full bg-transparent border-none outline-none text-[13px] font-medium text-white pl-2"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTaskDrawer(task);
+                                }}
+                                onDoubleClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartInlineEdit(task);
+                                }}
+                                className="font-medium text-[#d4d4d4] truncate text-[13px] group-hover/row:text-white transition-colors pl-2 text-left w-full"
+                              >
+                                {task.title}
+                              </button>
+                            )}
                           </div>
 
                           {/* Status Badge with Dropdown - Full Cell */}
@@ -343,7 +412,7 @@ export default function ProjectPage() {
                             <DropdownMenu.Root>
                               <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full absolute inset-0">
                                 <div className={`flex items-center justify-center w-full h-full text-[12px] font-semibold tracking-wide cursor-pointer transition-all hover:brightness-110 ${STATUS_CONFIG[task.status]?.color || 'bg-gray-500 text-white'}`}>
-                                  <span>{task.status}</span>
+                                  <span className="font-bold">{STATUS_LABELS[task.status]}</span>
                                 </div>
                               </DropdownMenu.Trigger>
                               <DropdownMenu.Portal>
@@ -355,7 +424,7 @@ export default function ProjectPage() {
                                       className="flex items-center gap-3 px-3 py-2 text-[13px] text-[#d4d4d4] rounded-sm hover:bg-white/10 cursor-pointer outline-none mb-0.5 last:mb-0"
                                     >
                                       <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: config.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }} />
-                                      {statusName}
+                                      {STATUS_LABELS[statusName as Task['status']]}
                                     </DropdownMenu.Item>
                                   ))}
                                 </DropdownMenu.Content>
@@ -540,6 +609,95 @@ export default function ProjectPage() {
           )}
         </div>
       </div>
+
+      {selectedTask && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+          <div className="h-full w-full max-w-md bg-[#1f1f1f] border-l border-white/10 shadow-2xl p-6 overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-white">Task Details</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedTaskId(null)}
+                className="p-2 rounded-md text-[#a3a3a3] hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Description</div>
+                <textarea
+                  value={drawerDescription}
+                  onChange={(e) => setDrawerDescription(e.target.value)}
+                  rows={5}
+                  className="w-full bg-[#252525] border border-white/10 rounded-md px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                  placeholder="Add task description..."
+                />
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Priority</div>
+                <select
+                  value={drawerPriority}
+                  onChange={(e) => setDrawerPriority(e.target.value as Task['priority'])}
+                  className="w-full bg-[#252525] border border-white/10 rounded-md px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                >
+                  {Object.keys(PRIORITY_CONFIG).map((priority) => (
+                    <option key={priority} value={priority}>{priority}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Assignee</div>
+                <select
+                  value={drawerAssignee || ''}
+                  onChange={(e) => setDrawerAssignee(e.target.value || null)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-md px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member.user_id} value={member.user_id}>
+                      {member.name || member.email || 'Unknown User'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Deadline</div>
+                <input
+                  type="date"
+                  value={drawerDueDate}
+                  onChange={(e) => setDrawerDueDate(e.target.value)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-md px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedTaskId(null)}
+                className="px-3 py-2 rounded-md text-sm text-[#a3a3a3] hover:text-white hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSaveDrawer();
+                  setSelectedTaskId(null);
+                }}
+                className="px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
