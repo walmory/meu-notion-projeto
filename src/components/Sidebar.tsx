@@ -22,7 +22,8 @@ import {
   Settings,
   PenSquare,
   UserPlus,
-  MonitorSmartphone
+  MonitorSmartphone,
+  Briefcase
 } from 'lucide-react';
 import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { Document } from '@/hooks/useDocuments';
@@ -1051,74 +1052,7 @@ export function Sidebar({
             <SidebarItem icon={<CalendarCheck size={18} className="text-[#a3a3a3]" />} label="Meetings" onClick={() => router.push('/meetings')} active={pathname === '/meetings'} />
             <SidebarItem icon={<Sparkles size={18} className="text-[#a3a3a3]" />} label={<span className="font-medium">Opta AI</span>} />
             <SidebarItem icon={<Inbox size={18} className="text-[#a3a3a3]" />} label="Inbox" />
-            
-            <DroppableSection 
-              id="section-projects"
-              title="PROJECTS" 
-              expanded={projectsExpanded} 
-              onToggle={() => setProjectsExpanded(!projectsExpanded)}
-              onAdd={() => {
-                setNewProjectTeamspaceId(null);
-                setIsCreateProjectOpen(true);
-              }}
-            />
-            <div className={`grid transition-all duration-200 ease-in-out ${projectsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
-              <div className="overflow-hidden space-y-0.5">
-                {projects.map((project: Project) => (
-                  <div key={project.id} className="relative group/project">
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/projects/${project.id}`)}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-md transition-colors ${pathname === `/projects/${project.id}` ? 'bg-[#2c2c2c] text-white' : 'hover:bg-[#2c2c2c] text-[#a3a3a3]'}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: project.color || '#3b82f6' }} />
-                        <span className="truncate text-[13px]">{project.name}</span>
-                      </div>
-                    </button>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
-                        <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/project:opacity-100 hover:bg-[#3f3f3f] p-0.5 rounded text-[#a3a3a3] hover:text-white transition-colors">
-                          <MoreHorizontal size={14} />
-                        </button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-[200]">
-                          <DropdownMenu.Item 
-                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#d4d4d4] hover:bg-white/10 rounded cursor-pointer outline-none"
-                            onClick={() => {
-                              const newName = prompt('Enter new project name:', project.name);
-                              if (newName && newName.trim()) {
-                                api.patch(`/projects/${project.id}`, { name: newName.trim() }).then(() => mutateProjects());
-                              }
-                            }}
-                          >
-                            Edit Name
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Item 
-                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-red-400 hover:bg-red-500/10 rounded cursor-pointer outline-none"
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete project "${project.name}" and all its tasks?`)) {
-                                api.delete(`/projects/${project.id}`).then(() => {
-                                  mutateProjects();
-                                  if (pathname === `/projects/${project.id}`) router.push('/');
-                                });
-                              }
-                            }}
-                          >
-                            Delete Project
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
-                  </div>
-                ))}
-                {projects.length === 0 && (
-                  <div className="px-6 py-1 text-xs text-gray-500">No projects yet</div>
-                )}
-              </div>
-            </div>
-
+            <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => router.push('/projects')} active={pathname.startsWith('/projects')} />
             <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => router.push('/library')} active={pathname === '/library'} />
           </div>
 
