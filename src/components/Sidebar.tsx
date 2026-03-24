@@ -1315,8 +1315,8 @@ function SidebarItem({ icon, label, active, onClick, rightElement }: { icon: Rea
     <button 
       type="button"
       onClick={onClick}
-      className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded px-3 py-1.5 transition text-[#a3a3a3] ${
-        active ? 'bg-[#2c2c2c] text-[#ffffff]' : 'hover:bg-[#2c2c2c] hover:text-[#ffffff]'
+      className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 transition text-[#a3a3a3] border-l-2 ${
+        active ? 'bg-white/5 text-[#ffffff] border-[#32ff7e] shadow-[inset_2px_0_10px_rgba(50,255,126,0.1)]' : 'border-transparent hover:bg-white/5 hover:text-[#ffffff]'
       }`}
     >
       <div className="flex items-center gap-3">
