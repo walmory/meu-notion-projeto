@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, MoreHorizontal, Trash2, Edit2, Briefcase } from 'lucide-react';
 import useSWR from 'swr';
@@ -51,7 +51,7 @@ export default function ProjectsDashboard() {
   }, []);
 
   const { data: projectsData, mutate: mutateProjects } = useSWR<Project[]>(activeWorkspaceId ? `/projects?workspace_id=${activeWorkspaceId}` : null, fetcher);
-  const projects = projectsData || [];
+  const projects = useMemo(() => projectsData || [], [projectsData]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
