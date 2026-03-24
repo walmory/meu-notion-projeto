@@ -20,9 +20,16 @@ const PORT = Number(process.env.PORT || 3001);
 const app = express();
 
 app.use(cors({
-  origin: [/vercel\.app$/, 'https://meu-notion-projeto.vercel.app'],
+  origin: function (origin, callback) {
+    // Permite se não houver origin (ex: apps mobile/curl) ou se vier da vercel.app
+    if (!origin || origin.indexOf('vercel.app') !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS não permitido por segurança'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'Cache-Control', 'Pragma'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'Cache-Control', 'Pragma', 'expires'],
   credentials: true
 }));
 
