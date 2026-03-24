@@ -87,10 +87,10 @@ const STATUS_CONFIG = {
 };
 
 const PRIORITY_CONFIG = {
-  'High': { color: 'text-red-400', bg: 'bg-red-500/20' },
-  'Medium': { color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  'Low': { color: 'text-green-400', bg: 'bg-green-500/20' },
-  'Normal': { color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  'High': { color: 'text-red-400', bg: 'bg-red-500/20', dot: 'bg-red-500' },
+  'Medium': { color: 'text-orange-400', bg: 'bg-orange-500/20', dot: 'bg-orange-500' },
+  'Low': { color: 'text-green-400', bg: 'bg-green-500/20', dot: 'bg-green-500' },
+  'Normal': { color: 'text-blue-400', bg: 'bg-blue-500/20', dot: 'bg-blue-500' },
 };
 
 const STATUS_LABELS: Record<Task['status'], string> = {
@@ -243,7 +243,7 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
                     onClick={() => handleUpdateTask(task.id, { priority: p as Task['priority'] })}
                     className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-200 hover:bg-white/5 rounded cursor-pointer outline-none"
                   >
-                    <div className={`w-2 h-2 rounded-full ${PRIORITY_CONFIG[p as keyof typeof PRIORITY_CONFIG].bg.replace('/20', '')}`} />
+                    <div className={`w-2 h-2 rounded-full ${PRIORITY_CONFIG[p as keyof typeof PRIORITY_CONFIG].dot}`} />
                     {p}
                   </DropdownMenu.Item>
                 ))}
