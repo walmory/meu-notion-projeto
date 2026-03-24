@@ -21,6 +21,7 @@ export interface Document {
   last_edited_by?: string;
   is_private?: boolean;
   is_meeting_note?: boolean | 0 | 1;
+  type?: string;
 }
 
 const fetcher = async (url: string) => {

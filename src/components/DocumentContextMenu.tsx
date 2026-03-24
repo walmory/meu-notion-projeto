@@ -8,6 +8,9 @@ import {
   ContextMenuSeparator,
   ContextMenuShortcut,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu';
 import {
   DropdownMenu,
@@ -16,11 +19,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
-import { Star, Copy, Link as LinkIcon, Edit2, Trash2, PanelRightOpen, FileText, CornerUpRight } from 'lucide-react';
+import { Star, Copy, Link as LinkIcon, Edit2, Trash2, PanelRightOpen, FileText, CornerUpRight, Briefcase } from 'lucide-react';
 import { Document } from '@/hooks/useDocuments';
 import { useSidePeek } from '@/contexts/SidePeekContext';
-import { getUserFromToken } from '@/lib/api';
+import { getUserFromToken, api, getAuthHeaders } from '@/lib/api';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface Teamspace {
+  id: string;
+  name: string;
+}
+
+const fetcher = (url: string) => api.get(url, { headers: getAuthHeaders() }).then(res => res.data);
 
 // Helper to format relative time natively
 const getRelativeTime = (dateString: string) => {
@@ -62,6 +82,12 @@ export function DocumentContextMenu({
   deleteTrigger,
 }: DocumentContextMenuProps) {
   const { openSidePeek } = useSidePeek();
+  const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
+  
+  const { data: teamspaces } = useSWR<Teamspace[]>(
+    activeWorkspaceId ? `/teamspaces?workspace_id=${activeWorkspaceId}` : null,
+    fetcher
+  );
 
   const handleCopyLink = () => {
     let baseUrl = window.location.origin;
@@ -74,7 +100,14 @@ export function DocumentContextMenu({
     }
     const url = `${baseUrl}/documents/${doc.id}`;
     navigator.clipboard.writeText(url);
-    alert('Link copied to clipboard!');
+    toast.success('Link copied to clipboard', {
+      icon: '✅',
+      style: {
+        background: '#191919',
+        color: '#fff',
+        border: '1px solid #333',
+      }
+    });
   };
 
   const renderMenuItems = (isDropdown = false) => {
@@ -136,26 +169,73 @@ export function DocumentContextMenu({
 
         <Separator className="bg-white/5" />
 
-        <Item
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-          }}
-          className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white"
-        >
-          <FileText size={16} className="mr-2" />
-          Turn into
-        </Item>
+        {isDropdown ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white">
+              <FileText size={16} className="mr-2" />
+              Turn into
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4]">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'page' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Page</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'database' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Database</DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white">
+              <FileText size={16} className="mr-2" />
+              Turn into
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4]">
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'page' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Page</ContextMenuItem>
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'folder' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Folder</ContextMenuItem>
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { type: 'database' }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">Database</ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
 
-        <Item
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-          }}
-          className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white"
-        >
-          <CornerUpRight size={16} className="mr-2" />
-          Move to...
-          <Shortcut>⌘⇧M</Shortcut>
-        </Item>
+        {isDropdown ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white">
+              <CornerUpRight size={16} className="mr-2" />
+              Move to...
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4] max-h-64 overflow-y-auto">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { teamspace_id: null, is_private: true, parent_id: null }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">
+                Private
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Teamspaces</div>
+              {teamspaces?.map(ts => (
+                <DropdownMenuItem key={ts.id} onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { teamspace_id: ts.id, is_private: false, parent_id: null }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">
+                  <Briefcase size={14} className="mr-2 text-gray-400" />
+                  <span className="truncate">{ts.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white">
+              <CornerUpRight size={16} className="mr-2" />
+              Move to...
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48 bg-[#191919] border border-white/5 shadow-2xl text-[#d4d4d4] max-h-64 overflow-y-auto">
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { teamspace_id: null, is_private: true, parent_id: null }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">
+                Private
+              </ContextMenuItem>
+              <ContextMenuSeparator className="bg-white/5" />
+              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Teamspaces</div>
+              {teamspaces?.map(ts => (
+                <ContextMenuItem key={ts.id} onClick={(e) => { e.stopPropagation(); onUpdate(doc.id, { teamspace_id: ts.id, is_private: false, parent_id: null }); }} className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c]">
+                  <Briefcase size={14} className="mr-2 text-gray-400" />
+                  <span className="truncate">{ts.name}</span>
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
 
         <Item
           onClick={(e: React.MouseEvent) => {

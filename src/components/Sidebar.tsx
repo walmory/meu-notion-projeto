@@ -1430,7 +1430,8 @@ function TeamspaceItem({
   return (
     <div ref={setNodeRef} className="w-full">
       <TeamspaceContextMenu 
-        teamspaceId={teamspace.id} 
+        teamspaceId={teamspace.id}
+        teamspaceName={teamspace.name}
         onDelete={onDeleteTeamspace} 
         onSettings={onSettings}
         plusTrigger={

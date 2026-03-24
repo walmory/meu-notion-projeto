@@ -20,10 +20,15 @@ import {
 import { Trash2, Settings, Edit2, Copy, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { api, getAuthHeaders } from '@/lib/api';
+import useSWR from 'swr';
+import { toast } from 'sonner';
 
 interface TeamspaceContextMenuProps {
   children: ReactNode;
   teamspaceId: string;
+  teamspaceName: string;
   onDelete: (id: string) => void;
   onSettings?: (id: string) => void;
   dropdownTrigger?: ReactNode;
@@ -33,16 +38,49 @@ interface TeamspaceContextMenuProps {
 export function TeamspaceContextMenu({
   children,
   teamspaceId,
+  teamspaceName,
   onDelete,
   onSettings,
   dropdownTrigger,
   plusTrigger,
 }: TeamspaceContextMenuProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [newName, setNewName] = useState(teamspaceName);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || newName === teamspaceName) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/teamspaces/${teamspaceId}`, { name: newName.trim() }, { headers: getAuthHeaders() });
+      toast.success('Teamspace renamed successfully');
+      window.dispatchEvent(new Event('mutate-workspaces'));
+      setShowRenameDialog(false);
+    } catch (error) {
+      toast.error('Failed to rename teamspace');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      await api.post(`/teamspaces/${teamspaceId}/duplicate`, {}, { headers: getAuthHeaders() });
+      toast.success('Teamspace duplicated successfully');
+      window.dispatchEvent(new Event('mutate-workspaces'));
+    } catch (error) {
+      toast.error('Failed to duplicate teamspace');
+      console.error(error);
+    }
+  };
 
   const handleDeleteConfirm = () => {
     onDelete(teamspaceId);
-    setIsDeleteDialogOpen(false);
+    setShowDeleteDialog(false);
   };
 
   const renderMenuItems = (isDropdown = false) => {
@@ -70,7 +108,7 @@ export function TeamspaceContextMenu({
         <Item
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
-            alert('Rename feature coming soon!');
+            setShowRenameDialog(true);
           }}
           className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white"
         >
@@ -81,7 +119,7 @@ export function TeamspaceContextMenu({
         <Item
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
-            alert('Duplicate feature coming soon!');
+            handleDuplicate();
           }}
           className="cursor-pointer hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] text-[#d4d4d4] focus:text-white"
         >
@@ -93,7 +131,7 @@ export function TeamspaceContextMenu({
         <Item
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
-            setIsDeleteDialogOpen(true);
+            setShowDeleteDialog(true);
           }}
           className="cursor-pointer text-[#eb5757] hover:bg-[#2c2c2c] focus:bg-[#2c2c2c] focus:text-[#eb5757]"
         >
@@ -140,7 +178,7 @@ export function TeamspaceContextMenu({
         </ContextMenuContent>
       </ContextMenu>
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[425px]">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
@@ -159,7 +197,7 @@ export function TeamspaceContextMenu({
           <DialogFooter className="mt-6 flex gap-2 justify-end border-t border-[#2c2c2c] pt-4 sm:space-x-0">
             <Button 
               variant="outline" 
-              onClick={() => setIsDeleteDialogOpen(false)}
+              onClick={() => setShowDeleteDialog(false)}
               className="bg-transparent border-[#3f3f3f] text-[#d4d4d4] hover:bg-[#2c2c2c] hover:text-white"
             >
               Cancel
@@ -172,6 +210,46 @@ export function TeamspaceContextMenu({
               Yes, delete teamspace
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+        <DialogContent className="bg-[#191919] border-white/5 text-[#d4d4d4] sm:max-w-[425px]">
+          <form onSubmit={handleRename}>
+            <DialogHeader>
+              <DialogTitle className="text-white">Rename Teamspace</DialogTitle>
+              <DialogDescription className="text-[#a3a3a3] pt-3">
+                Enter a new name for this teamspace.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="bg-[#2c2c2c] border-white/5 text-white"
+                placeholder="Teamspace name"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowRenameDialog(false)}
+                className="bg-transparent border-white/10 text-white hover:bg-white/5"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isSubmitting || !newName.trim() || newName === teamspaceName}
+              >
+                {isSubmitting ? 'Saving...' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>

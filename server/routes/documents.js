@@ -10,7 +10,8 @@ import {
   moveDocument,
   toggleFavorite,
   deleteDocument,
-  searchDocuments
+  searchDocuments,
+  duplicateDocument
 } from '../controllers/documentController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
@@ -26,6 +27,7 @@ router.get('/teamspace/:id', getTeamspaceDocuments);
 router.get('/', getDocuments);
 router.get('/:id', getDocumentById);
 router.post('/', createDocument);
+router.post('/duplicate/:id', duplicateDocument);
 router.patch('/move', moveDocument);
 router.patch('/:id/toggle-favorite', toggleFavorite);
 router.patch('/:id/move', moveDocument);

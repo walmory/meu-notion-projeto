@@ -309,7 +309,7 @@ export default function LibraryPage() {
 
                       return (
                         <React.Fragment key={ts.id}>
-                          <TeamspaceContextMenu teamspaceId={ts.id} onDelete={handleDeleteTeamspace}>
+                          <TeamspaceContextMenu teamspaceId={ts.id} teamspaceName={ts.name} onDelete={handleDeleteTeamspace}>
                             <TableRow 
                               className="border-b-0 hover:bg-white/5 cursor-pointer transition-colors group/row"
                               onClick={() => setExpandedTeamspaces(prev => ({ ...prev, [ts.id]: !prev[ts.id] }))}

@@ -343,6 +343,61 @@ export const createDocument = async (req, res) => {
   }
 };
 
+export const duplicateDocument = async (req, res) => {
+  const workspaceId = req.workspace_id;
+  const ownerId = req.user_id;
+  const { id } = req.params;
+
+  if (!workspaceId) {
+    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+  }
+
+  try {
+    const [existing] = await pool.query(
+      'SELECT * FROM documents WHERE id = ? AND workspace_id = ? LIMIT 1',
+      [id, workspaceId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Documento original não encontrado' });
+    }
+
+    const original = existing[0];
+    const newId = uuidv4();
+    const newTitle = original.title ? `${original.title} (Copy)` : 'Untitled (Copy)';
+
+    await pool.query(
+      `INSERT INTO documents (id, title, content, content_version, parent_id, workspace_id, teamspace_id, is_private, is_meeting_note, owner_id, icon, cover)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newId, 
+        newTitle, 
+        original.content, 
+        0, 
+        original.parent_id, 
+        workspaceId, 
+        original.teamspace_id, 
+        original.is_private, 
+        original.is_meeting_note, 
+        ownerId,
+        original.icon,
+        original.cover
+      ]
+    );
+
+    const [newDocs] = await pool.query(
+      'SELECT * FROM documents WHERE id = ? AND workspace_id = ? LIMIT 1',
+      [newId, workspaceId]
+    );
+
+    emitToWorkspace(workspaceId, 'document_created', newDocs[0]);
+    return res.status(201).json(newDocs[0]);
+  } catch (error) {
+    console.error('Erro ao duplicar documento:', error);
+    return res.status(500).json({ error: 'Falha ao duplicar documento', details: error.message });
+  }
+};
+
 export const updateDocument = async (req, res) => {
   const { id } = req.params;
   const workspaceId = req.workspace_id;
@@ -358,7 +413,8 @@ export const updateDocument = async (req, res) => {
     is_private,
     parent_id,
     is_meeting_note,
-    is_trash
+    is_trash,
+    type
   } = req.body;
 
   if (!workspaceId) {
@@ -381,6 +437,7 @@ export const updateDocument = async (req, res) => {
     && parent_id === undefined
     && is_meeting_note === undefined
     && is_trash === undefined
+    && type === undefined
   ) {
     console.error('Validação falhou em updateDocument: nenhum campo permitido enviado', {
       payload: req.body,
@@ -484,6 +541,11 @@ export const updateDocument = async (req, res) => {
     if (is_favorite !== undefined) {
       fields.push('is_favorite = ?');
       values.push(is_favorite);
+    }
+
+    if (type !== undefined) {
+      fields.push('type = ?');
+      values.push(type);
     }
 
     if (is_trash !== undefined) {
