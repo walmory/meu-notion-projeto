@@ -1,5 +1,5 @@
 import pool from '../config/db.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export const getProfile = async (req, res) => {
   try {
@@ -73,11 +73,12 @@ export const updateEmail = async (req, res) => {
 
     const [userRows] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
     if (userRows.length === 0) {
+      console.log('[Security Check - updateEmail] User not found in DB for ID:', userId);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
     const user = userRows[0];
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updateEmail] password match:', isPasswordValid);
 
@@ -116,11 +117,12 @@ export const updatePassword = async (req, res) => {
 
     const [userRows] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
     if (userRows.length === 0) {
+      console.log('[Security Check - updatePassword] User not found in DB for ID:', userId);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
     const user = userRows[0];
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updatePassword] password match:', isPasswordValid);
 
