@@ -75,7 +75,7 @@ export default function ProjectPage() {
   const [userName, setUserName] = useState('User');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isCreatingTask, setIsCreatingTask] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'members'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'members' | 'timeline'>('tasks');
 
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
@@ -98,6 +98,14 @@ export default function ProjectPage() {
   const { data: tasksData, mutate: mutateTasks } = useSWR<Task[]>(`/projects/${projectId}/tasks`, fetcher);
   const tasks = tasksData || [];
 
+  // Group tasks by status
+  const groupedTasks = {
+    'In Progress': tasks.filter(t => t.status === 'In Progress'),
+    'To Do': tasks.filter(t => t.status === 'To Do'),
+    'Stuck': tasks.filter(t => t.status === 'Stuck'),
+    'Done': tasks.filter(t => t.status === 'Done')
+  };
+
   const { data: membersData } = useSWR<TeamspaceMember[]>(activeWorkspaceId ? `/workspaces/members?workspace_id=${activeWorkspaceId}` : null, fetcher);
   const members = membersData || [];
 
@@ -111,7 +119,10 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!project?.workspace_id) return;
     
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
+      transports: ['websocket'],
+      upgrade: false
+    });
     socket.emit('join-workspace', project.workspace_id);
     
     socket.on('task-updated', (updatedTask: Task) => {
@@ -220,7 +231,7 @@ export default function ProjectPage() {
             onClick={() => setActiveTab('tasks')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tasks' ? 'border-blue-500 text-white' : 'border-transparent text-[#a3a3a3] hover:text-[#d4d4d4]'}`}
           >
-            Tasks
+            Table
           </button>
           <button
             type="button"
@@ -228,6 +239,13 @@ export default function ProjectPage() {
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'members' ? 'border-blue-500 text-white' : 'border-transparent text-[#a3a3a3] hover:text-[#d4d4d4]'}`}
           >
             Members
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('timeline')}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'timeline' ? 'border-blue-500 text-white' : 'border-transparent text-[#a3a3a3] hover:text-[#d4d4d4]'}`}
+          >
+            Timeline
           </button>
         </div>
       </div>
@@ -237,160 +255,191 @@ export default function ProjectPage() {
         <div className="max-w-6xl mx-auto">
           
           {activeTab === 'tasks' ? (
-            <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden">
-              {/* Table Header */}
-            <div className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-3 border-b border-white/5 bg-[#2a2b2f] text-[11px] font-semibold text-[#a3a3a3] uppercase tracking-wider">
-              <div>Task Name</div>
-              <div className="text-center">Status</div>
-              <div className="text-center">Priority</div>
-              <div>Assignee</div>
-              <div>Due Date</div>
-              <div></div>
-            </div>
-
-            {/* Table Body */}
-            <div className="divide-y divide-white/5">
-              {tasks.map(task => (
-                <div key={task.id} className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-2 items-center hover:bg-white/[0.02] transition-colors group">
-                  
-                  {/* Title */}
-                  <div className="font-medium text-white truncate pr-4">
-                    {task.title}
+            <div className="space-y-8">
+              {Object.entries(groupedTasks).map(([statusGroup, groupTasks]) => (
+                <div key={statusGroup} className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden">
+                  {/* Group Header */}
+                  <div className="flex items-center gap-2 px-6 py-4 bg-[#252525] border-b border-white/5">
+                    <div 
+                      className="w-4 h-4 rounded-sm flex items-center justify-center text-[10px] text-white" 
+                      style={{ backgroundColor: STATUS_CONFIG[statusGroup as Task['status']]?.color.match(/bg-\[([^\]]+)\]/)?.[1] || '#4b5563' }}
+                    >
+                      {groupTasks.length}
+                    </div>
+                    <h2 className="text-sm font-semibold text-white">{statusGroup}</h2>
                   </div>
 
-                  {/* Status Badge with Dropdown */}
-                  <div className="h-full flex items-center">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
-                        <div className={`flex items-center justify-center w-full h-full min-h-[32px] px-2 rounded-sm text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${STATUS_CONFIG[task.status]?.color || 'bg-gray-500 text-white'}`}>
-                          <span>{task.status}</span>
-                        </div>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[150px] z-50 animate-in fade-in zoom-in-95">
-                          {Object.entries(STATUS_CONFIG).map(([statusName, config]) => (
-                            <DropdownMenu.Item
-                              key={statusName}
-                              onClick={() => handleUpdateTask(task.id, { status: statusName as Task['status'] })}
-                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
-                            >
-                              <config.icon size={14} className={config.color.replace('bg-', 'text-').split(' ')[0]} />
-                              {statusName}
-                            </DropdownMenu.Item>
-                          ))}
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-2 border-b border-white/5 bg-[#2a2b2f] text-[11px] font-semibold text-[#a3a3a3] uppercase tracking-wider">
+                    <div>Task Name</div>
+                    <div className="text-center">Status</div>
+                    <div className="text-center">Priority</div>
+                    <div>Assignee</div>
+                    <div>Due Date</div>
+                    <div></div>
                   </div>
 
-                  {/* Priority Badge with Dropdown */}
-                  <div className="h-full flex items-center">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
-                        <div className={`flex items-center justify-center gap-1.5 w-full h-full min-h-[32px] px-2 rounded-sm text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
-                          <Flag size={12} className={PRIORITY_CONFIG[task.priority || 'Normal']?.color} />
-                          <span>{task.priority || 'Normal'}</span>
+                  {/* Table Body */}
+                  <div className="divide-y divide-white/5">
+                    {groupTasks.map(task => (
+                      <div key={task.id} className="grid grid-cols-[minmax(300px,1fr)_120px_120px_150px_150px_50px] gap-2 px-6 py-1.5 items-center hover:bg-white/[0.02] transition-colors group">
+                        
+                        {/* Title */}
+                        <div className="font-medium text-white truncate pr-4 text-sm">
+                          {task.title}
                         </div>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-50 animate-in fade-in zoom-in-95">
-                          {Object.keys(PRIORITY_CONFIG).map((priorityName) => (
-                            <DropdownMenu.Item
-                              key={priorityName}
-                              onClick={() => handleUpdateTask(task.id, { priority: priorityName as Task['priority'] })}
-                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
-                            >
-                              <Flag size={14} className={PRIORITY_CONFIG[priorityName as Task['priority']]?.color} />
-                              {priorityName}
-                            </DropdownMenu.Item>
-                          ))}
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
-                  </div>
 
-                  {/* Assignee */}
-                  <div className="h-full flex items-center">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
-                        <div className="flex items-center gap-2 text-sm text-[#a3a3a3] hover:bg-white/5 px-2 py-1.5 rounded cursor-pointer transition-colors w-full">
-                          <div className="w-6 h-6 rounded-full bg-[#3f3f3f] flex items-center justify-center text-xs text-white shrink-0">
-                            {task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name.charAt(0).toUpperCase() || task.assigned_to.charAt(0).toUpperCase() : <UserIcon size={12} />}
-                          </div>
-                          <span className="truncate">{task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Unassigned'}</span>
-                        </div>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[180px] z-50 animate-in fade-in zoom-in-95">
-                          <DropdownMenu.Item
-                            onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
-                            className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#a3a3a3] rounded hover:bg-white/10 cursor-pointer outline-none italic"
-                          >
-                            <UserIcon size={14} />
-                            Unassigned
-                          </DropdownMenu.Item>
-                          {members.map((member) => (
-                            <DropdownMenu.Item
-                              key={member.user_id}
-                              onClick={() => handleUpdateTask(task.id, { assigned_to: member.user_id })}
-                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
-                            >
-                              <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] shrink-0">
-                                {member.name.charAt(0).toUpperCase()}
+                        {/* Status Badge with Dropdown */}
+                        <div className="h-full flex items-center -mx-2">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                              <div className={`flex items-center justify-center w-full h-full min-h-[36px] text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${STATUS_CONFIG[task.status]?.color || 'bg-gray-500 text-white'}`}>
+                                <span>{task.status}</span>
                               </div>
-                              <span className="truncate">{member.name}</span>
-                            </DropdownMenu.Item>
-                          ))}
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
-                  </div>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[150px] z-50 animate-in fade-in zoom-in-95">
+                                {Object.entries(STATUS_CONFIG).map(([statusName, config]) => (
+                                  <DropdownMenu.Item
+                                    key={statusName}
+                                    onClick={() => handleUpdateTask(task.id, { status: statusName as Task['status'] })}
+                                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
+                                  >
+                                    <config.icon size={14} className={config.color.replace('bg-', 'text-').split(' ')[0]} />
+                                    {statusName}
+                                  </DropdownMenu.Item>
+                                ))}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </div>
 
-                  {/* Due Date */}
-                  <div className="flex items-center gap-2 text-sm text-[#a3a3a3]">
-                    <CalendarIcon size={14} className="opacity-50" />
-                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
-                  </div>
+                        {/* Priority Badge with Dropdown */}
+                        <div className="h-full flex items-center -mx-2">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                              <div className={`flex items-center justify-center gap-1.5 w-full h-full min-h-[36px] text-xs font-medium cursor-pointer transition-opacity hover:opacity-90 ${PRIORITY_CONFIG[task.priority || 'Normal']?.bg || 'bg-gray-500/10'} ${PRIORITY_CONFIG[task.priority || 'Normal']?.color || 'text-white'}`}>
+                                <Flag size={12} className={PRIORITY_CONFIG[task.priority || 'Normal']?.color} />
+                                <span>{task.priority || 'Normal'}</span>
+                              </div>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-50 animate-in fade-in zoom-in-95">
+                                {Object.keys(PRIORITY_CONFIG).map((priorityName) => (
+                                  <DropdownMenu.Item
+                                    key={priorityName}
+                                    onClick={() => handleUpdateTask(task.id, { priority: priorityName as Task['priority'] })}
+                                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
+                                  >
+                                    <Flag size={14} className={PRIORITY_CONFIG[priorityName as Task['priority']]?.color} />
+                                    {priorityName}
+                                  </DropdownMenu.Item>
+                                ))}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="p-1 rounded hover:bg-white/10 text-[#a3a3a3] transition-colors outline-none">
-                        <MoreHorizontal size={16} />
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-50">
-                          <DropdownMenu.Item
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-400 rounded hover:bg-red-400/10 cursor-pointer outline-none"
-                          >
-                            <Trash2 size={14} />
-                            Delete Task
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
+                        {/* Assignee */}
+                        <div className="h-full flex items-center">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="outline-none focus:outline-none w-full h-full">
+                              <div className="flex items-center gap-2 text-sm text-[#a3a3a3] hover:bg-white/5 px-2 py-1.5 rounded cursor-pointer transition-colors w-full">
+                                <div className="w-6 h-6 rounded-full bg-[#3f3f3f] flex items-center justify-center text-xs text-white shrink-0">
+                                  {task.assigned_to ? (members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to || 'U').charAt(0).toUpperCase() : <UserIcon size={12} />}
+                                </div>
+                                <span className="truncate">{task.assigned_to ? members.find(m => m.user_id === task.assigned_to)?.name || task.assigned_to : 'Unassigned'}</span>
+                              </div>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[180px] z-50 animate-in fade-in zoom-in-95">
+                                <DropdownMenu.Item
+                                  onClick={() => handleUpdateTask(task.id, { assigned_to: null })}
+                                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#a3a3a3] rounded hover:bg-white/10 cursor-pointer outline-none italic"
+                                >
+                                  <UserIcon size={14} />
+                                  Unassigned
+                                </DropdownMenu.Item>
+                                {members.map((member) => (
+                                  <DropdownMenu.Item
+                                    key={member.user_id}
+                                    onClick={() => handleUpdateTask(task.id, { assigned_to: member.user_id })}
+                                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#d4d4d4] rounded hover:bg-white/10 cursor-pointer outline-none"
+                                  >
+                                    <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] shrink-0">
+                                      {(member?.name || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="truncate">{member?.name || 'Unknown User'}</span>
+                                  </DropdownMenu.Item>
+                                ))}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </div>
+
+                        {/* Due Date */}
+                        <div className="flex items-center gap-2 text-sm text-[#a3a3a3]">
+                          <CalendarIcon size={14} className="opacity-50" />
+                          {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="p-1 rounded hover:bg-white/10 text-[#a3a3a3] transition-colors outline-none">
+                              <MoreHorizontal size={16} />
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content className="bg-[#2c2c2c] border border-white/10 rounded-md shadow-xl p-1 min-w-[120px] z-50">
+                                <DropdownMenu.Item
+                                  onClick={() => handleDeleteTask(task.id)}
+                                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-400 rounded hover:bg-red-400/10 cursor-pointer outline-none"
+                                >
+                                  <Trash2 size={14} />
+                                  Delete Task
+                                </DropdownMenu.Item>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Add New Task Row */}
+                    <div className="px-6 py-2 bg-[#191919]/50">
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newTaskTitle.trim() || isCreatingTask) return;
+                        
+                        setIsCreatingTask(true);
+                        api.post(`/projects/${projectId}/tasks`, {
+                          title: newTaskTitle.trim(),
+                          status: statusGroup
+                        }).then(() => {
+                          setNewTaskTitle('');
+                          mutateTasks();
+                        }).catch(error => {
+                          console.error('Failed to create task:', error);
+                        }).finally(() => {
+                          setIsCreatingTask(false);
+                        });
+                      }} className="flex items-center gap-3">
+                        <Plus size={16} className="text-[#a3a3a3]" />
+                        <input
+                          type="text"
+                          value={newTaskTitle}
+                          onChange={(e) => setNewTaskTitle(e.target.value)}
+                          placeholder={`Add new task to ${statusGroup}...`}
+                          className="flex-1 bg-transparent border-none text-sm text-white placeholder:text-[#666] focus:outline-none focus:ring-0"
+                          disabled={isCreatingTask}
+                        />
+                      </form>
+                    </div>
                   </div>
                 </div>
               ))}
-              
-              {/* Add New Task Row */}
-              <div className="px-6 py-3 bg-[#191919]/50">
-                <form onSubmit={handleCreateTask} className="flex items-center gap-3">
-                  <Plus size={16} className="text-[#a3a3a3]" />
-                  <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Add new task..."
-                    className="flex-1 bg-transparent border-none text-sm text-white placeholder:text-[#666] focus:outline-none focus:ring-0"
-                    disabled={isCreatingTask}
-                  />
-                </form>
-              </div>
             </div>
-            </div>
-          ) : (
+          ) : activeTab === 'members' ? (
             <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden p-6">
               <h2 className="text-lg font-semibold text-white mb-4">Project Members</h2>
               <p className="text-sm text-[#a3a3a3] mb-6">
@@ -398,23 +447,40 @@ export default function ProjectPage() {
               </p>
               
               <div className="grid gap-4">
-                {members.map(member => (
-                  <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-[#252525]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-semibold text-lg shrink-0">
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-medium text-white">{member.name}</div>
-                        <div className="text-sm text-[#a3a3a3]">{member.email}</div>
-                      </div>
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-white/5 text-xs text-[#a3a3a3] capitalize">
-                      {member.role}
-                    </div>
+                {members.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#a3a3a3] mb-4">No members found in this teamspace.</p>
+                    <button 
+                      type="button"
+                      onClick={() => router.push('/settings/members')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+                    >
+                      Invite Partner
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  members.map(member => (
+                    <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-[#252525]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-semibold text-lg shrink-0">
+                          {(member?.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium text-white">{member?.name || 'Unknown User'}</div>
+                          <div className="text-sm text-[#a3a3a3]">{member.email}</div>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 rounded-full bg-white/5 text-xs text-[#a3a3a3] capitalize">
+                        {member.role}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+            </div>
+          ) : (
+            <div className="bg-[#1f1f1f] border border-white/5 rounded-lg shadow-sm overflow-hidden p-6 text-center text-[#a3a3a3]">
+              Timeline view coming soon...
             </div>
           )}
         </div>
