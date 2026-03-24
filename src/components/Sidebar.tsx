@@ -825,8 +825,8 @@ export function Sidebar({
     >
       <aside 
         ref={sidebarRef}
-        style={{ width: mounted ? `${sidebarWidth}px` : '256px' }}
-        className="flex h-screen flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0 pt-8"
+        style={{ width: mounted ? `${sidebarWidth}px` : '256px', paddingTop: '60px' }}
+        className="flex h-screen flex-col bg-[#191919] text-[#a3a3a3] relative group/sidebar transition-[width] duration-0 shrink-0 !pt-[60px]"
       >
         {/* Resize Handle */}
         <button 

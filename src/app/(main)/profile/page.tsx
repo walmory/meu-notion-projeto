@@ -171,7 +171,10 @@ export default function ProfilePage() {
   const initial = displayData?.name ? displayData.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto">
+    <div 
+      className="flex-1 flex flex-col min-h-0 bg-[#191919] overflow-y-auto !mt-[60px]"
+      style={{ marginTop: '60px' }}
+    >
       {/* Banner/Header */}
       <div className="w-full h-48 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border-b border-white/5 relative">
         <div className="absolute top-12 left-8 sm:left-12 md:left-24">
@@ -266,8 +269,8 @@ export default function ProfilePage() {
                 <Edit className="w-5 h-5 mr-2 text-[#a3a3a3]" />
                 Profile Settings
               </h2>
-              <form onSubmit={handleUpdateProfile} className="space-y-6">
-                <div className="space-y-3">
+              <form onSubmit={handleUpdateProfile} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-xs font-medium text-[#a3a3a3]">Name</label>
                   <Input
                     id="name"
@@ -279,7 +282,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="bio" className="text-xs font-medium text-[#a3a3a3]">Bio</label>
                   <Input
                     id="bio"
@@ -290,7 +293,7 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="avatarUrl" className="text-xs font-medium text-[#a3a3a3]">Avatar URL</label>
                   <Input
                     id="avatarUrl"
@@ -322,8 +325,8 @@ export default function ProfilePage() {
               <p className="text-[#8a8a8a] mb-8 text-sm">
                 Confirm your identity using your current password to change your email.
               </p>
-              <form onSubmit={handleUpdateEmail} className="space-y-6">
-                <div className="space-y-3">
+              <form onSubmit={handleUpdateEmail} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="newEmail" className="text-xs font-medium text-[#a3a3a3]">New Email</label>
                   <Input
                     id="newEmail"
@@ -336,7 +339,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="currentPasswordForEmail" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
                   <Input
                     id="currentPasswordForEmail"
@@ -370,8 +373,8 @@ export default function ProfilePage() {
               <p className="text-[#8a8a8a] mb-8 text-sm">
                 Change your account password. Confirm your current password for security.
               </p>
-              <form onSubmit={handleUpdatePassword} className="space-y-6">
-                <div className="space-y-3">
+              <form onSubmit={handleUpdatePassword} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="currentPassword" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
                   <Input
                     id="currentPassword"
@@ -385,7 +388,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="newPassword" className="text-xs font-medium text-[#a3a3a3]">New Password</label>
                     <Input
                       id="newPassword"
@@ -398,7 +401,7 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="confirmPassword" className="text-xs font-medium text-[#a3a3a3]">Confirm Password</label>
                     <Input
                       id="confirmPassword"
