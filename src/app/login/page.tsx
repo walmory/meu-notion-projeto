@@ -45,7 +45,7 @@ export default function LoginPage() {
           <img 
             src="/logo.png" 
             alt="OPTA Logo" 
-            className="w-16 h-16 object-contain mb-4 drop-shadow-md"
+            className="w-[112px] h-[112px] object-contain mb-4 drop-shadow-md"
           />
           <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
           <p className="text-sm font-medium text-[#8a8a8a] mt-1">Log in to your workspace</p>

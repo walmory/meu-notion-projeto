@@ -40,7 +40,7 @@ export default function RegisterPage() {
           <img 
             src="/logo.png" 
             alt="OPTA Logo" 
-            className="w-16 h-16 object-contain mb-4 drop-shadow-md"
+            className="w-[112px] h-[112px] object-contain mb-4 drop-shadow-md"
           />
           <h1 className="text-2xl font-bold tracking-tight text-white">Create an account</h1>
           <p className="text-sm font-medium text-[#8a8a8a] mt-1">Join the OPTA workspace</p>
