@@ -12,22 +12,47 @@ export const getGlobalConnections = async (req, res) => {
     }
 
     query = `
-      SELECT 
-        c.id as connection_id,
-        u.id as user_id,
+      SELECT
+        COALESCE(
+          MIN(c.id),
+          CONCAT('workspace-', u.id)
+        ) AS connection_id,
+        u.id AS user_id,
         u.name,
         u.email,
         u.avatar_url,
-        u.last_active
-      FROM connections c
-      JOIN users u ON u.id = CASE
-        WHEN c.user_a_id = ? THEN c.user_b_id
-        ELSE c.user_a_id
-      END
-      WHERE c.user_a_id = ? OR c.user_b_id = ?
+        u.last_active,
+        GROUP_CONCAT(
+          DISTINCT participants.workspace_name
+          ORDER BY participants.workspace_name
+          SEPARATOR ', '
+        ) AS shared_workspaces
+      FROM (
+        SELECT DISTINCT w.id, w.name
+        FROM workspaces w
+        LEFT JOIN workspace_members wm_me
+          ON wm_me.workspace_id = w.id AND wm_me.user_id = ?
+        WHERE w.owner_id = ? OR wm_me.user_id = ?
+      ) my_workspaces
+      JOIN (
+        SELECT w.id AS workspace_id, w.name AS workspace_name, w.owner_id AS participant_user_id
+        FROM workspaces w
+        UNION ALL
+        SELECT wm.workspace_id, w.name AS workspace_name, wm.user_id AS participant_user_id
+        FROM workspace_members wm
+        JOIN workspaces w ON w.id = wm.workspace_id
+      ) participants ON participants.workspace_id = my_workspaces.id
+      JOIN users u ON u.id = participants.participant_user_id
+      LEFT JOIN connections c ON (
+        (c.user_a_id = ? AND c.user_b_id = u.id)
+        OR (c.user_b_id = ? AND c.user_a_id = u.id)
+      )
+      WHERE u.id <> ?
+      GROUP BY u.id, u.name, u.email, u.avatar_url, u.last_active
+      ORDER BY u.name ASC
     `;
 
-    queryParams = [userId, userId, userId];
+    queryParams = [userId, userId, userId, userId, userId, userId];
     const [connections] = await pool.query(query, queryParams);
 
     const formattedConnections = connections.map(conn => ({
@@ -36,7 +61,8 @@ export const getGlobalConnections = async (req, res) => {
       name: conn.name,
       email: conn.email,
       avatar_url: conn.avatar_url || null,
-      last_active: conn.last_active || null
+      last_active: conn.last_active || null,
+      shared_workspaces: conn.shared_workspaces || ''
     }));
 
     res.json(formattedConnections);
@@ -54,6 +80,7 @@ export const getGlobalConnections = async (req, res) => {
 };
 
 export const breakConnection = async (req, res) => {
+  let connection;
   try {
     const currentUserId = (req.user && req.user.id) ? req.user.id : req.user_id;
     const targetUserId = req.params.userId;
@@ -66,30 +93,48 @@ export const breakConnection = async (req, res) => {
       return res.status(400).json({ error: 'ID do usuário alvo é obrigatório' });
     }
 
-    // 1. Deletar o registro na tabela connections
-    await pool.query(`
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    await connection.query(`
       DELETE FROM connections 
       WHERE (user_a_id = ? AND user_b_id = ?) 
          OR (user_a_id = ? AND user_b_id = ?)
     `, [currentUserId, targetUserId, targetUserId, currentUserId]);
 
-    // 2. Remover de todos os workspace_members onde eles cruzam
-    await pool.query(`
-      DELETE wm FROM workspace_members wm
-      JOIN workspaces w ON w.id = wm.workspace_id
-      WHERE w.owner_id = ? AND wm.user_id = ?
-    `, [currentUserId, targetUserId]);
+    await connection.query(`
+      DELETE wm_target
+      FROM workspace_members wm_target
+      JOIN workspaces w ON w.id = wm_target.workspace_id
+      LEFT JOIN workspace_members wm_current
+        ON wm_current.workspace_id = w.id AND wm_current.user_id = ?
+      WHERE wm_target.user_id = ?
+        AND (w.owner_id = ? OR wm_current.user_id = ?)
+    `, [currentUserId, targetUserId, currentUserId, currentUserId]);
 
-    await pool.query(`
-      DELETE wm FROM workspace_members wm
-      JOIN workspaces w ON w.id = wm.workspace_id
-      WHERE w.owner_id = ? AND wm.user_id = ?
-    `, [targetUserId, currentUserId]);
+    await connection.query(`
+      DELETE wm_current
+      FROM workspace_members wm_current
+      JOIN workspaces w ON w.id = wm_current.workspace_id
+      LEFT JOIN workspace_members wm_target
+        ON wm_target.workspace_id = w.id AND wm_target.user_id = ?
+      WHERE wm_current.user_id = ?
+        AND (w.owner_id = ? OR wm_target.user_id = ?)
+    `, [targetUserId, currentUserId, targetUserId, targetUserId]);
+
+    await connection.commit();
 
     res.json({ success: true, message: 'Conexão quebrada com sucesso' });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
     console.error('[DELETE /user/connections/:userId] Erro detalhado ao quebrar conexão:', error);
     res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
