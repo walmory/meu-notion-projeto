@@ -10,18 +10,32 @@ import { getAuthToken } from '@/lib/api';
 export default function Home() {
   const router = useRouter();
   const { documents, createDocument, updateDocument, toggleFavorite, deleteDocument, duplicateDocument, refetch, loading } = useDocuments();
-  const [isAuthChecking] = useState(() => {
-    const token = getAuthToken();
-    return !token;
-  });
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
-    if (isAuthChecking) {
-      router.push('/login');
-    }
-  }, [router, isAuthChecking]);
+    let isMounted = true;
+    const checkAuth = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        router.replace('/login');
+      } else if (isMounted) {
+        setIsAuthChecking(false);
+      }
+    };
+    
+    checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
-  if (isAuthChecking || loading) {
+  // Se estiver checando auth, não renderiza nada para evitar o flash/flicker da home antes do login
+  if (isAuthChecking) {
+    return null;
+  }
+
+  if (loading) {
     return <EditorSkeleton />;
   }
 

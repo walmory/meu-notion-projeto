@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,8 +14,27 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const params = useParams();
   const router = useRouter();
   const documentId = params.documentId as string | undefined;
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    const checkAuth = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        router.replace('/login');
+      } else if (isMounted) {
+        setIsAuthChecking(false);
+      }
+    };
+    checkAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (isAuthChecking) return;
+    
     let cancelled = false;
 
     const ensureWorkspaceForLoggedUser = async () => {
@@ -53,7 +72,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthChecking]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#191919] min-h-screen">
+      </div>
+    );
+  }
 
   return (
     <SidePeekProvider>
