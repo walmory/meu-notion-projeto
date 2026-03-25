@@ -1,13 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { getAuthHeaders } from '@/lib/api';
 import axios from 'axios';
-import { Edit, Mail, Loader2, Save } from 'lucide-react';
+import { Edit, Mail, Loader2, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useSWRConfig } from 'swr';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface ProfileData {
   name: string;
@@ -17,6 +27,8 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { mutate: globalMutate } = useSWRConfig();
   const { user, refreshUser, setUser } = useUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +52,12 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  const fetchProfile = async () => {
+  // Delete Account states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchProfile = React.useCallback(async () => {
     try {
       const response = await axios.get('https://apinotion.andrekehrer.com/user/profile', {
         headers: getAuthHeaders()
@@ -57,12 +74,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.name]);
 
   useEffect(() => {
     fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchProfile]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +172,32 @@ export default function ProfilePage() {
       }
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmationText !== 'EXCLUIR MINHA CONTA') {
+      toast.error("Por favor, digite 'EXCLUIR MINHA CONTA' para confirmar.");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await axios.delete('https://apinotion.andrekehrer.com/auth/me', {
+        headers: getAuthHeaders()
+      });
+      
+      // Limpeza total
+      localStorage.clear();
+      await globalMutate(() => true, undefined, { revalidate: false });
+      
+      setIsDeleteModalOpen(false);
+      toast.success('Sua conta e todos os seus dados foram removidos permanentemente.');
+      router.push('/login');
+    } catch (error) {
+      console.error('Failed to delete account', error);
+      toast.error('Erro ao excluir conta. Tente novamente.');
+      setIsDeleting(false);
     }
   };
 
@@ -415,9 +457,87 @@ export default function ProfilePage() {
                 </div>
               </form>
             </section>
+
+            <div className="h-px bg-white/5 w-full" />
+
+            {/* Danger Zone */}
+            <section>
+              <h2 className="text-lg sm:text-xl font-semibold text-red-500 mb-2 flex items-center">
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Danger Zone
+              </h2>
+              <p className="text-[#8a8a8a] mb-6 text-xs sm:text-sm">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              
+              <div className="p-4 border border-red-500/20 bg-red-500/10 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-white">Delete Account</h3>
+                  <p className="text-xs text-[#a3a3a3] mt-1">
+                    Delete your account, workspaces, and all content.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="bg-red-500 hover:bg-red-600 text-white transition-all px-4 py-2 h-auto text-xs font-medium rounded-md shrink-0"
+                >
+                  Excluir minha conta
+                </Button>
+              </div>
+            </section>
           </div>
         </div>
       </div>
+
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="bg-[#191919] border-white/10 text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-500 flex items-center">
+              <Trash2 className="w-5 h-5 mr-2" />
+              Confirm Account Deletion
+            </DialogTitle>
+            <DialogDescription className="text-[#a3a3a3] pt-2">
+              This action is permanent and cannot be undone. All your workspaces, documents, and settings will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-[#d4d4d4] mb-3">
+              Please type <span className="font-bold text-white select-all">EXCLUIR MINHA CONTA</span> to confirm.
+            </p>
+            <Input
+              value={deleteConfirmationText}
+              onChange={(e) => setDeleteConfirmationText(e.target.value)}
+              placeholder="EXCLUIR MINHA CONTA"
+              className="bg-[#262626] border-red-500/30 text-white placeholder:text-[#525252] focus-visible:ring-red-500/50"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setDeleteConfirmationText('');
+              }}
+              className="bg-transparent border-white/10 text-white hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting || deleteConfirmationText !== 'EXCLUIR MINHA CONTA'}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirm Deletion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

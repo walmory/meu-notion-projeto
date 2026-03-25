@@ -278,3 +278,24 @@ export const getCurrentInviteCode = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate invite code' });
   }
 };
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // A exclusão do usuário acionará as cascades no banco de dados configuradas pelo Victor
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    res.json({ success: true, message: 'Conta excluída com sucesso' });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Erro ao excluir conta' });
+  }
+};

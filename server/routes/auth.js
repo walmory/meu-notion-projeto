@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getCurrentInviteCode } from '../controllers/authController.js';
+import { register, login, getCurrentInviteCode, deleteAccount } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -11,5 +11,8 @@ router.post('/login', login);
 
 // New Dynamic Invite System
 router.get('/current-invite-code', authMiddleware, getCurrentInviteCode);
+
+// Delete Account
+router.delete('/me', authMiddleware, deleteAccount);
 
 export default router;
