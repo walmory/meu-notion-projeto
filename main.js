@@ -1,10 +1,8 @@
 const { app, BrowserWindow, Menu, session } = require('electron');
 
 function createWindow() {
-  const shouldClearStorageOnStart = process.env.CLEAR_STORAGE_ON_START === 'true';
-  if (shouldClearStorageOnStart) {
-    session.fromPartition('persist:opta-session').clearStorageData();
-  }
+  // Limpa o cache toda vez que o app abrir
+  session.defaultSession.clearStorageData();
 
   // Configura a janela do Electron
   const mainWindow = new BrowserWindow({
@@ -12,8 +10,7 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true,
-      partition: 'persist:opta-session'
+      contextIsolation: true
     }
   });
 
