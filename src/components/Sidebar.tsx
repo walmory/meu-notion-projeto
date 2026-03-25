@@ -1085,6 +1085,12 @@ export function Sidebar({
                 {/* Bloco 3: Contas & Logout */}
                 <div className="p-1">
                   <DropdownMenu.Item 
+                    onClick={() => router.push('/profile')}
+                    className="flex items-center px-2 py-1.5 cursor-pointer outline-none hover:bg-[#2c2c2c] rounded-md focus:bg-[#2c2c2c] text-[13px] text-[#8a8a8a] hover:text-white transition-colors"
+                  >
+                    Profile & Password
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item 
                     className="flex items-center px-2 py-1.5 cursor-pointer outline-none hover:bg-[#2c2c2c] rounded-md focus:bg-[#2c2c2c] text-[13px] text-[#8a8a8a] hover:text-white transition-colors"
                   >
                     Add another account
