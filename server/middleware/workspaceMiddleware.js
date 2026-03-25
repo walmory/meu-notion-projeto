@@ -10,6 +10,12 @@ export const workspaceMiddleware = async (req, res, next) => {
       req.params.workspace_id;
 
     const userId = req.user_id;
+
+    if (!userId) {
+      console.error('[workspaceMiddleware] Blocked: req.user_id is missing or undefined.');
+      return res.status(401).json({ error: 'Unauthorized: User ID missing from token' });
+    }
+
     let workspaceId = providedWorkspaceId;
 
     await pool.query(`
@@ -60,8 +66,8 @@ export const workspaceMiddleware = async (req, res, next) => {
             [workspaceId, 'Meu Workspace', userId]
           );
           await connection.query(
-            'INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)',
-            [workspaceId, userId]
+            'INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)',
+            [workspaceId, userId, 'owner']
           );
           await connection.commit();
         } catch (createError) {

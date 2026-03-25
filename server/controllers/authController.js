@@ -48,7 +48,11 @@ export const register = async (req, res) => {
 
     await connection.commit();
 
-    const token = jwt.sign({ id: userId, email, name }, process.env.JWT_SECRET || 'change-this-secret', { expiresIn: '7d' });
+    const token = jwt.sign(
+      { id: userId, email, name },
+      process.env.JWT_SECRET || 'change-this-secret',
+      { expiresIn: '7d' }
+    );
     const workspace = { id: workspaceId, name: `${name}'s Workspace`, owner_id: userId, owner: email };
 
     res.status(201).json({ token, user: { id: userId, name, email }, workspace });
@@ -88,7 +92,11 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, process.env.JWT_SECRET || 'change-this-secret', { expiresIn: '7d' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name },
+      process.env.JWT_SECRET || 'change-this-secret',
+      { expiresIn: '7d' }
+    );
 
     // Fetch active workspace
     const [workspaces] = await pool.query(
@@ -99,6 +107,25 @@ export const login = async (req, res) => {
     );
 
     const workspace = workspaces.length > 0 ? workspaces[0] : null;
+
+    if (!workspace) {
+      // Se não houver workspace, cria um imediatamente antes de retornar
+      const newWorkspaceId = uuidv4();
+      await pool.query(
+        'INSERT INTO workspaces (id, name, owner_id, is_trash) VALUES (?, ?, ?, 0)',
+        [newWorkspaceId, `${user.name}'s Workspace`, user.id]
+      );
+      await pool.query(
+        'INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)',
+        [newWorkspaceId, user.id, 'owner']
+      );
+      
+      return res.json({ 
+        token, 
+        user: { id: user.id, name: user.name, email: user.email }, 
+        workspace: { id: newWorkspaceId, name: `${user.name}'s Workspace`, owner_id: user.id, owner: user.email }
+      });
+    }
 
     res.json({ token, user: { id: user.id, name: user.name, email: user.email }, workspace });
   } catch (error) {

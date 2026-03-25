@@ -11,17 +11,25 @@ export const authMiddleware = (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user_id = payload.user_id;
+      const payload = jwt.verify(token, JWT_SECRET);
+    
+    // Suporte para payloads antigos (user_id) e novos (id)
+    const userId = payload.id || payload.user_id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
+
+    req.user_id = userId;
     req.user_email = payload.email;
     req.user_name = payload.name;
     req.user = {
-      id: payload.user_id,
+      id: userId,
       email: payload.email,
       name: payload.name
     };
     return next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 };

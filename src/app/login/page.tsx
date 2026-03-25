@@ -16,9 +16,18 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.token) {
         localStorage.setItem('notion_token', response.data.token);
+        
+        // Ensure workspace is saved correctly
         if (response.data.workspace && response.data.workspace.id) {
           localStorage.setItem('activeWorkspaceId', response.data.workspace.id);
+        } else {
+          // Fallback se o workspace não vier, força recarregar
+          localStorage.removeItem('activeWorkspaceId');
         }
+        
+        // Dispatch event para forçar atualização global dos workspaces
+        window.dispatchEvent(new Event('workspace-changed'));
+        
         router.push('/');
       }
     } catch (error) {

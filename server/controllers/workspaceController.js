@@ -70,22 +70,26 @@ const mapWorkspace = (workspace, ownerEmail, ownerName) => ({
 
 export const getWorkspaces = async (req, res) => {
   try {
-    await ensureWorkspaceMembersTable();
-    await ensureWorkspaceTrashColumn();
+    const userId = req.user_id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: User ID missing' });
+    }
+
     const [workspaces] = await pool.query(
-      `SELECT w.id, w.name, w.owner_id 
-       FROM workspaces w
+      `SELECT w.*, 
+        CASE WHEN w.owner_id = ? THEN 'owner' ELSE wm.role END as user_role
+       FROM workspaces w 
        LEFT JOIN workspace_members wm ON w.id = wm.workspace_id AND wm.user_id = ?
        WHERE (w.owner_id = ? OR wm.user_id = ?)
-         AND (w.is_trash = 0 OR w.is_trash IS NULL)`,
-      [req.user_id, req.user_id, req.user_id]
+         AND (w.is_trash = 0 OR w.is_trash IS NULL)
+       ORDER BY w.created_at ASC`,
+      [userId, userId, userId, userId]
     );
 
-    const result = workspaces.map((workspace) => mapWorkspace(workspace, req.user_email, req.user_name));
-    return res.json(result);
+    res.json(workspaces);
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Failed to fetch workspaces' });
+    console.error('Failed to fetch workspaces:', error);
+    res.status(500).json({ error: 'Failed to fetch workspaces' });
   }
 };
 

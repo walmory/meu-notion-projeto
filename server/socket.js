@@ -186,7 +186,12 @@ export const initSocket = (httpServer) => {
     if (!token) return next(new Error('Unauthorized'));
     try {
       const payload = jwt.verify(token, JWT_SECRET);
-      socket.data.userId = payload.user_id;
+      // Support for both payload.id and payload.user_id
+      const userId = payload.id || payload.user_id;
+      
+      if (!userId) return next(new Error('Invalid token payload'));
+
+      socket.data.userId = userId;
       socket.data.email = payload.email;
       return next();
     } catch {
