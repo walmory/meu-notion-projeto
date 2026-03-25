@@ -205,7 +205,6 @@ export const forgotPassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to process password reset request' });
   }
 };
-*/
 
 export const resetPassword = async (req, res) => {
   try {
@@ -240,6 +239,7 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to reset password' });
   }
 };
+*/
 
 export const getCurrentInviteCode = async (req, res) => {
   try {
