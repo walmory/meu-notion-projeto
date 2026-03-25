@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProfile, updateProfile, updateEmail, updatePassword } from '../controllers/userController.js';
+import { getProfile, updateProfile, updateEmail, updatePassword, getGlobalConnections, breakConnection } from '../controllers/userController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 console.log("👉 Rota de Usuário Carregada com Sucesso");
@@ -14,6 +14,9 @@ router.get('/test', (_req, res) => {
 router.all('/profile-test', (req, res) => {
   res.send('OK - Rota Profile Existe');
 });
+
+router.get('/connections', authMiddleware, getGlobalConnections);
+router.delete('/connections/:userId', authMiddleware, breakConnection);
 
 router.get('/profile', authMiddleware, getProfile);
 router.put('/profile', authMiddleware, updateProfile);

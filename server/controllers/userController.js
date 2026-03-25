@@ -1,6 +1,87 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
+export const getGlobalConnections = async (req, res) => {
+  try {
+    const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Busca todos os usuários que compartilham pelo menos um workspace (como owner ou member) com o usuário atual.
+    // Também busca a lista de workspaces onde eles coexistem e a data de entrada no sistema.
+    const query = `
+      SELECT DISTINCT
+        u.id as user_id,
+        u.name,
+        u.email,
+        u.created_at as joined_at,
+        u.last_active,
+        (
+          SELECT GROUP_CONCAT(w.name SEPARATOR ', ')
+          FROM workspaces w
+          LEFT JOIN workspace_members wm1 ON wm1.workspace_id = w.id
+          LEFT JOIN workspace_members wm2 ON wm2.workspace_id = w.id
+          WHERE (w.owner_id = u.id OR wm1.user_id = u.id)
+            AND (w.owner_id = ? OR wm2.user_id = ?)
+            AND w.id IS NOT NULL
+        ) as shared_workspaces
+      FROM users u
+      WHERE u.id != ?
+        AND EXISTS (
+          SELECT 1
+          FROM workspaces w
+          LEFT JOIN workspace_members wm1 ON wm1.workspace_id = w.id
+          LEFT JOIN workspace_members wm2 ON wm2.workspace_id = w.id
+          WHERE (w.owner_id = u.id OR wm1.user_id = u.id)
+            AND (w.owner_id = ? OR wm2.user_id = ?)
+        )
+    `;
+
+    const [connections] = await pool.query(query, [userId, userId, userId, userId, userId]);
+
+    res.json(connections);
+  } catch (error) {
+    console.error('Erro ao buscar conexões globais:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
+export const breakConnection = async (req, res) => {
+  try {
+    const currentUserId = (req.user && req.user.id) ? req.user.id : req.user_id;
+    const targetUserId = req.params.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'ID do usuário alvo é obrigatório' });
+    }
+
+    // 1. Achar todos os workspaces que currentUserId é dono e remover targetUserId
+    await pool.query(`
+      DELETE wm FROM workspace_members wm
+      JOIN workspaces w ON w.id = wm.workspace_id
+      WHERE w.owner_id = ? AND wm.user_id = ?
+    `, [currentUserId, targetUserId]);
+
+    // 2. Achar todos os workspaces que targetUserId é dono e remover currentUserId
+    await pool.query(`
+      DELETE wm FROM workspace_members wm
+      JOIN workspaces w ON w.id = wm.workspace_id
+      WHERE w.owner_id = ? AND wm.user_id = ?
+    `, [targetUserId, currentUserId]);
+
+    res.json({ success: true, message: 'Conexão quebrada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao quebrar conexão:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
 export const getProfile = async (req, res) => {
   try {
     const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
