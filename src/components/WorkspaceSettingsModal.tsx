@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import type { KeyedMutator } from 'swr';
 
 interface Workspace {
@@ -46,6 +47,12 @@ export function WorkspaceSettingsModal({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
   const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
+  
+  // Invite states
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+
   const isDeleteConfirmationValid = deleteConfirmationName === (workspace?.name ?? '');
 
   useEffect(() => {
@@ -56,6 +63,8 @@ export function WorkspaceSettingsModal({
       setDeleteConfirmationName('');
       setDeleteErrorMessage('');
       setIsDeleteDialogOpen(false);
+      setIsInviteOpen(false);
+      setInviteEmail('');
     }
   }, [workspace]);
 
@@ -76,6 +85,25 @@ export function WorkspaceSettingsModal({
       alert('Failed to update workspace');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspace || !inviteEmail.trim()) return;
+
+    setInviteLoading(true);
+    try {
+      await api.post(`/workspaces/${workspace.id}/invite`, { email: inviteEmail }, { headers: getAuthHeaders() });
+      toast.success('Convite enviado com sucesso!');
+      setIsInviteOpen(false);
+      setInviteEmail('');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string, message?: string } } };
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Falha ao enviar convite';
+      toast.error(msg);
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -172,6 +200,27 @@ export function WorkspaceSettingsModal({
                 </Button>
               </div>
             </form>
+
+            <Separator className="bg-[#2c2c2c] my-6" />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Members & Invites</h3>
+                  <p className="text-xs text-[#9b9b9b] leading-relaxed">
+                    Manage who has access to this workspace.
+                  </p>
+                </div>
+                <Button 
+                  type="button"
+                  onClick={() => setIsInviteOpen(true)}
+                  className="bg-white hover:bg-gray-200 text-black h-8 text-xs px-4"
+                >
+                  <UserPlus size={14} className="mr-2" />
+                  Invite
+                </Button>
+              </div>
+            </div>
 
             <Separator className="bg-[#2c2c2c] my-6" />
 
@@ -278,6 +327,53 @@ export function WorkspaceSettingsModal({
               ) : 'Confirmar Exclusão'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+        <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Invite to Workspace</DialogTitle>
+            <DialogDescription className="text-[#b3b3b3]">
+              Convide um novo membro para o workspace <span className="text-white font-medium">{workspace.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleInvite} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label htmlFor="invite-email" className="text-xs font-medium text-[#9b9b9b]">Email address</label>
+              <Input
+                id="invite-email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="Ex: colega@empresa.com"
+                className="bg-[#252525] border-[#2c2c2c] text-white focus-visible:ring-1 focus-visible:ring-white/20 h-9 text-sm"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsInviteOpen(false)}
+                className="bg-transparent border-[#2c2c2c] hover:bg-[#2c2c2c] text-white h-9 text-xs px-4"
+                disabled={inviteLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!inviteEmail.trim() || inviteLoading}
+                className="bg-white hover:bg-gray-200 text-black h-9 text-xs px-4"
+              >
+                {inviteLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Sending...
+                  </span>
+                ) : 'Send Invite'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Dialog>

@@ -5,6 +5,7 @@ import { useDocuments } from '@/hooks/useDocuments';
 import { useParams, useRouter } from 'next/navigation';
 import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
+import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
@@ -62,6 +63,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
         <SidePeekDrawer />
+        <GlobalWorkspaceInvites />
       </div>
     </SidePeekProvider>
   );

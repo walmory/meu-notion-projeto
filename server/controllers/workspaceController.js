@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import { emitToUserEmail } from '../socket.js';
 
 const ensureWorkspaceMembersTable = async () => {
   await pool.query(`
@@ -270,11 +271,28 @@ export const inviteWorkspaceMember = async (req, res) => {
       return res.status(200).json({ message: 'Convite já pendente para este email' });
     }
 
+    const inviteId = uuidv4();
     await pool.query(
       `INSERT INTO workspace_invitations (id, workspace_id, email, invited_by, status)
        VALUES (?, ?, ?, ?, 'pending')`,
-      [uuidv4(), workspaceId, email, invitedBy]
+      [inviteId, workspaceId, email, invitedBy]
     );
+
+    const [workspaceInfo] = await pool.query('SELECT name FROM workspaces WHERE id = ? LIMIT 1', [workspaceId]);
+    const [inviterInfo] = await pool.query('SELECT name FROM users WHERE id = ? LIMIT 1', [invitedBy]);
+
+    if (workspaceInfo.length > 0 && inviterInfo.length > 0) {
+      const workspaceName = workspaceInfo[0].name;
+      const inviterName = inviterInfo[0].name || 'User';
+
+      emitToUserEmail(email, 'workspace_invite', {
+        id: inviteId,
+        workspaceId,
+        workspaceName,
+        inviterName,
+        email
+      });
+    }
 
     return res.status(201).json({ message: 'Invite Sent' });
   } catch (error) {
@@ -368,5 +386,93 @@ export const deleteWorkspace = async (req, res) => {
     return res.status(500).json({ error: 'Falha ao excluir workspace', details: error.message });
   } finally {
     connection.release();
+  }
+};
+
+export const getMyInvites = async (req, res) => {
+  const email = String(req.user_email || '').trim().toLowerCase();
+
+  try {
+    await ensureWorkspaceInvitationsTable();
+    const [invites] = await pool.query(
+      `SELECT wi.id, wi.workspace_id, w.name as workspace_name, u.name as inviter_name
+       FROM workspace_invitations wi
+       JOIN workspaces w ON w.id = wi.workspace_id
+       JOIN users u ON u.id = wi.invited_by
+       WHERE LOWER(wi.email) = LOWER(?) AND wi.status = 'pending'`,
+      [email]
+    );
+
+    return res.json(invites);
+  } catch (error) {
+    console.error('Erro ao buscar convites do usuário:', error);
+    return res.status(500).json({ error: 'Falha ao buscar convites' });
+  }
+};
+
+export const acceptInvite = async (req, res) => {
+  const { inviteId } = req.params;
+  const userId = req.user_id;
+  const email = String(req.user_email || '').trim().toLowerCase();
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [invites] = await connection.query(
+      `SELECT * FROM workspace_invitations WHERE id = ? AND LOWER(email) = LOWER(?) AND status = 'pending' LIMIT 1`,
+      [inviteId, email]
+    );
+
+    if (invites.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+    }
+
+    const invite = invites[0];
+
+    const [existing] = await connection.query(
+      'SELECT * FROM workspace_members WHERE workspace_id = ? AND user_id = ?',
+      [invite.workspace_id, userId]
+    );
+
+    if (existing.length === 0) {
+      await connection.query(
+        'INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)',
+        [invite.workspace_id, userId]
+      );
+    }
+
+    await connection.query('DELETE FROM workspace_invitations WHERE id = ?', [inviteId]);
+
+    await connection.commit();
+    return res.status(200).json({ message: 'Convite aceito com sucesso' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Erro ao aceitar convite:', error);
+    return res.status(500).json({ error: 'Falha ao aceitar convite' });
+  } finally {
+    connection.release();
+  }
+};
+
+export const declineInvite = async (req, res) => {
+  const { inviteId } = req.params;
+  const email = String(req.user_email || '').trim().toLowerCase();
+
+  try {
+    const [result] = await pool.query(
+      `DELETE FROM workspace_invitations WHERE id = ? AND LOWER(email) = LOWER(?) AND status = 'pending'`,
+      [inviteId, email]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+    }
+
+    return res.status(200).json({ message: 'Convite recusado' });
+  } catch (error) {
+    console.error('Erro ao recusar convite:', error);
+    return res.status(500).json({ error: 'Falha ao recusar convite' });
   }
 };
