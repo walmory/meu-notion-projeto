@@ -26,8 +26,10 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
   const { user } = useUser();
   const [quickNotesDoc, setQuickNotesDoc] = useState<Document | null>(null);
   const isCreatingRef = useRef(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting('Bom dia');
     else if (hour >= 12 && hour < 18) setGreeting('Boa tarde');
@@ -121,10 +123,22 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
           {/* Header */}
           <div className="text-center space-y-4">
              <h1 className="text-4xl md:text-5xl font-bold text-white flex items-center justify-center gap-3">
-                {greeting}, {user?.name || 'User'}
+                {greeting}, {
+                  !isMounted || !user?.name ? (
+                    <span className="inline-block h-10 w-40 rounded-md bg-[#2c2c2c] animate-pulse" />
+                  ) : (
+                    user.name
+                  )
+                }
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
-             <p className="text-white text-base font-semibold tracking-wide">{user?.name || 'User'}</p>
+             <p className="text-white text-base font-semibold tracking-wide min-h-[24px]">
+               {!isMounted || !user?.name ? (
+                 <span className="inline-block h-5 w-28 rounded-md bg-[#2c2c2c] animate-pulse" />
+               ) : (
+                 user.name
+               )}
+             </p>
              <p className="text-[#a3a3a3] text-lg">Ready to capture your best ideas today?</p>
           </div>
 

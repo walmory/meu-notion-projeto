@@ -1,9 +1,10 @@
 const { app, BrowserWindow, Menu, session } = require('electron');
+const path = require('path');
+
+// Set a dedicated userData path for persistent storage
+app.setPath('userData', path.join(app.getPath('appData'), 'OPTA'));
 
 function createWindow() {
-  // Limpa o cache toda vez que o app abrir
-  session.defaultSession.clearStorageData();
-
   // Configura a janela do Electron
   const mainWindow = new BrowserWindow({
     width: 1200,

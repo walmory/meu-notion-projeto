@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apinotion.andrekehrer.com';
 const AUTH_TOKEN_KEY = 'notion_token';
+// Aumentando Max-Age do cookie de sessão para 30 dias para evitar deslogar no Electron
 const AUTH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export const api = axios.create({
@@ -25,7 +26,9 @@ const writeCookie = (key: string, value: string, maxAgeSeconds: number) => {
     return;
   }
   const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${key}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+  // Max-Age e Expires garantem que o cookie não seja tratado como "session cookie"
+  const expiresDate = new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
+  document.cookie = `${key}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expiresDate}; SameSite=Lax${secureFlag}`;
 };
 
 export const getAuthToken = () => {
