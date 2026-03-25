@@ -5,7 +5,7 @@ import { Document } from '@/hooks/useDocuments';
 import { Search, Clock, FileText, Sparkles, MoreHorizontal, Trash, Edit2 } from 'lucide-react';
 import { Editor } from '@/components/Editor';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
+import { api, getAuthHeaders } from '@/lib/api';
 import { DocumentContextMenu } from '@/components/DocumentContextMenu';
 import { useUser } from '@/contexts/UserContext';
 import { DynamicInviteWidget } from '@/components/DynamicInviteWidget';
@@ -23,9 +23,10 @@ interface DashboardProps {
 
 export function Dashboard({ documents, onSelectDocument, createDocument, onUpdate, onUpdateDocument, onToggleFavorite, onDeleteDocument, onDuplicateDocument }: DashboardProps) {
   const [greeting, setGreeting] = useState('Bem-vindo');
-  const { user } = useUser();
+  const { user, loading: isLoading } = useUser();
   const [quickNotesDoc, setQuickNotesDoc] = useState<Document | null>(null);
   const isCreatingRef = useRef(false);
+  const userName = user?.name?.trim();
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -121,10 +122,23 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
           {/* Header */}
           <div className="text-center space-y-4">
              <h1 className="text-4xl md:text-5xl font-bold text-white flex items-center justify-center gap-3">
-                {greeting}, {user?.name || 'User'}
+                {greeting},
+                {isLoading ? (
+                  <span className="inline-block h-10 w-40 rounded-md bg-[#2c2c2c] animate-pulse" />
+                ) : userName ? (
+                  <span>{userName}</span>
+                ) : (
+                  <span className="inline-block h-10 w-2" />
+                )}
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
-             <p className="text-white text-base font-semibold tracking-wide">{user?.name || 'User'}</p>
+             <p className="text-white text-base font-semibold tracking-wide min-h-6">
+               {isLoading ? (
+                 <span className="inline-block h-5 w-28 rounded-md bg-[#2c2c2c] animate-pulse" />
+               ) : (
+                 userName ?? ''
+               )}
+             </p>
              <p className="text-[#a3a3a3] text-lg">Ready to capture your best ideas today?</p>
           </div>
 
