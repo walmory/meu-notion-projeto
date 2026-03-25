@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { clearAuthSession, getAuthHeaders } from '@/lib/api';
 import axios from 'axios';
-import { Edit, Mail, Loader2, Save, Trash2 } from 'lucide-react';
+import { Edit, Mail, Loader2, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -45,12 +45,16 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState('');
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
+  const [showCurrentPasswordForEmail, setShowCurrentPasswordForEmail] = useState(false);
 
   // Password states
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Delete Account states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -372,15 +376,25 @@ export default function ProfilePage() {
                 
                 <div className="space-y-2.5">
                   <label htmlFor="currentPasswordForEmail" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
-                  <Input
-                    id="currentPasswordForEmail"
-                    type="password"
-                    value={currentPasswordForEmail}
-                    onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                    placeholder="Your current password"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="currentPasswordForEmail"
+                      type={showCurrentPasswordForEmail ? 'text' : 'password'}
+                      value={currentPasswordForEmail}
+                      onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                      placeholder="Your current password"
+                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPasswordForEmail((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a8a8a] hover:text-white transition-colors"
+                      aria-label={showCurrentPasswordForEmail ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showCurrentPasswordForEmail ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="pt-2 flex justify-end">
@@ -407,42 +421,72 @@ export default function ProfilePage() {
               <form onSubmit={handleUpdatePassword} className="space-y-5">
                 <div className="space-y-2.5">
                   <label htmlFor="currentPassword" className="text-xs font-medium text-[#a3a3a3]">Current Password</label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Your current password"
-                    className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Your current password"
+                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a8a8a] hover:text-white transition-colors"
+                      aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2.5">
                     <label htmlFor="newPassword" className="text-xs font-medium text-[#a3a3a3]">New Password</label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Your new password"
-                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Your new password"
+                        className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a8a8a] hover:text-white transition-colors"
+                        aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2.5">
                     <label htmlFor="confirmPassword" className="text-xs font-medium text-[#a3a3a3]">Confirm Password</label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="bg-[#262626] border-white/10 text-white placeholder:text-[#525252] h-10 text-sm focus-visible:ring-1 focus-visible:ring-white/20 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a8a8a] hover:text-white transition-colors"
+                        aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
