@@ -1,9 +1,6 @@
 const { app, BrowserWindow, Menu, session } = require('electron');
 
 function createWindow() {
-  // Limpa o cache toda vez que o app abrir
-  session.defaultSession.clearStorageData();
-
   // Configura a janela do Electron
   const mainWindow = new BrowserWindow({
     width: 1200,
