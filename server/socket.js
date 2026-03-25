@@ -198,11 +198,6 @@ export const initSocket = (httpServer) => {
     // Initialize per-socket queue store
     socket.data.docQueues = {};
 
-    // Join personal room for direct messages/invitations
-    if (socket.data.email) {
-      socket.join(`user-email:${socket.data.email.toLowerCase()}`);
-    }
-
     // ── Room management ──────────────────────────────────────────────────
     socket.on('join-workspace', async (workspaceId) => {
       if (!workspaceId) return;
@@ -387,9 +382,4 @@ export const initSocket = (httpServer) => {
 export const emitToWorkspace = (workspaceId, eventName, payload) => {
   if (!ioInstance || !workspaceId) return;
   ioInstance.to(getWorkspaceRoom(workspaceId)).emit(eventName, payload);
-};
-
-export const emitToUserEmail = (email, eventName, payload) => {
-  if (!ioInstance || !email) return;
-  ioInstance.to(`user-email:${email.toLowerCase()}`).emit(eventName, payload);
 };

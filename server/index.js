@@ -13,8 +13,6 @@ import meetingRoutes from './routes/meetings.js';
 import uploadRoutes from './routes/upload.js';
 import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
-import connectionRoutes from './routes/connections.js';
-import invitationRoutes from './routes/invitations.js';
 import { initSocket } from './socket.js';
 
 import path from 'path';
@@ -53,8 +51,6 @@ app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/projects', projectRoutes);
 app.use('/tasks', taskRoutes);
-app.use('/connections', connectionRoutes);
-app.use('/invitations', invitationRoutes);
 
 const httpServer = createServer(app);
 
