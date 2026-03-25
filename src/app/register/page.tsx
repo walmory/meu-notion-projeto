@@ -9,12 +9,13 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await api.post('/auth/register', { name, email, password });
+      const response = await api.post('/auth/register', { name, email, password, inviteCode });
       if (response.data.token) {
         localStorage.setItem('notion_token', response.data.token);
         if (response.data.workspace && response.data.workspace.id) {
@@ -79,6 +80,19 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg bg-[#252525] border border-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-[#525252] outline-none transition-colors focus:border-white/20 focus:bg-[#2c2c2c]"
               placeholder="••••••••"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#a3a3a3]" htmlFor="inviteCode">Invite Code (Required)</label>
+            <input
+              id="inviteCode"
+              type="text"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              className="w-full rounded-lg bg-[#252525] border border-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-[#525252] outline-none transition-colors focus:border-white/20 focus:bg-[#2c2c2c] tracking-widest uppercase"
+              placeholder="000000"
+              maxLength={6}
               required
             />
           </div>

@@ -8,6 +8,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import { DocumentContextMenu } from '@/components/DocumentContextMenu';
 import { useUser } from '@/contexts/UserContext';
+import { DynamicInviteWidget } from '@/components/DynamicInviteWidget';
 
 interface DashboardProps {
   documents: Document[];
@@ -239,35 +240,41 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
              </div>
           )}
           
-          {/* Quick Notes */}
-          <div className="mt-4 space-y-4 w-full">
-             <div className="flex items-center gap-2 text-[#a3a3a3] px-1">
-                <FileText size={18} />
-                <h2 className="font-medium">Rascunhos Rápidos</h2>
-             </div>
-             <div className="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-0 min-h-[400px] flex flex-col shadow-sm overflow-hidden">
-                {quickNotesDoc ? (
-                   <div className="flex-1 w-full relative">
-                      <div className="absolute inset-0">
-                        <Editor document={quickNotesDoc} onUpdate={onUpdate} onUpdateDocument={onUpdateDocument} hideHeader={true} />
-                      </div>
-                   </div>
-                ) : (
-                   <div className="flex flex-col items-center justify-center flex-1 text-[#737373] gap-4 min-h-[200px]">
-                      <p>The drafts block does not exist or was deleted.</p>
-                      <button 
-                         type="button"
-                         onClick={async () => {
-                           const newDoc = await createDocument('Rascunhos Rápidos', false);
-                           setQuickNotesDoc(newDoc);
-                         }}
-                         className="px-4 py-2 bg-[#2c2c2c] hover:bg-[#3f3f3f] text-white rounded transition"
-                      >
-                         Create New Draft
-                      </button>
-                   </div>
-                )}
-             </div>
+          {/* Quick Notes and Invite Widget Grid */}
+          <div className="mt-4 w-full grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-4">
+               <div className="flex items-center gap-2 text-[#a3a3a3] px-1">
+                  <FileText size={18} />
+                  <h2 className="font-medium">Rascunhos Rápidos</h2>
+               </div>
+               <div className="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-0 min-h-[400px] flex flex-col shadow-sm overflow-hidden">
+                  {quickNotesDoc ? (
+                     <div className="flex-1 w-full relative">
+                        <div className="absolute inset-0">
+                          <Editor document={quickNotesDoc} onUpdate={onUpdate} onUpdateDocument={onUpdateDocument} hideHeader={true} />
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="flex flex-col items-center justify-center flex-1 text-[#737373] gap-4 min-h-[200px]">
+                        <p>The drafts block does not exist or was deleted.</p>
+                        <button 
+                           type="button"
+                           onClick={async () => {
+                             const newDoc = await createDocument('Rascunhos Rápidos', false);
+                             setQuickNotesDoc(newDoc);
+                           }}
+                           className="px-4 py-2 bg-[#2c2c2c] hover:bg-[#3f3f3f] text-white rounded transition"
+                        >
+                           Create New Draft
+                        </button>
+                     </div>
+                  )}
+               </div>
+            </div>
+            
+            <div className="md:col-span-1 pt-10">
+              <DynamicInviteWidget />
+            </div>
           </div>
        </div>
     </main>

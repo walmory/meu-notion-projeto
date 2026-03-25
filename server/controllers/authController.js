@@ -4,17 +4,48 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import pool from '../config/db.js';
 
+let dynamicInvitesTableReady = false;
+
+const ensureDynamicInvitesTable = async () => {
+  if (dynamicInvitesTableReady) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dynamic_invites (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(6) NOT NULL,
+        created_by VARCHAR(36) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    dynamicInvitesTableReady = true;
+  } catch (err) {
+    console.error('Failed to ensure dynamic_invites table:', err);
+  }
+};
+
 export const register = async (req, res) => {
+  await ensureDynamicInvitesTable();
   const connection = await pool.getConnection();
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, inviteCode } = req.body;
     
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email and password are required' });
+    if (!name || !email || !password || !inviteCode) {
+      return res.status(400).json({ error: 'Name, email, password and invite code are required' });
     }
 
     // Explicitly test connection
     await connection.ping();
+
+    // Check invite code
+    const [validCode] = await connection.query(
+      'SELECT id FROM dynamic_invites WHERE code = ? AND expires_at > NOW()',
+      [inviteCode]
+    );
+
+    if (validCode.length === 0) {
+      return res.status(400).json({ error: 'Código de convite inválido ou expirado. Peça um novo código a um membro ativo.' });
+    }
 
     // Check if user exists
     const [existingUsers] = await connection.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -207,5 +238,43 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('RESET PASSWORD ERROR:', error);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+};
+
+export const getCurrentInviteCode = async (req, res) => {
+  try {
+    await ensureDynamicInvitesTable();
+    const userId = req.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Limpeza atômica de códigos expirados no banco
+    await pool.query('DELETE FROM dynamic_invites WHERE expires_at <= NOW()');
+
+    // Tenta buscar um código ativo deste usuário
+    const [existing] = await pool.query(
+      'SELECT code, expires_at FROM dynamic_invites WHERE created_by = ? AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1',
+      [userId]
+    );
+
+    if (existing.length > 0) {
+      return res.json({ code: existing[0].code, expiresAt: existing[0].expires_at });
+    }
+
+    // Gera um novo código de 6 dígitos
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await pool.query(
+      'INSERT INTO dynamic_invites (code, created_by, expires_at) VALUES (?, ?, ?)',
+      [newCode, userId, expiresAt]
+    );
+
+    res.json({ code: newCode, expiresAt });
+  } catch (error) {
+    console.error('Error fetching/generating invite code:', error);
+    res.status(500).json({ error: 'Failed to generate invite code' });
   }
 };
