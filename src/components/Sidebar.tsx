@@ -50,7 +50,7 @@ import { TrashModal } from './TrashModal';
 import { TeamspaceContextMenu } from './TeamspaceContextMenu';
 import { TeamspaceSettingsModal } from './TeamspaceSettingsModal';
 import useSWR, { useSWRConfig } from 'swr';
-import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
+import { api, clearAuthSession, getAuthHeaders, getAuthToken, getUserFromToken } from '@/lib/api';
 import * as LucideIcons from 'lucide-react';
 import { toast } from 'sonner';
 import { io } from 'socket.io-client';
@@ -198,7 +198,7 @@ export function Sidebar({
     if (isWorkspacesLoading || workspaces.length > 0 || isCreatingDefaultWorkspaceRef.current) {
       return;
     }
-    const token = localStorage.getItem('notion_token');
+    const token = getAuthToken();
     if (!token) {
       return;
     }
@@ -407,9 +407,7 @@ export function Sidebar({
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('notion_token');
-    localStorage.removeItem('activeWorkspaceId');
-    localStorage.removeItem('user_profile_cache'); // Garantir limpeza legado
+    clearAuthSession();
     setUser(null); // Limpa o estado global
     globalMutate(
       () => true, // Invalida TODAS as chaves do SWR
@@ -424,7 +422,7 @@ export function Sidebar({
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('notion_token');
+    const token = getAuthToken();
     if (!token || !activeWorkspaceId) {
       return;
     }

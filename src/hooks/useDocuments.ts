@@ -150,7 +150,7 @@ export function useDocuments(workspaceId?: string) {
     parent_id?: string | null,
     workspace_id?: string | null,
     teamspace_id?: string | null
-  ) => {
+  ): Promise<Document> => {
     try {
       const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
       const tempId = crypto.randomUUID();
@@ -162,7 +162,7 @@ export function useDocuments(workspaceId?: string) {
       if (!resolvedWorkspaceId) {
         console.warn('⚠️ Prevented document creation: workspace_id is missing or null.');
         toast.error('Workspace não encontrado. Recarregue a página ou faça login novamente.');
-        return;
+        throw new Error('Workspace não encontrado');
       }
       
       const payload = typeof titleOrInput === 'string'

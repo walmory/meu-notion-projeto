@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api, getAuthHeaders } from '@/lib/api';
+import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
 
 export default function SetupInicialPage() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function SetupInicialPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('notion_token');
+    const token = getAuthToken();
     if (!token) {
       router.replace('/login');
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { getAuthToken } from '@/lib/api';
 
 const getSocketUrl = () => {
   if (typeof window !== 'undefined') {
@@ -15,7 +16,7 @@ const getSocketUrl = () => {
 export const useGlobalSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('notion_token') : null;
+  const token = getAuthToken();
 
   useEffect(() => {
     if (!token) return;
@@ -59,7 +60,7 @@ export const useGlobalSocket = () => {
 export const useSocket = (docId: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('notion_token') : null;
+  const token = getAuthToken();
 
   useEffect(() => {
     if (!token) return;

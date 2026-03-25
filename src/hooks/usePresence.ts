@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
+import { getAuthToken } from '@/lib/api';
 
 const PRESENCE_EMIT_INTERVAL_MS = 60;
 const CURSOR_STALE_MS = 3500;
@@ -30,7 +31,7 @@ const decodeUserFromToken = () => {
     return { userId: 'anonymous', userName: 'User' };
   }
 
-  const token = localStorage.getItem('notion_token');
+  const token = getAuthToken();
   if (!token) {
     return { userId: 'anonymous', userName: 'User' };
   }

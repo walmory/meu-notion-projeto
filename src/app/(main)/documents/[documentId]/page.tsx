@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Editor } from '@/components/Editor';
 import { useDocuments, Document } from '@/hooks/useDocuments';
 import { EditorSkeleton } from '@/components/EditorSkeleton';
-import { api, getAuthHeaders } from '@/lib/api';
+import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
 import useSWR from 'swr';
 
 export default function DocumentPage() {
@@ -15,7 +15,7 @@ export default function DocumentPage() {
   
   const { documents, loading, refetch, updateDocument, deleteDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const [isAuthChecking] = useState(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('notion_token') : null;
+    const token = getAuthToken();
     return !token;
   });
   const fetchDocumentById = async (url: string) => {

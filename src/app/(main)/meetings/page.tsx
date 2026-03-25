@@ -114,18 +114,16 @@ export default function MeetingsPage() {
     ]);
 
     const newDoc = await createDocument({ title: meetingTitle + ' Notes', is_shared: false, is_meeting_note: true });
-    
-    // We update the content with the template
+    if (!newDoc?.id) {
+      return;
+    }
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com'}/documents/${newDoc.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('notion_token')}`,
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify({ content: templateContent, emoji: '📝' })
-      });
+      await api.patch(
+        `/documents/${newDoc.id}`,
+        { content: templateContent, emoji: '📝' },
+        { headers: getAuthHeaders() }
+      );
       refetch();
       setActiveDocId(newDoc.id);
     } catch (e) {

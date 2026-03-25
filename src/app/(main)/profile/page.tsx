@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { getAuthHeaders } from '@/lib/api';
+import { clearAuthSession, getAuthHeaders } from '@/lib/api';
 import axios from 'axios';
 import { Edit, Mail, Loader2, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -188,6 +188,7 @@ export default function ProfilePage() {
       });
       
       // Limpeza total
+      clearAuthSession();
       localStorage.clear();
       await globalMutate(() => true, undefined, { revalidate: false });
       

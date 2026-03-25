@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { getAuthHeaders, getUserFromToken } from '@/lib/api';
+import { getAuthHeaders, getAuthToken, getUserFromToken } from '@/lib/api';
 
 export interface UserProfile {
   name: string;
@@ -65,7 +65,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Only fetch if token exists
-    const token = typeof window !== 'undefined' ? localStorage.getItem('notion_token') : null;
+    const token = getAuthToken();
     if (token) {
       fetchUser();
     } else {

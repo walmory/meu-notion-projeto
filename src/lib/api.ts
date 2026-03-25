@@ -1,14 +1,90 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apinotion.andrekehrer.com';
+const AUTH_TOKEN_KEY = 'notion_token';
+const AUTH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+const readCookie = (key: string) => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const parts = document.cookie.split(';').map((part) => part.trim());
+  const entry = parts.find((part) => part.startsWith(`${key}=`));
+  if (!entry) {
+    return null;
+  }
+  return decodeURIComponent(entry.slice(key.length + 1));
+};
+
+const writeCookie = (key: string, value: string, maxAgeSeconds: number) => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${key}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+};
+
+export const getAuthToken = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const localToken = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (localToken) {
+    return localToken;
+  }
+  const cookieToken = readCookie(AUTH_TOKEN_KEY);
+  if (cookieToken) {
+    localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+    return cookieToken;
+  }
+  return null;
+};
+
+export const setAuthToken = (token: string) => {
+  if (typeof window === 'undefined' || !token) {
+    return;
+  }
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  writeCookie(AUTH_TOKEN_KEY, token, AUTH_TOKEN_MAX_AGE_SECONDS);
+};
+
+export const clearAuthToken = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  writeCookie(AUTH_TOKEN_KEY, '', 0);
+};
+
+export const setAuthSession = (token: string, workspaceId?: string | null) => {
+  if (typeof window === 'undefined' || !token) {
+    return;
+  }
+  setAuthToken(token);
+  if (workspaceId) {
+    localStorage.setItem('activeWorkspaceId', workspaceId);
+  } else {
+    localStorage.removeItem('activeWorkspaceId');
+  }
+  window.dispatchEvent(new Event('workspace-changed'));
+};
+
+export const clearAuthSession = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  clearAuthToken();
+  localStorage.removeItem('activeWorkspaceId');
+  localStorage.removeItem('user_profile_cache');
+};
+
 export const getAuthHeaders = () => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('notion_token');
+    const token = getAuthToken();
     const workspaceId = localStorage.getItem('activeWorkspaceId');
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -20,7 +96,7 @@ export const getAuthHeaders = () => {
 
 export const getUserFromToken = () => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('notion_token');
+    const token = getAuthToken();
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -74,8 +150,7 @@ api.interceptors.response.use(
     
     // Auto-logout on 401 Unauthorized
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('notion_token');
-      localStorage.removeItem('activeWorkspaceId');
+      clearAuthSession();
       window.location.href = '/login';
     }
     

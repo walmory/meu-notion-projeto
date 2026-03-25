@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { api, setAuthSession } from '@/lib/api';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -17,10 +17,7 @@ export default function RegisterPage() {
     try {
       const response = await api.post('/auth/register', { name, email, password, inviteCode });
       if (response.data.token) {
-        localStorage.setItem('notion_token', response.data.token);
-        if (response.data.workspace && response.data.workspace.id) {
-          localStorage.setItem('activeWorkspaceId', response.data.workspace.id);
-        }
+        setAuthSession(response.data.token, response.data.workspace?.id ?? null);
         router.push('/');
       } else {
         router.push('/login');
