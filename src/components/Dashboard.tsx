@@ -5,7 +5,7 @@ import { Document } from '@/hooks/useDocuments';
 import { Search, Clock, FileText, Sparkles, MoreHorizontal, Trash, Edit2 } from 'lucide-react';
 import { Editor } from '@/components/Editor';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
+import { api, getAuthHeaders } from '@/lib/api';
 import { DocumentContextMenu } from '@/components/DocumentContextMenu';
 import { useUser } from '@/contexts/UserContext';
 import { DynamicInviteWidget } from '@/components/DynamicInviteWidget';
