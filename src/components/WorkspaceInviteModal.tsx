@@ -17,6 +17,8 @@ interface WorkspaceInviteModalProps {
 interface WorkspaceMember {
   workspace_id: string;
   user_email: string;
+  user_id: string;
+  user_name?: string;
   role: 'owner' | 'member';
 }
 
@@ -54,6 +56,20 @@ export function MembersModal({ isOpen, onClose, workspaceId, workspaceName }: Wo
     }
   };
 
+  const handleBreakConnection = async (userId: string, email: string) => {
+    if (!confirm(`Tem certeza que deseja romper a conexão com ${email}? Vocês perderão acesso aos workspaces compartilhados um do outro.`)) return;
+
+    try {
+      await api.delete(`/connections/${userId}`, { headers: getAuthHeaders() });
+      mutate();
+    } catch (error) {
+      console.error('Erro ao romper conexão', error);
+      alert('Erro ao romper conexão');
+    }
+  };
+
+  const currentUserEmail = typeof window !== 'undefined' ? localStorage.getItem('user_email') : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[560px]">
@@ -90,8 +106,19 @@ export function MembersModal({ isOpen, onClose, workspaceId, workspaceName }: Wo
                 <div className="divide-y divide-white/5">
                   {members.map((member) => (
                     <div key={`${member.user_email}-${member.role}`} className="flex items-center justify-between px-3 py-2">
-                      <span className="text-sm text-white truncate">{member.user_email}</span>
-                      <span className="text-[11px] uppercase tracking-wide text-[#9b9b9b]">{member.role}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm text-white truncate">{member.user_name || member.user_email}</span>
+                        <span className="text-[11px] uppercase tracking-wide text-[#9b9b9b]">{member.role}</span>
+                      </div>
+                      {member.user_email !== currentUserEmail && (
+                        <button
+                          type="button"
+                          onClick={() => handleBreakConnection(member.user_id, member.user_email)}
+                          className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 rounded transition"
+                        >
+                          Break Connection
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

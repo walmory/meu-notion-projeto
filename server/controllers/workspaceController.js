@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import { emitToUserEmail } from '../socket.js';
 
 const ensureWorkspaceMembersTable = async () => {
   await pool.query(`
@@ -270,11 +271,25 @@ export const inviteWorkspaceMember = async (req, res) => {
       return res.status(200).json({ message: 'Convite já pendente para este email' });
     }
 
+    const inviteId = uuidv4();
     await pool.query(
       `INSERT INTO workspace_invitations (id, workspace_id, email, invited_by, status)
        VALUES (?, ?, ?, ?, 'pending')`,
-      [uuidv4(), workspaceId, email, invitedBy]
+      [inviteId, workspaceId, email, invitedBy]
     );
+
+    // Buscar dados do convidador e workspace para notificar
+    const [inviter] = await pool.query('SELECT name, email, avatar_url FROM users WHERE id = ?', [invitedBy]);
+    const [workspace] = await pool.query('SELECT name FROM workspaces WHERE id = ?', [workspaceId]);
+
+    emitToUserEmail(email, 'new-invitation', {
+      id: inviteId,
+      workspace_id: workspaceId,
+      workspace_name: workspace?.[0]?.name,
+      inviter_name: inviter?.[0]?.name,
+      inviter_email: inviter?.[0]?.email,
+      inviter_avatar: inviter?.[0]?.avatar_url
+    });
 
     return res.status(201).json({ message: 'Invite Sent' });
   } catch (error) {
