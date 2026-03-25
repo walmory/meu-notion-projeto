@@ -47,6 +47,9 @@ const getBlocksFromContent = (content: unknown) => {
   return undefined;
 };
 
+import { Popover } from '@/components/ui/popover';
+import { SharePopover } from '@/components/SharePopover';
+
 const normalizeEditorTitle = (value: string | null | undefined) => {
   if (!value) return '';
   return value.trim().toLowerCase() === 'untitled' ? '' : value;
@@ -1004,6 +1007,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
           <div className={`mx-auto ${isFullWidth ? 'max-w-none' : 'max-w-5xl'} w-full flex-1 flex flex-col relative ${hideHeader ? 'pt-4 px-2' : 'px-4 sm:px-8 md:px-16 lg:px-24 pt-16'}`}>
             {!hideHeader && (
             <div className="absolute top-4 right-4 md:right-8 z-10 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+              {document && <SharePopover document={document} />}
               <button
                 type="button"
                 onClick={() => setIsFullWidth(!isFullWidth)}

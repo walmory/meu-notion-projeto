@@ -21,6 +21,7 @@ export interface Document {
   teamspace_id?: string | null;
   last_edited_by?: string;
   is_private?: boolean;
+  is_public?: boolean | 0 | 1;
   is_meeting_note?: boolean | 0 | 1;
   type?: string;
 }

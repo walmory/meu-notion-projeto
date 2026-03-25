@@ -56,6 +56,21 @@ const ensureDocumentOwnerColumn = async () => {
       );
     }
 
+    const [publicRows] = await pool.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'documents'
+         AND COLUMN_NAME = 'is_public'
+       LIMIT 1`
+    );
+
+    if (!Array.isArray(publicRows) || publicRows.length === 0) {
+      await pool.query(
+        'ALTER TABLE documents ADD COLUMN is_public TINYINT(1) NOT NULL DEFAULT 0'
+      );
+    }
+
     documentOwnerColumnReady = true;
   } catch (error) {
     documentOwnerColumnReady = false;
@@ -132,20 +147,20 @@ export const getDocuments = async (req, res) => {
 
     const [documents] = trashOnly
       ? await pool.query(
-        `SELECT id, title, icon, cover, parent_id, updated_at, type
+        `SELECT id, title, icon, cover, parent_id, updated_at, type, is_public
          FROM documents
          WHERE workspace_id = ?
            AND is_trash = 1
-           AND (is_private = 0 OR (is_private = 1 AND owner_id = ?))
+           AND (is_public = 1 OR is_private = 0 OR (is_private = 1 AND owner_id = ?))
          ORDER BY updated_at DESC`,
         [workspaceId, userId]
       )
       : await pool.query(
-        `SELECT id, title, icon, cover, parent_id, is_favorite, updated_at, is_trash, is_private, teamspace_id, is_meeting_note, type
+        `SELECT id, title, icon, cover, parent_id, is_favorite, updated_at, is_trash, is_private, teamspace_id, is_meeting_note, type, is_public
          FROM documents
          WHERE workspace_id = ?
            AND is_trash = 0
-           AND (is_private = 0 OR (is_private = 1 AND owner_id = ?))
+           AND (is_public = 1 OR is_private = 0 OR (is_private = 1 AND owner_id = ?))
          ORDER BY updated_at DESC`,
         [workspaceId, userId]
       );
@@ -179,10 +194,10 @@ export const getDocumentById = async (req, res) => {
   try {
     await ensureDocumentOwnerColumn();
     const [documents] = await pool.query(
-      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note, type
+      `SELECT id, title, content, workspace_id, icon, cover, content_version, updated_at, parent_id, is_favorite, is_trash, is_private, teamspace_id, is_meeting_note, type, is_public
        FROM documents
        WHERE id = ? AND workspace_id = ?
-         AND (is_private = 0 OR (is_private = 1 AND owner_id = ?))
+         AND (is_public = 1 OR is_private = 0 OR (is_private = 1 AND owner_id = ?))
        LIMIT 1`,
       [id, workspaceId, userId]
     );
@@ -420,7 +435,8 @@ export const updateDocument = async (req, res) => {
     parent_id,
     is_meeting_note,
     is_trash,
-    type
+    type,
+    is_public
   } = req.body;
 
   if (!workspaceId) {
@@ -444,6 +460,7 @@ export const updateDocument = async (req, res) => {
     && is_meeting_note === undefined
     && is_trash === undefined
     && type === undefined
+    && is_public === undefined
   ) {
     console.error('Validação falhou em updateDocument: nenhum campo permitido enviado', {
       payload: req.body,
@@ -557,6 +574,11 @@ export const updateDocument = async (req, res) => {
     if (is_trash !== undefined) {
       fields.push('is_trash = ?');
       values.push(is_trash === true || is_trash === 1 ? 1 : 0);
+    }
+
+    if (is_public !== undefined) {
+      fields.push('is_public = ?');
+      values.push(is_public === true || is_public === 1 ? 1 : 0);
     }
 
     if (!shouldBeMeetingNote && teamspace_id !== undefined) {

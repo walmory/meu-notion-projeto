@@ -56,7 +56,7 @@ const canAccessDocument = async (documentId, userId) => {
      LEFT JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = ?
      WHERE d.id = ?
        AND (w.owner_id = ? OR wm.user_id = ?)
-       AND (d.is_private = 0 OR (d.is_private = 1 AND d.owner_id = ?))
+       AND (d.is_public = 1 OR d.is_private = 0 OR (d.is_private = 1 AND d.owner_id = ?))
      LIMIT 1`,
     [userId, documentId, userId, userId, userId]
   );
