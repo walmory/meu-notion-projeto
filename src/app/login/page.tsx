@@ -28,46 +28,60 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[#191919] text-white">
-      <div className="w-full max-w-sm rounded-lg border border-[#2d2d2d] bg-[#1a1a1a] p-8">
-        <h1 className="mb-6 text-center text-2xl font-semibold">Log in</h1>
-        <p className="mb-5 text-center text-sm font-medium text-white">Notion Clone</p>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[#a3a3a3]" htmlFor="email">Email</label>
+    <div className="flex h-screen items-center justify-center bg-[#191919] text-white p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600/40 via-blue-500/40 to-transparent"></div>
+        
+        <div className="flex flex-col items-center mb-8">
+          <img 
+            src="/logo.png" 
+            alt="OPTA Logo" 
+            className="w-16 h-16 object-contain mb-4 drop-shadow-md"
+          />
+          <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+          <p className="text-sm font-medium text-[#8a8a8a] mt-1">Log in to your workspace</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#a3a3a3]" htmlFor="email">Email address</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded bg-[#2d2d2d] px-3 py-2 text-white placeholder-[#a3a3a3] outline-none focus:border-[#a3a3a3] focus:ring-1 focus:ring-[#a3a3a3]"
+              className="w-full rounded-lg bg-[#252525] border border-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-[#525252] outline-none transition-colors focus:border-white/20 focus:bg-[#2c2c2c]"
+              placeholder="you@example.com"
               required
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[#a3a3a3]" htmlFor="password">Password</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#a3a3a3]" htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded bg-[#2d2d2d] px-3 py-2 text-white placeholder-[#a3a3a3] outline-none focus:border-[#a3a3a3] focus:ring-1 focus:ring-[#a3a3a3]"
+              className="w-full rounded-lg bg-[#252525] border border-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-[#525252] outline-none transition-colors focus:border-white/20 focus:bg-[#2c2c2c]"
+              placeholder="••••••••"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded bg-white py-2 font-medium text-black transition hover:bg-gray-200"
+            className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black transition-all hover:bg-gray-200 active:scale-[0.98] mt-2 shadow-sm"
           >
-            Continue
+            Continue to Workspace
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-[#a3a3a3]">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-white hover:underline">
-            Sign up
-          </Link>
-        </p>
+        <div className="mt-6 pt-6 border-t border-white/5 text-center">
+          <p className="text-xs text-[#8a8a8a]">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-white hover:text-blue-400 transition-colors font-medium">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

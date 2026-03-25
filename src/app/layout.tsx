@@ -17,8 +17,12 @@ const geistMono = Geist_Mono({
 import { UserProvider } from "@/contexts/UserContext";
 
 export const metadata: Metadata = {
-  title: "Notion Clone",
-  description: "Workspace",
+  title: "OPTA Workspace",
+  description: "Your modern workspace",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  }
 };
 
 export default function RootLayout({
