@@ -168,7 +168,7 @@ export default function MeetingsPage() {
             {meetings.filter(m => m.status !== 'past').length === 0 ? (
               <div className="bg-[#1a1a1a] border border-[#2c2c2c] rounded-xl p-8 text-center text-[#a3a3a3] flex flex-col items-center justify-center">
                 <Video size={32} className="mb-3 text-[#3f3f3f]" />
-                <p className="text-sm">Sua agenda está limpa. Que tal começar uma call agora?</p>
+                <p className="text-sm">Your schedule is clear. How about starting a call now?</p>
               </div>
             ) : (
               <div className={`grid grid-cols-1 ${activeCall && isSidebarMode ? 'xl:grid-cols-2' : 'md:grid-cols-2'} gap-4`}>
@@ -271,7 +271,7 @@ export default function MeetingsPage() {
                               onClick={() => {
                                 const inviteLink = `${window.location.origin}/meetings?join=${meeting.roomName}`;
                                 navigator.clipboard.writeText(inviteLink);
-                                alert('Link copiado! Envie para seus convidados.');
+                                alert('Link copied! Send it to your guests.');
                               }}
                               className="flex items-center gap-1.5 p-1.5 px-3 rounded-md transition bg-[#2c2c2c] hover:bg-[#3f3f3f] text-[#a3a3a3] hover:text-white border border-[#3f3f3f]"
                               title="Copiar Link"

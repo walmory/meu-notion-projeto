@@ -124,7 +124,7 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
              <p className="text-white text-base font-semibold tracking-wide">{user?.name || 'User'}</p>
-             <p className="text-[#a3a3a3] text-lg">Pronto para capturar suas melhores ideias hoje?</p>
+             <p className="text-[#a3a3a3] text-lg">Ready to capture your best ideas today?</p>
           </div>
 
           {/* Search Input */}
@@ -254,7 +254,7 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                    </div>
                 ) : (
                    <div className="flex flex-col items-center justify-center flex-1 text-[#737373] gap-4 min-h-[200px]">
-                      <p>O bloco de rascunhos não existe ou foi excluído.</p>
+                      <p>The drafts block does not exist or was deleted.</p>
                       <button 
                          type="button"
                          onClick={async () => {
@@ -263,7 +263,7 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                          }}
                          className="px-4 py-2 bg-[#2c2c2c] hover:bg-[#3f3f3f] text-white rounded transition"
                       >
-                         Criar Novo Rascunho
+                         Create New Draft
                       </button>
                    </div>
                 )}

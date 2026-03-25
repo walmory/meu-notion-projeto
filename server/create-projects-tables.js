@@ -12,7 +12,7 @@ async function createTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('Tabela projects criada com sucesso!');
+    console.log('Table projects successfully created!');
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tasks (
@@ -27,10 +27,10 @@ async function createTables() {
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
       )
     `);
-    console.log('Tabela tasks criada com sucesso!');
+    console.log('Table tasks successfully created!');
 
   } catch (err) {
-    console.error('Erro ao criar tabelas:', err);
+    console.error('Error creating tables:', err);
   } finally {
     process.exit(0);
   }

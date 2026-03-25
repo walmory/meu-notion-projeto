@@ -36,7 +36,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           return { name: tokenUser.name, email: tokenUser.email };
         }
       } catch (e) {
-        // ignora erro de parse
+        // ignore parse error
       }
     }
     return null;

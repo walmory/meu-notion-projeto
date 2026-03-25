@@ -188,10 +188,10 @@ export function TeamspaceContextMenu({
               <DialogTitle className="text-white text-xl">Delete Teamspace</DialogTitle>
             </div>
             <DialogDescription className="text-[#a3a3a3] text-sm mt-4">
-              Você está prestes a excluir este Teamspace. Isso moverá todas as páginas e subpáginas para a <strong>Lixeira</strong>. 
+              You are about to delete this Teamspace. This will move all pages and subpages to the <strong>Trash</strong>.
               <br /><br />
-              Esta ação afetará todos os membros do workspace que têm acesso a este teamspace.
-              Tem certeza que deseja continuar?
+              This action will affect all workspace members who have access to this teamspace.
+              Are you sure you want to continue?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6 flex gap-2 justify-end border-t border-[#2c2c2c] pt-4 sm:space-x-0">

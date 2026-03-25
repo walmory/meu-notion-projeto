@@ -101,7 +101,7 @@ export const searchDocuments = async (req, res) => {
   const normalizedQuery = typeof q === 'string' ? q.trim() : '';
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!normalizedQuery) {
@@ -121,7 +121,7 @@ export const searchDocuments = async (req, res) => {
 
     return res.json(documents);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar documentos', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch documents', details: error.message });
   }
 };
 
@@ -131,7 +131,7 @@ export const getDocuments = async (req, res) => {
   const trashOnly = req.query.trash === 'true';
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -172,9 +172,9 @@ export const getDocuments = async (req, res) => {
     return res.json(normalizedDocuments);
   } catch (err) {
     if (trashOnly) {
-      console.error('Erro na Lixeira:', err);
+      console.error('Error in Trash:', err);
     }
-    return res.status(500).json({ error: 'Falha ao buscar documentos', details: err.message });
+    return res.status(500).json({ error: 'Failed to fetch documents', details: err.message });
   }
 };
 
@@ -184,11 +184,11 @@ export const getDocumentById = async (req, res) => {
   const { id } = req.params;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!id) {
-    return res.status(400).json({ error: 'id é obrigatório' });
+    return res.status(400).json({ error: 'id is required' });
   }
 
   try {
@@ -203,7 +203,7 @@ export const getDocumentById = async (req, res) => {
     );
 
     if (!Array.isArray(documents) || documents.length === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado' });
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     const document = documents[0];
@@ -222,7 +222,7 @@ export const getDocumentById = async (req, res) => {
       content: normalizedContent,
     }));
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch document', details: error.message });
   }
 };
 
@@ -230,7 +230,7 @@ export const getPrivateDocuments = async (req, res) => {
   const workspaceId = req.workspace_id;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -246,7 +246,7 @@ export const getPrivateDocuments = async (req, res) => {
 
     return res.json(documents);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar documentos privados', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch documents privados', details: error.message });
   }
 };
 
@@ -255,11 +255,11 @@ export const getTeamspaceDocuments = async (req, res) => {
   const { id: teamspaceId } = req.params;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!teamspaceId) {
-    return res.status(400).json({ error: 'teamspace_id é obrigatório' });
+    return res.status(400).json({ error: 'teamspace_id is required' });
   }
 
   try {
@@ -274,7 +274,7 @@ export const getTeamspaceDocuments = async (req, res) => {
 
     return res.json(documents);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar documentos do teamspace', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch documents do teamspace', details: error.message });
   }
 };
 
@@ -282,7 +282,7 @@ export const getRecentDocuments = async (req, res) => {
   const workspaceId = req.workspace_id;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -297,7 +297,7 @@ export const getRecentDocuments = async (req, res) => {
 
     return res.json(documents);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar documentos recentes', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch documents recentes', details: error.message });
   }
 };
 
@@ -307,7 +307,7 @@ export const createDocument = async (req, res) => {
   const { title = '', content = '', parent_id = null, teamspace_id = null, is_meeting_note } = req.body;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -318,7 +318,7 @@ export const createDocument = async (req, res) => {
         [teamspace_id, workspaceId]
       );
       if (teamspaceRows.length === 0) {
-        return res.status(404).json({ error: 'Teamspace não encontrado no workspace informado' });
+        return res.status(404).json({ error: 'Teamspace not found in the given workspace' });
       }
     }
 
@@ -351,7 +351,7 @@ export const createDocument = async (req, res) => {
     return res.status(201).json(mainDocument);
   } catch (error) {
     console.error(error);
-    console.error('Erro ao criar documento:', {
+    console.error('Error creating document:', {
       message: error?.message,
       code: error?.code,
       sqlState: error?.sqlState,
@@ -359,7 +359,7 @@ export const createDocument = async (req, res) => {
       stack: error?.stack,
       payload: req.body
     });
-    return res.status(500).json({ error: 'Falha ao criar documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to create document', details: error.message });
   }
 };
 
@@ -369,7 +369,7 @@ export const duplicateDocument = async (req, res) => {
   const { id } = req.params;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -379,7 +379,7 @@ export const duplicateDocument = async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Documento original não encontrado' });
+      return res.status(404).json({ error: 'Original document not found' });
     }
 
     const original = existing[0];
@@ -414,8 +414,8 @@ export const duplicateDocument = async (req, res) => {
     emitToWorkspace(workspaceId, 'document_created', newDocs[0]);
     return res.status(201).json(newDocs[0]);
   } catch (error) {
-    console.error('Erro ao duplicar documento:', error);
-    return res.status(500).json({ error: 'Falha ao duplicar documento', details: error.message });
+    console.error('Error duplicating document:', error);
+    return res.status(500).json({ error: 'Failed to duplicate document', details: error.message });
   }
 };
 
@@ -440,7 +440,7 @@ export const updateDocument = async (req, res) => {
   } = req.body;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   const shouldBeMeetingNote = is_meeting_note === true || is_meeting_note === 1;
@@ -462,13 +462,13 @@ export const updateDocument = async (req, res) => {
     && type === undefined
     && is_public === undefined
   ) {
-    console.error('Validação falhou em updateDocument: nenhum campo permitido enviado', {
+    console.error('Validation failed in updateDocument: no allowed fields sent', {
       payload: req.body,
       documentId: id,
       workspaceId
     });
     return res.status(400).json({
-      error: 'Envie ao menos um campo para atualização',
+      error: 'Provide at least one field to update',
       details: 'Validation failed: at least one updatable field is required'
     });
   }
@@ -510,7 +510,7 @@ export const updateDocument = async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado ou sem permissão' });
+      return res.status(404).json({ error: 'Document not found or unauthorized' });
     }
 
     if (!shouldBeMeetingNote && teamspace_id !== undefined && teamspace_id !== null) {
@@ -520,7 +520,7 @@ export const updateDocument = async (req, res) => {
       );
 
       if (teamspaceRows.length === 0) {
-        return res.status(404).json({ error: 'Teamspace não encontrado no workspace informado' });
+        return res.status(404).json({ error: 'Teamspace not found in the given workspace' });
       }
     }
 
@@ -622,7 +622,7 @@ export const updateDocument = async (req, res) => {
 
     if (updateResult.affectedRows === 0) {
       if (shouldUseVersionGuard) {
-        return res.status(409).json({ error: 'Atualização descartada por versão de conteúdo desatualizada' });
+        return res.status(409).json({ error: 'Update discarded due to outdated content version' });
       }
       const [existingDocument] = await pool.query(
         `SELECT *
@@ -633,7 +633,7 @@ export const updateDocument = async (req, res) => {
         [id, workspaceId, userId]
       );
       if (!Array.isArray(existingDocument) || existingDocument.length === 0) {
-        return res.status(404).json({ error: 'Documento não encontrado ou sem permissão' });
+        return res.status(404).json({ error: 'Document not found or unauthorized' });
       }
       return res.status(200).json(normalizeDocumentVisuals(existingDocument[0]));
     }
@@ -665,7 +665,7 @@ export const updateDocument = async (req, res) => {
 
     return res.status(200).json(updatedDocument);
   } catch (error) {
-    console.error('Erro ao atualizar documento:', {
+    console.error('Error updating document:', {
       message: error?.message,
       code: error?.code,
       errno: error?.errno,
@@ -678,7 +678,7 @@ export const updateDocument = async (req, res) => {
       updateQuery,
       updateValues
     });
-    return res.status(500).json({ error: 'Falha ao atualizar documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to update document', details: error.message });
   }
 };
 
@@ -688,15 +688,15 @@ export const moveDocument = async (req, res) => {
   const targetTeamspaceId = req.body.targetTeamspaceId || req.body.teamspace_id;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!documentId) {
-    return res.status(400).json({ error: 'documentId é obrigatório para mover documento' });
+    return res.status(400).json({ error: 'documentId is required to move document' });
   }
 
   if (targetTeamspaceId === undefined) {
-    return res.status(400).json({ error: 'targetTeamspaceId é obrigatório para mover documento' });
+    return res.status(400).json({ error: 'targetTeamspaceId is required to move document' });
   }
 
   try {
@@ -706,7 +706,7 @@ export const moveDocument = async (req, res) => {
         [targetTeamspaceId, workspaceId]
       );
       if (teamspaceRows.length === 0) {
-        return res.status(404).json({ error: 'Teamspace não encontrado no workspace informado' });
+        return res.status(404).json({ error: 'Teamspace not found in the given workspace' });
       }
     }
 
@@ -715,7 +715,7 @@ export const moveDocument = async (req, res) => {
       [documentId, workspaceId]
     );
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado' });
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     await pool.query(
@@ -734,7 +734,7 @@ export const moveDocument = async (req, res) => {
     emitToWorkspace(workspaceId, 'document_moved', movedDocument);
     return res.json(movedDocument);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao mover documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to move document', details: error.message });
   }
 };
 
@@ -743,7 +743,7 @@ export const toggleFavorite = async (req, res) => {
   const { id } = req.params;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -753,7 +753,7 @@ export const toggleFavorite = async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado' });
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     const newFavoriteStatus = existing[0].is_favorite === 1 ? 0 : 1;
@@ -772,7 +772,7 @@ export const toggleFavorite = async (req, res) => {
     emitToWorkspace(workspaceId, 'document_updated', updatedDocument);
     return res.json(updatedDocument);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao favoritar documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to favorite document', details: error.message });
   }
 };
 
@@ -781,7 +781,7 @@ export const deleteDocument = async (req, res) => {
   const { id } = req.params;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -791,11 +791,11 @@ export const deleteDocument = async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado' });
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     if (!(existing[0].is_trash === 1 || existing[0].is_trash === true)) {
-      return res.status(400).json({ error: 'Documento precisa estar na lixeira para exclusão definitiva' });
+      return res.status(400).json({ error: 'Document must be in trash to be permanently deleted' });
     }
 
     const [result] = await pool.query(
@@ -804,11 +804,11 @@ export const deleteDocument = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Documento não encontrado' });
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     return res.status(204).send();
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao excluir documento', details: error.message });
+    return res.status(500).json({ error: 'Failed to delete document', details: error.message });
   }
 };

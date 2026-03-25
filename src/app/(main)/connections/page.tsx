@@ -75,7 +75,7 @@ export default function ConnectionsPage() {
       setConnections([...activeConnections, ...pendingConnections]);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
-      toast.error('Erro ao carregar conexões');
+      toast.error('Error loading connections');
     } finally {
       setIsLoading(false);
     }
@@ -102,11 +102,11 @@ export default function ConnectionsPage() {
         });
       }
       
-      toast.success(connection.status === 'pending' ? 'Convite cancelado' : 'Membro removido');
+      toast.success(connection.status === 'pending' ? 'Invite cancelled' : 'Member removido');
       fetchConnections();
       mutate('/workspaces/members');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao remover conexão');
+      toast.error(error.response?.data?.error || 'Error removing connection');
     }
   };
 
@@ -146,16 +146,16 @@ export default function ConnectionsPage() {
               <div className="w-16 h-16 rounded-full bg-[#333333] flex items-center justify-center mb-4">
                 <Users className="text-[#a3a3a3]" size={32} />
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">Nenhuma conexão encontrada</h3>
+              <h3 className="text-lg font-medium text-white mb-2">No connections found</h3>
               <p className="text-[#a3a3a3] max-w-sm mb-6">
-                Você ainda não adicionou ninguém ao seu workspace. Convide sua equipe para colaborar.
+                You haven&apos;t added anyone to your workspace yet. Invite your team to collaborate.
               </p>
               <Button 
                 onClick={() => setIsInviteModalOpen(true)}
                 variant="outline" 
                 className="bg-transparent border-[#2c2c2c] text-white hover:bg-[#2c2c2c]"
               >
-                Convidar agora
+                Invite now
               </Button>
             </div>
           ) : (
@@ -171,7 +171,7 @@ export default function ConnectionsPage() {
                         <span className="font-medium text-white">{conn.name}</span>
                         {conn.id === currentUser?.id && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">
-                            Você
+                            You
                           </span>
                         )}
                         {conn.role === 'owner' && (

@@ -21,7 +21,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// Retorna todos os workspaces do usuário (não exige workspace_id)
+// Returns all user workspaces (does not require workspace_id)
 router.get('/', getWorkspaces);
 router.post('/', createWorkspace);
 router.post('/:id/invite', inviteWorkspaceMember);
@@ -29,7 +29,7 @@ router.get('/:id/invites/pending', getWorkspacePendingInvites);
 router.delete('/:id/invites/:inviteId', cancelWorkspaceInvite);
 router.delete('/:id', deleteWorkspace);
 
-// Rotas de convite do usuário (não exige workspaceMiddleware pois o usuário ainda não é membro)
+// User invite routes (does not require workspaceMiddleware since user is not yet a member)
 router.get('/my-invites', getMyInvites);
 router.post('/invites/:inviteId/accept', acceptInvite);
 router.post('/invites/:inviteId/decline', declineInvite);

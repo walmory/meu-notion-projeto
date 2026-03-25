@@ -95,12 +95,12 @@ export function WorkspaceSettingsModal({
     setInviteLoading(true);
     try {
       await api.post(`/workspaces/${workspace.id}/invite`, { email: inviteEmail }, { headers: getAuthHeaders() });
-      toast.success('Convite enviado com sucesso!');
+      toast.success('Invite successfully sent!');
       setIsInviteOpen(false);
       setInviteEmail('');
     } catch (error) {
       const err = error as { response?: { data?: { error?: string, message?: string } } };
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Falha ao enviar convite';
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to send invite';
       toast.error(msg);
     } finally {
       setInviteLoading(false);
@@ -110,7 +110,7 @@ export function WorkspaceSettingsModal({
   const handleDelete = async () => {
     if (!workspace) return;
     if (!isDeleteConfirmationValid) {
-      setDeleteErrorMessage('Digite exatamente o nome do workspace para confirmar.');
+      setDeleteErrorMessage('Type exactly the workspace name to confirm.');
       return;
     }
 
@@ -137,7 +137,7 @@ export function WorkspaceSettingsModal({
       setDeleteConfirmationName('');
     } catch (error) {
       console.error('Failed to delete workspace', error);
-      setDeleteErrorMessage('Não foi possível excluir o workspace.');
+      setDeleteErrorMessage('Could not delete the workspace.');
       // Rollback cache em caso de erro
       if (workspaces && mutateWorkspaces) {
         mutateWorkspaces(workspaces, { revalidate: true });
@@ -227,7 +227,7 @@ export function WorkspaceSettingsModal({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-white">Danger Zone</h3>
               <p className="text-xs text-[#9b9b9b] leading-relaxed">
-                Esta ação moverá todos os documentos e configurações para a lixeira.
+                This action will move all documents and settings to the trash.
               </p>
               
               <div className="flex gap-2">
@@ -270,16 +270,16 @@ export function WorkspaceSettingsModal({
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/15 text-red-500">
                 <AlertTriangle size={20} />
               </div>
-              <DialogTitle className="text-white">Excluir Workspace Permanentemente?</DialogTitle>
+              <DialogTitle className="text-white">Permanently Delete Workspace?</DialogTitle>
             </div>
             <DialogDescription className="text-[#b3b3b3] pt-2 leading-relaxed">
-              Atenção, {getUserFromToken()?.name || 'User'}: esta ação é irreversível. Todos os documentos, membros e configurações vinculados a este workspace serão apagados do banco de dados para sempre.
+              Warning, {getUserFromToken()?.name || 'User'}: this action is irreversible. All documents, members, and settings linked to this workspace will be permanently deleted from the database.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-1">
             <div className="space-y-2">
               <label htmlFor="ws-delete-confirm-name" className="text-xs font-medium text-[#9b9b9b]">
-                Digite <span className="text-white">{workspace.name}</span> para confirmar
+                Type <span className="text-white">{workspace.name}</span> to confirm
               </label>
               <Input
                 id="ws-delete-confirm-name"
@@ -306,7 +306,7 @@ export function WorkspaceSettingsModal({
               className="bg-transparent border-[#2c2c2c] hover:bg-[#2c2c2c] text-white h-9 text-xs px-4"
               disabled={deleteLoading}
             >
-              Cancelar
+              Cancel
             </Button>
             <Button
               type="button"
@@ -334,7 +334,7 @@ export function WorkspaceSettingsModal({
           <DialogHeader>
             <DialogTitle className="text-white">Invite to Workspace</DialogTitle>
             <DialogDescription className="text-[#b3b3b3]">
-              Convide um novo membro para o workspace <span className="text-white font-medium">{workspace.name}</span>.
+              Invite a new member to the workspace <span className="text-white font-medium">{workspace.name}</span>.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInvite} className="space-y-4 pt-4">

@@ -299,7 +299,7 @@ export default function LibraryPage() {
                   {filteredTeamspaces.length === 0 ? (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={4} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -424,7 +424,7 @@ export default function LibraryPage() {
                   {documents.filter(doc => !doc.is_trash).length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   )}
@@ -469,7 +469,7 @@ export default function LibraryPage() {
                   {documents.filter(doc => !doc.is_trash && doc.is_favorite).length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   )}
@@ -513,7 +513,7 @@ export default function LibraryPage() {
                   {documents.filter(doc => !doc.is_trash && doc.is_shared_with_me).length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={3} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   )}
@@ -554,7 +554,7 @@ export default function LibraryPage() {
                   {documents.filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me && doc.parent_id !== 'meetings').length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   )}
@@ -595,7 +595,7 @@ export default function LibraryPage() {
                   {documents.filter(doc => !doc.is_trash && doc.parent_id === 'meetings').length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
-                        Nenhum projeto encontrado aqui
+                        No projects found here
                       </TableCell>
                     </TableRow>
                   )}

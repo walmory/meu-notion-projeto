@@ -2,7 +2,7 @@ import express from 'express';
 import { getProfile, updateProfile, updateEmail, updatePassword, getGlobalConnections, breakConnection } from '../controllers/userController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
-console.log("👉 Rota de Usuário Carregada com Sucesso");
+console.log("👉 User Route Successfully Loaded");
 
 const router = express.Router();
 

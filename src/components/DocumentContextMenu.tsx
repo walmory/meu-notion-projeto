@@ -93,9 +93,9 @@ export function DocumentContextMenu({
     let baseUrl = window.location.origin;
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isLocalhost && window.location.hostname.includes('vercel.app')) {
-      // Se estiver no Vercel, o link base será mantido no Vercel (Frontend),
-      // a menos que você queira o link do backend. Geralmente o link de cópia é do frontend.
-      // Caso seja necessário, altere aqui.
+      // If on Vercel, base link is kept on Vercel (Frontend),
+      // unless you want the backend link. Usually the copy link is from the frontend.
+      // If needed, change here.
       baseUrl = window.location.origin; 
     }
     const url = `${baseUrl}/documents/${doc.id}`;

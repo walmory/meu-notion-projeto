@@ -20,7 +20,7 @@ const MentionComponent = (props: {
       <span>{documentIcon || '📄'}</span>
       {documentTitle || 'Untitled'}
       <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#1a1a1a] text-[#a3a3a3] text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-[9999] border border-[#2c2c2c]">
-        Ir para o documento
+        Go to document
       </span>
     </a>
   );

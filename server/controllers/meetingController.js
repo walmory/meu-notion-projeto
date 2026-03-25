@@ -40,7 +40,7 @@ export const updateMeeting = async (req, res) => {
   const index = meetings.findIndex((meeting) => String(meeting.id) === String(id));
 
   if (index === -1) {
-    return res.status(404).json({ error: 'Meeting não encontrada' });
+    return res.status(404).json({ error: 'Meeting not found' });
   }
 
   const updated = normalizeMeeting({ ...meetings[index], ...(req.body || {}), id: meetings[index].id });
@@ -55,7 +55,7 @@ export const deleteMeeting = async (req, res) => {
   const nextMeetings = meetings.filter((meeting) => String(meeting.id) !== String(id));
 
   if (nextMeetings.length === meetings.length) {
-    return res.status(404).json({ error: 'Meeting não encontrada' });
+    return res.status(404).json({ error: 'Meeting not found' });
   }
 
   meetingsByWorkspace.set(workspaceId, nextMeetings);

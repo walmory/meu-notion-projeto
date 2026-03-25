@@ -85,7 +85,7 @@ export const getWorkspaces = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Falha ao buscar workspaces' });
+    return res.status(500).json({ error: 'Failed to fetch workspaces' });
   }
 };
 
@@ -94,7 +94,7 @@ export const createWorkspace = async (req, res) => {
   const userId = req.user_id;
 
   if (!name) {
-    return res.status(400).json({ error: 'O nome do workspace é obrigatório' });
+    return res.status(400).json({ error: 'Workspace name is required' });
   }
 
   const connection = await pool.getConnection();
@@ -124,8 +124,8 @@ export const createWorkspace = async (req, res) => {
     return res.status(201).json(newWorkspace);
   } catch (error) {
     await connection.rollback();
-    console.error('Erro ao criar workspace (Atomic):', error);
-    return res.status(500).json({ error: 'Falha ao criar workspace', details: error.message });
+    console.error('Error creating workspace (Atomic):', error);
+    return res.status(500).json({ error: 'Failed to create workspace', details: error.message });
   } finally {
     connection.release();
   }
@@ -150,7 +150,7 @@ export const getWorkspaceMembers = async (req, res) => {
     );
     return res.json(Array.isArray(members) ? members : []);
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao buscar membros' });
+    return res.status(500).json({ error: 'Failed to fetch members' });
   }
 };
 
@@ -159,13 +159,13 @@ export const inviteMember = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
+    return res.status(400).json({ error: 'Email is required' });
   }
 
   try {
     const [users] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
     if (users.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const userId = users[0].id;
@@ -182,9 +182,9 @@ export const inviteMember = async (req, res) => {
       );
     }
 
-    return res.status(200).json({ message: 'Membro adicionado com sucesso' });
+    return res.status(200).json({ message: 'Member successfully added' });
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao convidar membro' });
+    return res.status(500).json({ error: 'Failed to invite member' });
   }
 };
 
@@ -195,7 +195,7 @@ export const removeMember = async (req, res) => {
   try {
     const [users] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
     if (users.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const userId = users[0].id;
@@ -207,7 +207,7 @@ export const removeMember = async (req, res) => {
 
     return res.status(204).send();
   } catch (error) {
-    return res.status(500).json({ error: 'Falha ao remover membro' });
+    return res.status(500).json({ error: 'Failed to remove member' });
   }
 };
 
@@ -217,11 +217,11 @@ export const inviteWorkspaceMember = async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
+    return res.status(400).json({ error: 'Email is required' });
   }
 
   try {
@@ -241,7 +241,7 @@ export const inviteWorkspaceMember = async (req, res) => {
     );
 
     if (!Array.isArray(accessRows) || accessRows.length === 0) {
-      return res.status(403).json({ error: 'Sem permissão para convidar neste workspace' });
+      return res.status(403).json({ error: 'No permission to invite to this workspace' });
     }
 
     const [members] = await pool.query(
@@ -254,7 +254,7 @@ export const inviteWorkspaceMember = async (req, res) => {
     );
 
     if (Array.isArray(members) && members.length > 0) {
-      return res.status(409).json({ error: 'Usuário já é membro deste workspace' });
+      return res.status(409).json({ error: 'User is already a member of this workspace' });
     }
 
     const [pendingInvites] = await pool.query(
@@ -296,8 +296,8 @@ export const inviteWorkspaceMember = async (req, res) => {
 
     return res.status(201).json({ message: 'Invite Sent' });
   } catch (error) {
-    console.error('Erro ao convidar membro via /workspaces/:id/invite:', error);
-    return res.status(500).json({ error: 'Falha ao enviar convite', details: error.message });
+    console.error('Error inviting member via /workspaces/:id/invite:', error);
+    return res.status(500).json({ error: 'Failed to send invite', details: error.message });
   }
 };
 
@@ -306,11 +306,11 @@ export const getPendingInvitationsCount = async (req, res) => {
   const email = String(req.user_email || '').trim().toLowerCase();
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   if (!email) {
-    return res.status(400).json({ error: 'email do usuário é obrigatório' });
+    return res.status(400).json({ error: 'user email is required' });
   }
 
   try {
@@ -326,8 +326,8 @@ export const getPendingInvitationsCount = async (req, res) => {
     const count = Number(rows?.[0]?.pending_count || 0);
     return res.json({ count });
   } catch (error) {
-    console.error('Erro ao buscar contagem de convites pendentes:', error);
-    return res.status(500).json({ error: 'Falha ao buscar convites pendentes', details: error.message });
+    console.error('Error fetching pending invites count:', error);
+    return res.status(500).json({ error: 'Failed to fetch pending invites', details: error.message });
   }
 };
 
@@ -336,7 +336,7 @@ export const deleteWorkspace = async (req, res) => {
   const userId = req.user_id;
 
   if (!id) {
-    return res.status(400).json({ error: 'id é obrigatório' });
+    return res.status(400).json({ error: 'id is required' });
   }
 
   const connection = await pool.getConnection();
@@ -361,7 +361,7 @@ export const deleteWorkspace = async (req, res) => {
 
     if (ownerRows.length === 0) {
       await connection.rollback();
-      return res.status(403).json({ error: 'Apenas o dono pode excluir este workspace' });
+      return res.status(403).json({ error: 'Only the owner can delete this workspace' });
     }
 
     await connection.query(
@@ -383,7 +383,7 @@ export const deleteWorkspace = async (req, res) => {
     return res.status(204).send();
   } catch (error) {
     await connection.rollback();
-    return res.status(500).json({ error: 'Falha ao excluir workspace', details: error.message });
+    return res.status(500).json({ error: 'Failed to delete workspace', details: error.message });
   } finally {
     connection.release();
   }
@@ -414,13 +414,13 @@ export const getMyInvites = async (req, res) => {
     return res.json(invites);
   } catch (error) {
     // Log claro no backend com detalhes do SQL para debug
-    console.error('[GET /workspaces/my-invites] Erro ao buscar convites:', error);
+    console.error('[GET /workspaces/my-invites] Error fetching invites:', error);
     
-    // Retorno rico em detalhes para não ficar "no escuro" no Frontend
+    // Detailed return so frontend is not "in the dark"
     return res.status(500).json({ 
-      error: 'Falha ao buscar convites do usuário.',
+      error: 'Failed to fetch user invites.',
       details: error.message,
-      sqlMessage: error.sqlMessage || 'Nenhum erro SQL específico'
+      sqlMessage: error.sqlMessage || 'No specific SQL error'
     });
   }
 };
@@ -441,7 +441,7 @@ export const acceptInvite = async (req, res) => {
 
     if (invites.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+      return res.status(404).json({ error: 'Invite not found or already processed' });
     }
 
     const invite = invites[0];
@@ -461,11 +461,11 @@ export const acceptInvite = async (req, res) => {
     await connection.query('DELETE FROM workspace_invitations WHERE id = ?', [inviteId]);
 
     await connection.commit();
-    return res.status(200).json({ message: 'Convite aceito com sucesso' });
+    return res.status(200).json({ message: 'Invite successfully accepted' });
   } catch (error) {
     await connection.rollback();
-    console.error('Erro ao aceitar convite:', error);
-    return res.status(500).json({ error: 'Falha ao aceitar convite' });
+    console.error('Error accepting invite:', error);
+    return res.status(500).json({ error: 'Failed to accept invite' });
   } finally {
     connection.release();
   }
@@ -482,13 +482,13 @@ export const declineInvite = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+      return res.status(404).json({ error: 'Invite not found or already processed' });
     }
 
     return res.status(200).json({ message: 'Convite recusado' });
   } catch (error) {
-    console.error('Erro ao recusar convite:', error);
-    return res.status(500).json({ error: 'Falha ao recusar convite' });
+    console.error('Error declining invite:', error);
+    return res.status(500).json({ error: 'Failed to decline invite' });
   }
 };
 
@@ -496,7 +496,7 @@ export const getWorkspacePendingInvites = async (req, res) => {
   const workspaceId = req.params.id;
 
   if (!workspaceId) {
-    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+    return res.status(400).json({ error: 'workspace_id is required' });
   }
 
   try {
@@ -510,8 +510,8 @@ export const getWorkspacePendingInvites = async (req, res) => {
 
     return res.json(invites);
   } catch (error) {
-    console.error('Erro ao buscar convites pendentes do workspace:', error);
-    return res.status(500).json({ error: 'Falha ao buscar convites pendentes' });
+    console.error('Error fetching pending invites for workspace:', error);
+    return res.status(500).json({ error: 'Failed to fetch pending invites' });
   }
 };
 
@@ -525,12 +525,12 @@ export const cancelWorkspaceInvite = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+      return res.status(404).json({ error: 'Invite not found or already processed' });
     }
 
     return res.status(200).json({ message: 'Convite cancelado' });
   } catch (error) {
-    console.error('Erro ao cancelar convite:', error);
-    return res.status(500).json({ error: 'Falha ao cancelar convite' });
+    console.error('Error cancelling invite:', error);
+    return res.status(500).json({ error: 'Failed to cancel invite' });
   }
 };

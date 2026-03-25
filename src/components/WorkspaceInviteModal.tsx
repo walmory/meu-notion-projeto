@@ -43,7 +43,7 @@ export function MembersModal({ isOpen, onClose, workspaceId, workspaceName }: Wo
 
     try {
       await api.post(`/workspaces/${workspaceId}/invite`, { email }, { headers: getAuthHeaders() });
-      setSuccessMessage(`Invite Sent para ${email}`);
+      setSuccessMessage(`Invite Sent to ${email}`);
       setEmail('');
       mutate();
     } catch (error) {
@@ -85,7 +85,7 @@ export function MembersModal({ isOpen, onClose, workspaceId, workspaceName }: Wo
             )}
             <div className="max-h-52 overflow-y-auto rounded-md border border-white/5 bg-[#151515]">
               {members.length === 0 ? (
-                <div className="p-3 text-xs text-[#9b9b9b]">Nenhum membro carregado.</div>
+                <div className="p-3 text-xs text-[#9b9b9b]">No members loaded.</div>
               ) : (
                 <div className="divide-y divide-white/5">
                   {members.map((member) => (

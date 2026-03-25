@@ -40,7 +40,7 @@ export const updateTask = async (req, res) => {
     `, [taskId]);
 
     if (updatedTask.length === 0) {
-      return res.status(404).json({ error: 'Task não encontrada' });
+      return res.status(404).json({ error: 'Task not found' });
     }
     
     if (updatedTask[0].workspace_id) {
@@ -50,7 +50,7 @@ export const updateTask = async (req, res) => {
     res.json(updatedTask[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao atualizar task' });
+    res.status(500).json({ error: 'Error updating task' });
   }
 };
 
@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
     res.json(projects);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao buscar projetos' });
+    res.status(500).json({ error: 'Error fetching projects' });
   }
 });
 
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(newProject[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao criar projeto' });
+    res.status(500).json({ error: 'Error creating project' });
   }
 });
 
@@ -111,7 +111,7 @@ router.get('/:id/tasks', async (req, res) => {
     res.json(tasks);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao buscar tasks' });
+    res.status(500).json({ error: 'Error fetching tasks' });
   }
 });
 
@@ -130,7 +130,7 @@ router.post('/:id/tasks', async (req, res) => {
     res.status(201).json(newTask[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao criar task' });
+    res.status(500).json({ error: 'Error creating task' });
   }
 });
 
@@ -159,20 +159,20 @@ router.patch('/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao atualizar projeto' });
+    res.status(500).json({ error: 'Error updating project' });
   }
 });
 
 // Delete a project
 router.delete('/:id', async (req, res) => {
   try {
-    // Apagar tasks do projeto primeiro (caso a constraint ON DELETE CASCADE não esteja setada)
+    // Delete project tasks first (in case ON DELETE CASCADE constraint is not set)
     await pool.query('DELETE FROM tasks WHERE project_id = ?', [req.params.id]);
     await pool.query('DELETE FROM projects WHERE id = ? AND owner_id = ?', [req.params.id, req.user.id]);
     res.status(204).end();
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao excluir projeto' });
+    res.status(500).json({ error: 'Error deleting project' });
   }
 });
 
@@ -183,7 +183,7 @@ router.delete('/tasks/:taskId', async (req, res) => {
     res.status(204).end();
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao excluir task' });
+    res.status(500).json({ error: 'Error deleting task' });
   }
 });
 

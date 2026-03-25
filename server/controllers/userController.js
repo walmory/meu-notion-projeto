@@ -67,7 +67,7 @@ export const getGlobalConnections = async (req, res) => {
 
     res.json(formattedConnections);
   } catch (error) {
-    console.error('[GET /user/connections] Erro detalhado ao buscar conexões', {
+    console.error('[GET /user/connections] Detailed error fetching connections', {
       message: error?.message,
       sqlMessage: error?.sqlMessage,
       sqlCode: error?.code,
@@ -75,7 +75,7 @@ export const getGlobalConnections = async (req, res) => {
       queryParams,
       stack: error?.stack
     });
-    res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
 
@@ -90,7 +90,7 @@ export const breakConnection = async (req, res) => {
     }
 
     if (!targetUserId) {
-      return res.status(400).json({ error: 'ID do usuário alvo é obrigatório' });
+      return res.status(400).json({ error: 'Target user ID is required' });
     }
 
     connection = await pool.getConnection();
@@ -124,13 +124,13 @@ export const breakConnection = async (req, res) => {
 
     await connection.commit();
 
-    res.json({ success: true, message: 'Conexão quebrada com sucesso' });
+    res.json({ success: true, message: 'Connection successfully broken' });
   } catch (error) {
     if (connection) {
       await connection.rollback();
     }
-    console.error('[DELETE /user/connections/:userId] Erro detalhado ao quebrar conexão:', error);
-    res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
+    console.error('[DELETE /user/connections/:userId] Detailed error breaking connection:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   } finally {
     if (connection) {
       connection.release();
@@ -152,13 +152,13 @@ export const getProfile = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     res.json(rows[0]);
   } catch (error) {
-    console.error('Erro ao buscar perfil:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -186,10 +186,10 @@ export const updateProfile = async (req, res) => {
       ]
     );
 
-    res.json({ success: true, message: 'Perfil atualizado com sucesso' });
+    res.json({ success: true, message: 'Profile successfully updated' });
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -205,13 +205,13 @@ export const updateEmail = async (req, res) => {
     }
 
     if (!newEmail || !currentPassword) {
-      return res.status(400).json({ error: 'Novo e-mail e senha atual são obrigatórios' });
+      return res.status(400).json({ error: 'New email and current password are required' });
     }
 
     const [userRows] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
     if (userRows.length === 0) {
       console.log('[Security Check - updateEmail] User not found in DB for ID:', userId);
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const user = userRows[0];
@@ -220,27 +220,27 @@ export const updateEmail = async (req, res) => {
     console.log('Senha vinda do form:', req.body.currentPassword);
     console.log('Senha vinda do banco (hash/texto):', user.password);
     
-    // Se a senha no banco for igual à digitada (texto puro), considere como sucesso
+    // If the database password equals the entered one (plain text), consider it a success
     // mas avise que precisamos atualizar para hash.
     const isPasswordValid = (req.body.currentPassword === user.password) || await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updateEmail] password match:', isPasswordValid);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Senha atual incorreta' });
+      return res.status(401).json({ error: 'Incorrect current password' });
     }
 
     const [existingEmailRows] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [newEmail, userId]);
     if (existingEmailRows.length > 0) {
-      return res.status(409).json({ error: 'Este e-mail já está em uso' });
+      return res.status(409).json({ error: 'This email is already in use' });
     }
 
     await pool.query('UPDATE users SET email = ? WHERE id = ?', [newEmail, userId]);
 
-    res.json({ success: true, message: 'E-mail atualizado com sucesso' });
+    res.json({ success: true, message: 'Email successfully updated' });
   } catch (error) {
-    console.error('Erro ao atualizar e-mail:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('Error updating email:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -256,13 +256,13 @@ export const updatePassword = async (req, res) => {
     }
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias' });
+      return res.status(400).json({ error: 'Current and new password are required' });
     }
 
     const [userRows] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
     if (userRows.length === 0) {
       console.log('[Security Check - updatePassword] User not found in DB for ID:', userId);
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const user = userRows[0];
@@ -271,22 +271,22 @@ export const updatePassword = async (req, res) => {
     console.log('Senha vinda do form:', req.body.currentPassword);
     console.log('Senha vinda do banco (hash/texto):', user.password);
     
-    // Se a senha no banco for igual à digitada (texto puro), considere como sucesso
+    // If the database password equals the entered one (plain text), consider it a success
     // mas avise que precisamos atualizar para hash.
     const isPasswordValid = (req.body.currentPassword === user.password) || await bcrypt.compare(req.body.currentPassword, user.password);
     
     console.log('[Security Check - updatePassword] password match:', isPasswordValid);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Senha atual incorreta' });
+      return res.status(401).json({ error: 'Incorrect current password' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
 
-    res.json({ success: true, message: 'Senha atualizada com sucesso' });
+    res.json({ success: true, message: 'Password successfully updated' });
   } catch (error) {
-    console.error('Erro ao atualizar senha:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('Error updating password:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

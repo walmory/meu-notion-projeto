@@ -59,7 +59,7 @@ export default function WorkspaceRedirect({ params }: { params: Promise<{ id: st
             transition={{ delay: 0.4, duration: 0.5 }}
             className="text-sm text-[#8a8a8a]"
           >
-            Preparando seu ambiente de trabalho...
+            Preparing your workspace...
           </motion.p>
         </div>
       </motion.div>

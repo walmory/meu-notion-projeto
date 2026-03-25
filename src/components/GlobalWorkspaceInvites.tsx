@@ -71,13 +71,13 @@ export function GlobalWorkspaceInvites() {
     setIsProcessing(true);
     try {
       await api.post(`/workspaces/invites/${currentInvite.id}/accept`, {}, { headers: getAuthHeaders() });
-      toast.success('Workspace aceito com sucesso!');
+      toast.success('Workspace successfully accepted!');
       setInvites((prev) => prev.filter(inv => inv.id !== currentInvite.id));
       setCurrentInvite(null);
       window.location.reload();
     } catch (error) {
       const err = error as { response?: { data?: { error?: string, message?: string } } };
-      toast.error(err.response?.data?.error || err.response?.data?.message || 'Erro ao aceitar convite');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Error accepting invite');
     } finally {
       setIsProcessing(false);
     }
@@ -88,12 +88,12 @@ export function GlobalWorkspaceInvites() {
     setIsProcessing(true);
     try {
       await api.post(`/workspaces/invites/${currentInvite.id}/decline`, {}, { headers: getAuthHeaders() });
-      toast.success('Convite recusado.');
+      toast.success('Invite declined.');
       setInvites((prev) => prev.filter(inv => inv.id !== currentInvite.id));
       setCurrentInvite(null);
     } catch (error) {
       const err = error as { response?: { data?: { error?: string, message?: string } } };
-      toast.error(err.response?.data?.error || err.response?.data?.message || 'Erro ao recusar convite');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Error declining invite');
     } finally {
       setIsProcessing(false);
     }
@@ -105,9 +105,9 @@ export function GlobalWorkspaceInvites() {
     <Dialog open={!!currentInvite} onOpenChange={() => {}}>
       <DialogContent className="bg-[#191919] border-[#2c2c2c] text-[#d4d4d4] sm:max-w-[420px] [&>button]:hidden">
         <DialogHeader className="pt-4">
-          <DialogTitle className="text-white text-lg text-center font-medium">Você recebeu um convite!</DialogTitle>
+          <DialogTitle className="text-white text-lg text-center font-medium">You received an invite!</DialogTitle>
           <DialogDescription className="text-center pt-4 pb-2 text-[#b3b3b3] text-[15px]">
-            <span className="text-white font-semibold">{currentInvite.inviterName}</span> convidou você para o{' '}
+            <span className="text-white font-semibold">{currentInvite.inviterName}</span> invited you to{' '}
             <span className="text-white font-semibold">{currentInvite.workspaceName}</span>
           </DialogDescription>
         </DialogHeader>

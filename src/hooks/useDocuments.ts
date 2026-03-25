@@ -159,7 +159,7 @@ export function useDocuments(workspaceId?: string) {
         || activeWorkspaceId;
 
       if (!resolvedWorkspaceId) {
-        throw new Error('workspace_id ausente ao criar documento');
+        throw new Error('workspace_id missing when creating document');
       }
       
       const payload = typeof titleOrInput === 'string'
@@ -265,7 +265,7 @@ export function useDocuments(workspaceId?: string) {
 
   const deleteDocument = async (id: string) => {
     if (!id || id === 'undefined') {
-      console.error('Tentativa de deletar documento com ID inválido');
+      console.error('Attempt to delete document with invalid ID');
       return;
     }
 

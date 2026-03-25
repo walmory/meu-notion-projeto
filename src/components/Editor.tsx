@@ -581,7 +581,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
             workspaceId,
           });
         } catch (error) {
-          console.error('[UX-Sync] Falha ao emitir atualização de título', error);
+          console.error('[UX-Sync] Failed to emit title update', error);
         }
       }, 500),
     [socket, document?.workspace_id]

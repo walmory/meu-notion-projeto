@@ -120,7 +120,7 @@ async function processDocQueue(socket, docId) {
     const [result] = await pool.execute(sql, values);
 
     if (result.affectedRows === 0) {
-      throw new Error('O Banco recusou o salvamento!');
+      throw new Error('Database refused to save!');
     }
 
     state.lastProcessedSeq = msg.seq;
@@ -151,7 +151,7 @@ async function processDocQueue(socket, docId) {
     socket.emit('save-error', {
       docId,
       seq: msg.seq,
-      message: error?.message ? String(error.message) : 'Erro ao salvar',
+      message: error?.message ? String(error.message) : 'Error saving',
     });
   }
 
@@ -172,7 +172,7 @@ export const initSocket = (httpServer) => {
         if (!origin || origin.indexOf('vercel.app') !== -1) {
           callback(null, true);
         } else {
-          callback(new Error('CORS não permitido por segurança'));
+          callback(new Error('CORS not allowed for security reasons'));
         }
       },
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -358,7 +358,7 @@ export const initSocket = (httpServer) => {
       socket.to(getDocumentRoom(payload.documentId)).emit('selection-change', {
         socketId: socket.id,
         userId: payload.userId || socket.data.userId,
-        userName: payload.userName || socket.data.email || 'Usuário',
+        userName: payload.userName || socket.data.email || 'User',
         position: payload.position,
       });
     });
@@ -368,7 +368,7 @@ export const initSocket = (httpServer) => {
       socket.to(getDocumentRoom(payload.documentId)).emit('user-typing', {
         socketId: socket.id,
         userId: payload.userId || socket.data.userId,
-        userName: payload.userName || socket.data.email || 'Usuário',
+        userName: payload.userName || socket.data.email || 'User',
         isTyping: Boolean(payload.isTyping),
       });
     });

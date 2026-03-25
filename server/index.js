@@ -23,11 +23,11 @@ const app = express();
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite se não houver origin (ex: apps mobile/curl) ou se vier da vercel.app
+    // Allows if no origin (e.g., mobile apps/curl) or if from vercel.app
     if (!origin || origin.indexOf('vercel.app') !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('CORS não permitido por segurança'));
+      callback(new Error('CORS not allowed for security reasons'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

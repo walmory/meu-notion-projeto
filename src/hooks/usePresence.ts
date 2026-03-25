@@ -27,22 +27,22 @@ const hashColor = (value: string) => {
 
 const decodeUserFromToken = () => {
   if (typeof window === 'undefined') {
-    return { userId: 'anonymous', userName: 'Usuário' };
+    return { userId: 'anonymous', userName: 'User' };
   }
 
   const token = localStorage.getItem('notion_token');
   if (!token) {
-    return { userId: 'anonymous', userName: 'Usuário' };
+    return { userId: 'anonymous', userName: 'User' };
   }
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = String(payload.user_id || payload.id || 'anonymous');
     const name = String(payload.name || '');
-    const userName = name || 'Usuário';
+    const userName = name || 'User';
     return { userId, userName };
   } catch {
-    return { userId: 'anonymous', userName: 'Usuário' };
+    return { userId: 'anonymous', userName: 'User' };
   }
 };
 
@@ -257,7 +257,7 @@ export const usePresence = (
           existingUser
           && existingUser.x === payload.position.x
           && existingUser.y === payload.position.y
-          && existingUser.userName === (payload.userName || 'Usuário')
+          && existingUser.userName === (payload.userName || 'User')
         ) {
           return prev.map((user) => user.socketId === payload.socketId ? { ...user, lastSeen: Date.now() } : user);
         }
@@ -265,7 +265,7 @@ export const usePresence = (
         next.push({
           socketId: payload.socketId,
           userId: String(payload.userId || payload.socketId),
-          userName: payload.userName || 'Usuário',
+          userName: payload.userName || 'User',
           x: payload.position.x,
           y: payload.position.y,
           color: hashColor(String(payload.userId || payload.socketId)),
@@ -279,7 +279,7 @@ export const usePresence = (
       if (!payload?.socketId) {
         return;
       }
-      const userName = payload.userName || 'Usuário';
+      const userName = payload.userName || 'User';
 
       setTypingUsers((prev) => {
         const withoutCurrent = prev.filter((name) => name !== userName);

@@ -182,7 +182,7 @@ export function Sidebar({
   const activeWorkspaceId = hasValidSelectedWorkspace ? selectedWorkspaceId : (workspaces.length > 0 ? workspaces[0].id : null);
   const selectedWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const { user, setUser } = useUser();
-  const rawWorkspaceName = selectedWorkspace?.name || `Workspace do ${user?.name || 'User'}`;
+  const rawWorkspaceName = selectedWorkspace?.name || `${user?.name || 'User'}'s Workspace`;
   const workspaceDisplayName = isWorkspacesLoading ? 'Loading...' : rawWorkspaceName;
   const workspaceInitial = workspaceDisplayName.charAt(0).toUpperCase();
   const { data: pendingInvites } = useSWR<{ count: number }>(
@@ -221,7 +221,7 @@ export function Sidebar({
           router.push(`/workspace/${createdWorkspaceId}`);
         }
       } catch (error) {
-        console.error('Falha ao criar workspace padrão', error);
+        console.error('Failed to create default workspace', error);
       } finally {
         isCreatingDefaultWorkspaceRef.current = false;
       }
@@ -350,7 +350,7 @@ export function Sidebar({
         });
       }
     } catch (error) {
-      console.error('[UX-Sync] Falha ao emitir atualização de título', error);
+      console.error('[UX-Sync] Failed to emit title update', error);
     }
   }, [onUpdateDocument, activeWorkspaceId, applyLiveTitleSync]);
 
@@ -370,7 +370,7 @@ export function Sidebar({
         });
       }
     } catch (error) {
-      console.error('Falha ao criar documento', error);
+      console.error('Failed to create document', error);
       toast.error('Failed to create item');
     }
   }, [onCreateDocument]);
@@ -660,7 +660,7 @@ export function Sidebar({
       console.log('Tentando deletar Teamspace ID:', id);
       await api.delete(`/teamspaces/${id}`, { headers: getAuthHeaders() });
       mutateTeamspaces(); // Revalida no background
-      // Dispara evento para limpar documentos do teamspace
+      // Trigger event to clear teamspace documents
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     } catch (error) {
       console.error('Failed to delete teamspace', error);
@@ -714,7 +714,7 @@ export function Sidebar({
       }
       mutateTeamspaces(); // Revalida buscando o ID real do banco
     } catch (error) {
-      console.error('Erro ao criar teamspace:', error);
+      console.error('Error creating teamspace:', error);
       mutateTeamspaces(previousTeamspaces, { revalidate: false }); // Rollback
     } finally {
       setIsCreatingTeamspace(false);
@@ -1356,7 +1356,7 @@ export function Sidebar({
               <DialogTitle className="text-white">Create Teamspace</DialogTitle>
               <DialogDescription className="text-[#9b9b9b]">
                 {pendingTeamspaceDropDoc
-                  ? `Crie um Teamspace para compartilhar "${pendingTeamspaceDropDoc.title?.trim() || 'Untitled'}" com a equipe.`
+                  ? `Create a Teamspace to share "${pendingTeamspaceDropDoc.title?.trim() || 'Untitled'}" with the team.`
                   : 'Add a new teamspace to organize your documents.'}
               </DialogDescription>
             </DialogHeader>
@@ -1490,7 +1490,7 @@ function TeamspaceSectionDropZone({ children, isDragSuggestionActive, showEmptyD
       >
         <div className="mx-1 min-h-[76px] rounded-xl border border-dashed border-[#4f4f4f] bg-[#212121] px-4 py-4 text-center">
           <span className="text-[12px] font-medium text-[#d4d4d4]">
-            Solte aqui para criar um Teamspace para este arquivo
+            Drop here to create a Teamspace for this file
           </span>
         </div>
       </div>

@@ -58,13 +58,13 @@ export default function MembersPage() {
       await api.delete(`/user/connections/${selectedUser.user_id}`, {
         headers: getAuthHeaders()
       });
-      toast.success('Conexão removida com sucesso');
+      toast.success('Connection successfully removed');
       mutate();
       setIsBreakModalOpen(false);
       setSelectedUser(null);
     } catch (error) {
       console.error('Failed to break connection', error);
-      toast.error('Erro ao quebrar conexão');
+      toast.error('Failed to break connection');
     } finally {
       setIsBreaking(false);
     }
@@ -80,9 +80,9 @@ export default function MembersPage() {
       {/* Header */}
       <header className="shrink-0 px-8 py-6 border-b border-white/5">
         <div className="max-w-6xl mx-auto flex flex-col gap-1">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Área de Membros</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Members Area</h1>
           <p className="text-sm text-[#a3a3a3]">
-            Visão global de todos os usuários conectados aos seus projetos e workspaces.
+            Global overview of all users connected to your projects and workspaces.
           </p>
         </div>
       </header>
@@ -96,7 +96,7 @@ export default function MembersPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a8a8a]" />
               <input 
                 type="text" 
-                placeholder="Buscar membros por nome ou email..."
+                placeholder="Search members by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#1f1f1f] border border-[#2c2c2c] text-white text-sm rounded-lg pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#4f4f4f] transition-colors placeholder:text-[#8a8a8a]"
@@ -110,10 +110,10 @@ export default function MembersPage() {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#252525] border-b border-[#2c2c2c]">
                   <tr>
-                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Membro</th>
-                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Data de Entrada</th>
-                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Workspaces em Comum</th>
-                    <th className="px-6 py-4 font-medium text-[#a3a3a3] text-right">Ações</th>
+                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Member</th>
+                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Joined Date</th>
+                    <th className="px-6 py-4 font-medium text-[#a3a3a3]">Shared Workspaces</th>
+                    <th className="px-6 py-4 font-medium text-[#a3a3a3] text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2c2c2c]">
@@ -122,7 +122,7 @@ export default function MembersPage() {
                       <td colSpan={4} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-[#8a8a8a] gap-2">
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Carregando membros...</span>
+                          <span>Loading members...</span>
                         </div>
                       </td>
                     </tr>
@@ -130,13 +130,13 @@ export default function MembersPage() {
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-[#8a8a8a]">
-                          <p>Nenhum membro encontrado.</p>
+                          <p>No members found.</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     filteredConnections.map((user) => (
-                      <tr key={user.user_id} className="hover:bg-[#252525] transition-colors group">
+                      <tr key={user.connection_id || user.user_id} className="hover:bg-[#252525] transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="relative">
@@ -144,17 +144,17 @@ export default function MembersPage() {
                                 {(user.name?.charAt(0) || user.email?.charAt(0) || '?').toUpperCase()}
                               </div>
                               {isUserOnline(user.last_active) && (
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#1f1f1f] rounded-full group-hover:border-[#252525] transition-colors" title="Online agora" />
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#1f1f1f] rounded-full group-hover:border-[#252525] transition-colors" title="Online now" />
                               )}
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-medium text-white">{user.name || 'Usuário Sem Nome'}</span>
+                              <span className="font-medium text-white">{user.name || 'Unnamed User'}</span>
                               <span className="text-xs text-[#a3a3a3]">{user.email}</span>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-[#a3a3a3]">
-                          {user.joined_at ? new Date(user.joined_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                          {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                         </td>
                         <td className="px-6 py-4 text-[#a3a3a3]">
                           <div className="max-w-[200px] truncate" title={user.shared_workspaces || '-'}>
@@ -189,7 +189,7 @@ export default function MembersPage() {
               Break Connection
             </DialogTitle>
             <DialogDescription className="text-[#a3a3a3] pt-3">
-              Tem certeza? Isso removerá o acesso de <strong className="text-white">{selectedUser?.name || selectedUser?.email}</strong> de <strong>todos os seus projetos e workspaces</strong> permanentemente.
+              Are you sure? This will remove <strong className="text-white">{selectedUser?.name || selectedUser?.email}</strong>&apos;s access to <strong>all your projects and workspaces</strong> permanently.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6 sm:justify-end gap-2 sm:gap-0">
@@ -199,7 +199,7 @@ export default function MembersPage() {
               onClick={() => setIsBreakModalOpen(false)}
               className="bg-transparent border-[#2c2c2c] text-white hover:bg-[#2c2c2c] hover:text-white"
             >
-              Cancelar
+              Cancel
             </Button>
             <Button
               type="button"
@@ -210,10 +210,10 @@ export default function MembersPage() {
               {isBreaking ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Removendo...
+                  Removing...
                 </>
               ) : (
-                'Sim, quebrar conexão'
+                'Yes, break connection'
               )}
             </Button>
           </DialogFooter>

@@ -24,14 +24,14 @@ router.post('/', upload.single('file'), (req, res) => {
     const workspaceId = req.body.workspace_id || req.headers['x-workspace-id'] || req.headers['workspace_id'] || req.headers['workspace-id'];
 
     if (!file) {
-      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
     if (!workspaceId) {
-      return res.status(400).json({ error: 'workspace_id é obrigatório' });
+      return res.status(400).json({ error: 'workspace_id is required' });
     }
 
-    // TODO: Salvar na tabela assets vinculando ao workspaceId se necessário
+    // TODO: Save in assets table linking to workspaceId if needed
 
     const protocol = req.protocol;
     const host = req.get('host');
@@ -39,8 +39,8 @@ router.post('/', upload.single('file'), (req, res) => {
 
     res.json({ url: fileUrl });
   } catch (error) {
-    console.error('Erro no upload:', error);
-    res.status(500).json({ error: 'Erro interno no servidor durante o upload' });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Internal server error during upload' });
   }
 });
 

@@ -63,11 +63,11 @@ export function SharePopover({ document }: SharePopoverProps) {
       await api.post(`/workspaces/${workspaceId}/invite`, { email: inviteEmail }, {
         headers: getAuthHeaders()
       });
-      toast.success('Convite enviado com sucesso!');
+      toast.success('Invite successfully sent!');
       setInviteEmail('');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || 'Erro ao enviar convite');
+      toast.error(err.response?.data?.error || 'Error sending invite');
     } finally {
       setIsInviting(false);
     }
@@ -85,7 +85,7 @@ export function SharePopover({ document }: SharePopoverProps) {
       toast.success(newIsPublic ? 'Link publicado na web' : 'Acesso restrito');
     } catch (error) {
       setIsPublic(previousState);
-      toast.error('Erro ao atualizar acesso');
+      toast.error('Error updating access');
     } finally {
       setIsUpdatingAccess(false);
     }
