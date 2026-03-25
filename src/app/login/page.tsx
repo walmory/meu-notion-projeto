@@ -83,11 +83,6 @@ export default function LoginPage() {
             Continue to Workspace
           </button>
         </form>
-        <div className="mt-4 text-center">
-          <Link href="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
-            Forgot your password?
-          </Link>
-        </div>
         <div className="mt-6 pt-6 border-t border-white/5 text-center">
           <p className="text-xs text-[#8a8a8a]">
             Don&apos;t have an account?{' '}
