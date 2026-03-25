@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import pool from './config/db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://meu-notion-projeto.vercel.app';
 
 let ioInstance = null;
 
@@ -168,13 +169,7 @@ async function processDocQueue(socket, docId) {
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: function (origin, callback) {
-        if (!origin || origin.indexOf('vercel.app') !== -1) {
-          callback(null, true);
-        } else {
-          callback(new Error('CORS not allowed for security reasons'));
-        }
-      },
+      origin: CORS_ORIGIN,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       credentials: true,
     },
@@ -398,4 +393,3 @@ export const emitToUserEmail = (email, eventName, payload) => {
   if (!ioInstance || !email) return;
   ioInstance.to(`user-email:${email.toLowerCase()}`).emit(eventName, payload);
 };
-

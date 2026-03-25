@@ -18,18 +18,12 @@ import { initSocket } from './socket.js';
 import path from 'path';
 
 const PORT = Number(process.env.PORT || 3001);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://meu-notion-projeto.vercel.app';
 
 const app = express();
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allows if no origin (e.g., mobile apps/curl) or if from vercel.app
-    if (!origin || origin.indexOf('vercel.app') !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS not allowed for security reasons'));
-    }
-  },
+  origin: CORS_ORIGIN,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-workspace-id', 'Cache-Control', 'Pragma', 'expires'],
   credentials: true
