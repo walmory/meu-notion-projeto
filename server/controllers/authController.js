@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import pool from '../config/db.js';
 
@@ -106,5 +107,76 @@ export const login = async (req, res) => {
       return res.status(503).json({ error: 'Database service temporarily unavailable' });
     }
     return res.status(500).json({ error: 'Failed to authenticate user', details: error.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const [users] = await pool.query('SELECT id, name FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      // Do not reveal that the user does not exist for security reasons
+      return res.json({ success: true, message: 'If the email exists, a reset link will be sent.' });
+    }
+
+    const user = users[0];
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+    await pool.query(
+      'INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)',
+      [email, resetToken, expiresAt]
+    );
+
+    // In a real application, you would send an email here using nodemailer, sendgrid, resend, etc.
+    // Since this is a demo/portfolio, we'll just log the token and pretend it was sent.
+    // The user will need to get the token from the server console or database to test locally.
+    console.log(`\n======================================================`);
+    console.log(`🔑 PASSWORD RESET LINK REQUESTED FOR: ${email}`);
+    console.log(`🔗 Link: http://localhost:3000/reset-password?token=${resetToken}`);
+    console.log(`======================================================\n`);
+
+    res.json({ success: true, message: 'If the email exists, a reset link will be sent.' });
+  } catch (error) {
+    console.error('FORGOT PASSWORD ERROR:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    // Check if token exists and is valid
+    const [resetRequests] = await pool.query(
+      'SELECT email FROM password_resets WHERE token = ? AND expires_at > NOW()',
+      [token]
+    );
+
+    if (resetRequests.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired password reset token' });
+    }
+
+    const email = resetRequests[0].email;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await pool.query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
+
+    // Delete used token
+    await pool.query('DELETE FROM password_resets WHERE email = ?', [email]);
+
+    res.json({ success: true, message: 'Password successfully reset. You can now log in.' });
+  } catch (error) {
+    console.error('RESET PASSWORD ERROR:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 };
