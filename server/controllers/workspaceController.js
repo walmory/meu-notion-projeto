@@ -394,19 +394,34 @@ export const getMyInvites = async (req, res) => {
 
   try {
     await ensureWorkspaceInvitationsTable();
+    
+    // JOIN com 'workspaces' para pegar o nome do workspace
+    // JOIN com 'users' para pegar o nome de quem convidou (invited_by)
     const [invites] = await pool.query(
-      `SELECT wi.id, wi.workspace_id, w.name as workspace_name, u.name as inviter_name
+      `SELECT 
+         wi.id, 
+         wi.workspace_id, 
+         w.name AS workspace_name, 
+         u.name AS inviter_name
        FROM workspace_invitations wi
        JOIN workspaces w ON w.id = wi.workspace_id
        JOIN users u ON u.id = wi.invited_by
-       WHERE LOWER(wi.email) = LOWER(?) AND wi.status = 'pending'`,
+       WHERE LOWER(wi.email) = LOWER(?) 
+         AND wi.status = 'pending'`,
       [email]
     );
 
     return res.json(invites);
   } catch (error) {
-    console.error('Erro ao buscar convites do usuário:', error);
-    return res.status(500).json({ error: 'Falha ao buscar convites' });
+    // Log claro no backend com detalhes do SQL para debug
+    console.error('[GET /workspaces/my-invites] Erro ao buscar convites:', error);
+    
+    // Retorno rico em detalhes para não ficar "no escuro" no Frontend
+    return res.status(500).json({ 
+      error: 'Falha ao buscar convites do usuário.',
+      details: error.message,
+      sqlMessage: error.sqlMessage || 'Nenhum erro SQL específico'
+    });
   }
 };
 
