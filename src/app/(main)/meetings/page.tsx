@@ -115,6 +115,8 @@ export default function MeetingsPage() {
 
     const newDoc = await createDocument({ title: meetingTitle + ' Notes', is_shared: false, is_meeting_note: true });
     
+    if (!newDoc?.id) return;
+
     // We update the content with the template
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://meu-notion-projeto.onrender.com'}/documents/${newDoc.id}`, {
