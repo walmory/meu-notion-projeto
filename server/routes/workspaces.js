@@ -10,7 +10,9 @@ import {
   getPendingInvitationsCount,
   getMyInvites,
   acceptInvite,
-  declineInvite
+  declineInvite,
+  getWorkspacePendingInvites,
+  cancelWorkspaceInvite
 } from '../controllers/workspaceController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
@@ -23,6 +25,8 @@ router.use(authMiddleware);
 router.get('/', getWorkspaces);
 router.post('/', createWorkspace);
 router.post('/:id/invite', inviteWorkspaceMember);
+router.get('/:id/invites/pending', getWorkspacePendingInvites);
+router.delete('/:id/invites/:inviteId', cancelWorkspaceInvite);
 router.delete('/:id', deleteWorkspace);
 
 // Rotas de convite do usuário (não exige workspaceMiddleware pois o usuário ainda não é membro)

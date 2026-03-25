@@ -491,3 +491,46 @@ export const declineInvite = async (req, res) => {
     return res.status(500).json({ error: 'Falha ao recusar convite' });
   }
 };
+
+export const getWorkspacePendingInvites = async (req, res) => {
+  const workspaceId = req.params.id;
+
+  if (!workspaceId) {
+    return res.status(400).json({ error: 'workspace_id é obrigatório' });
+  }
+
+  try {
+    await ensureWorkspaceInvitationsTable();
+    const [invites] = await pool.query(
+      `SELECT id, email, status, created_at
+       FROM workspace_invitations
+       WHERE workspace_id = ? AND status = 'pending'`,
+      [workspaceId]
+    );
+
+    return res.json(invites);
+  } catch (error) {
+    console.error('Erro ao buscar convites pendentes do workspace:', error);
+    return res.status(500).json({ error: 'Falha ao buscar convites pendentes' });
+  }
+};
+
+export const cancelWorkspaceInvite = async (req, res) => {
+  const { id: workspaceId, inviteId } = req.params;
+
+  try {
+    const [result] = await pool.query(
+      `DELETE FROM workspace_invitations WHERE id = ? AND workspace_id = ? AND status = 'pending'`,
+      [inviteId, workspaceId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Convite não encontrado ou já processado' });
+    }
+
+    return res.status(200).json({ message: 'Convite cancelado' });
+  } catch (error) {
+    console.error('Erro ao cancelar convite:', error);
+    return res.status(500).json({ error: 'Falha ao cancelar convite' });
+  }
+};

@@ -156,6 +156,7 @@ export function Sidebar({
   });
   
   // Modals state for Workspace
+  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [isWorkspaceSettingsOpen, setIsWorkspaceSettingsOpen] = useState(false);
   const [isWorkspaceInviteOpen, setIsWorkspaceInviteOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
@@ -943,7 +944,7 @@ export function Sidebar({
         </button>
         
         <div className="relative group/switcher m-2 pt-8 pb-5">
-          <DropdownMenu.Root>
+          <DropdownMenu.Root open={isWorkspaceMenuOpen} onOpenChange={setIsWorkspaceMenuOpen}>
             <DropdownMenu.Trigger asChild>
               <button type="button" className="flex items-center justify-between p-2 hover:bg-[#2c2c2c] transition outline-none rounded-md cursor-pointer w-full border-none bg-transparent text-left">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -995,16 +996,19 @@ export function Sidebar({
 
                   <DropdownMenu.Item 
                     className="flex items-center gap-2 p-2 mb-2 w-full text-left rounded-md hover:bg-[#333333] transition-colors outline-none cursor-pointer text-[#d4d4d4]"
-                    onClick={() => router.push('/profile')}
+                    onClick={() => router.push('/connections')}
                   >
-                    <LucideIcons.User size={16} className="text-[#a3a3a3]" />
-                    <span>My Profile</span>
+                    <LucideIcons.Users size={16} className="text-[#a3a3a3]" />
+                    <span>Connections</span>
                   </DropdownMenu.Item>
                   
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <button 
                       type="button" 
-                      onClick={() => setIsWorkspaceSettingsOpen(true)}
+                      onClick={() => {
+                        setIsWorkspaceMenuOpen(false);
+                        setTimeout(() => setIsWorkspaceSettingsOpen(true), 100);
+                      }}
                       className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-md bg-[#2c2c2c] hover:bg-[#333333] text-[#d4d4d4] hover:text-white text-xs font-medium transition-colors border border-[#191919]"
                     >
                       <Settings size={14} />
@@ -1012,7 +1016,10 @@ export function Sidebar({
                     </button>
                     <button 
                       type="button" 
-                      onClick={() => setIsWorkspaceInviteOpen(true)}
+                      onClick={() => {
+                        setIsWorkspaceMenuOpen(false);
+                        setTimeout(() => setIsWorkspaceInviteOpen(true), 100);
+                      }}
                       className="relative flex items-center justify-center gap-2 py-1.5 px-3 rounded-md bg-[#2c2c2c] hover:bg-[#333333] text-[#d4d4d4] hover:text-white text-xs font-medium transition-colors border border-[#191919]"
                     >
                       <UserPlus size={14} />
