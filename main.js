@@ -9,10 +9,17 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
+    backgroundColor: '#191919',
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      partition: 'persist:main'
     }
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
   });
 
   // User-Agent mais comum e genérico para evitar bloqueio 403
