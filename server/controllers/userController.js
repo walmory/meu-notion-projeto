@@ -2,6 +2,8 @@ import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
 export const getGlobalConnections = async (req, res) => {
+  let query = '';
+  let queryParams = [];
   try {
     const userId = (req.user && req.user.id) ? req.user.id : req.user_id;
 
@@ -9,38 +11,44 @@ export const getGlobalConnections = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Busca na tabela 'connections' onde o usuário logado seja user_a_id ou user_b_id.
-    // Faz um JOIN com 'users' para pegar os dados do membro conectado.
-    const query = `
+    query = `
       SELECT 
         c.id as connection_id,
         u.id as user_id,
         u.name,
         u.email,
         u.avatar_url,
-        u.created_at as joined_at,
         u.last_active
       FROM connections c
-      JOIN users u ON (u.id = c.user_a_id OR u.id = c.user_b_id) AND u.id != ?
+      JOIN users u ON u.id = CASE
+        WHEN c.user_a_id = ? THEN c.user_b_id
+        ELSE c.user_a_id
+      END
       WHERE c.user_a_id = ? OR c.user_b_id = ?
     `;
 
-    const [connections] = await pool.query(query, [userId, userId, userId]);
+    queryParams = [userId, userId, userId];
+    const [connections] = await pool.query(query, queryParams);
 
-    // Retorna o array limpo, garantindo que campos novos não quebrem se nulos
     const formattedConnections = connections.map(conn => ({
       connection_id: conn.connection_id,
       user_id: conn.user_id,
       name: conn.name,
       email: conn.email,
       avatar_url: conn.avatar_url || null,
-      joined_at: conn.joined_at,
       last_active: conn.last_active || null
     }));
 
     res.json(formattedConnections);
   } catch (error) {
-    console.error('[GET /user/connections] Erro detalhado ao buscar conexões:', error);
+    console.error('[GET /user/connections] Erro detalhado ao buscar conexões', {
+      message: error?.message,
+      sqlMessage: error?.sqlMessage,
+      sqlCode: error?.code,
+      query,
+      queryParams,
+      stack: error?.stack
+    });
     res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
   }
 };

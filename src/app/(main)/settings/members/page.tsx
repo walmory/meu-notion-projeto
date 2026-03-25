@@ -1,21 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { useSWRConfig } from 'swr';
 import useSWR from 'swr';
-import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
+import { api, getAuthHeaders } from '@/lib/api';
 import { Search, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 interface GlobalConnection {
+  connection_id: string;
   user_id: string;
   name: string;
   email: string;
-  joined_at: string;
+  avatar_url: string | null;
+  joined_at?: string | null;
   last_active: string | null;
-  shared_workspaces: string;
+  shared_workspaces?: string;
 }
 
 const fetcher = async (url: string) => {
@@ -40,10 +41,11 @@ export default function MembersPage() {
     if (!lastActive) return false;
     try {
       const lastActiveDate = new Date(lastActive);
+      if (Number.isNaN(lastActiveDate.getTime())) return false;
       const now = new Date();
       const diffMinutes = (now.getTime() - lastActiveDate.getTime()) / 1000 / 60;
-      return diffMinutes < 15; // Considera online se a última atividade foi há menos de 15 minutos
-    } catch (e) {
+      return diffMinutes < 15;
+    } catch {
       return false;
     }
   };
