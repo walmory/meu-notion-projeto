@@ -181,7 +181,7 @@ export function Sidebar({
   const hasValidSelectedWorkspace = selectedWorkspaceId ? workspaces.some((workspace) => workspace.id === selectedWorkspaceId) : false;
   const activeWorkspaceId = hasValidSelectedWorkspace ? selectedWorkspaceId : (workspaces.length > 0 ? workspaces[0].id : null);
   const selectedWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const rawWorkspaceName = selectedWorkspace?.name || `Workspace do ${user?.name || 'User'}`;
   const workspaceDisplayName = isWorkspacesLoading ? 'Loading...' : rawWorkspaceName;
   const workspaceInitial = workspaceDisplayName.charAt(0).toUpperCase();
@@ -408,6 +408,14 @@ export function Sidebar({
 
   const handleLogout = () => {
     localStorage.removeItem('notion_token');
+    localStorage.removeItem('activeWorkspaceId');
+    localStorage.removeItem('user_profile_cache'); // Garantir limpeza legado
+    setUser(null); // Limpa o estado global
+    globalMutate(
+      () => true, // Invalida TODAS as chaves do SWR
+      undefined,
+      { revalidate: false }
+    );
     router.push('/login');
   };
 
