@@ -152,14 +152,17 @@ export function useDocuments(workspaceId?: string) {
     teamspace_id?: string | null
   ) => {
     try {
-      const activeWorkspaceId = localStorage.getItem('activeWorkspaceId');
+      const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
       const tempId = crypto.randomUUID();
       const resolvedWorkspaceId = workspace_id
         || (typeof titleOrInput === 'string' ? undefined : titleOrInput.workspace_id)
         || activeWorkspaceId;
 
+      // Guard Clause: Prevent document creation if workspace_id is missing
       if (!resolvedWorkspaceId) {
-        throw new Error('workspace_id missing when creating document');
+        console.warn('⚠️ Prevented document creation: workspace_id is missing or null.');
+        toast.error('Workspace não encontrado. Recarregue a página ou faça login novamente.');
+        return;
       }
       
       const payload = typeof titleOrInput === 'string'
