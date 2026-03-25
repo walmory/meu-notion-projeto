@@ -64,13 +64,27 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    // Only fetch if token exists
-    const token = getAuthToken();
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    const handleAuthChange = () => {
+      const token = getAuthToken();
+      if (token) {
+        setLoading(true);
+        // Tenta pegar imediatamente do token para UI instantânea
+        const tokenUser = getUserFromToken();
+        if (tokenUser) {
+          setUser({ name: tokenUser.name, email: tokenUser.email });
+        }
+        fetchUser();
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
+    // Only fetch if token exists on mount
+    handleAuthChange();
+
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, [fetchUser]);
 
   const refreshUser = async () => {

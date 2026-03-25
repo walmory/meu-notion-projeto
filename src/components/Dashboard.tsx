@@ -23,7 +23,7 @@ interface DashboardProps {
 
 export function Dashboard({ documents, onSelectDocument, createDocument, onUpdate, onUpdateDocument, onToggleFavorite, onDeleteDocument, onDuplicateDocument }: DashboardProps) {
   const [greeting, setGreeting] = useState('Bem-vindo');
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const [quickNotesDoc, setQuickNotesDoc] = useState<Document | null>(null);
   const isCreatingRef = useRef(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -124,19 +124,19 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
           <div className="text-center space-y-4">
              <h1 className="text-4xl md:text-5xl font-bold text-white flex items-center justify-center gap-3">
                 {greeting}, {
-                  !isMounted || !user?.name ? (
+                  !isMounted || (loading && !user?.name) ? (
                     <span className="inline-block h-10 w-40 rounded-md bg-[#2c2c2c] animate-pulse" />
                   ) : (
-                    user.name
+                    user?.name || ''
                   )
                 }
                 <Sparkles className="text-yellow-500" size={32} />
              </h1>
              <p className="text-white text-base font-semibold tracking-wide min-h-[24px]">
-               {!isMounted || !user?.name ? (
+               {!isMounted || (loading && !user?.name) ? (
                  <span className="inline-block h-5 w-28 rounded-md bg-[#2c2c2c] animate-pulse" />
                ) : (
-                 user.name
+                 user?.name || ''
                )}
              </p>
              <p className="text-[#a3a3a3] text-lg">Ready to capture your best ideas today?</p>

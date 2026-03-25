@@ -74,6 +74,7 @@ export const setAuthSession = (token: string, workspaceId?: string | null) => {
     localStorage.removeItem('activeWorkspaceId');
   }
   window.dispatchEvent(new Event('workspace-changed'));
+  window.dispatchEvent(new Event('auth-changed'));
 };
 
 export const clearAuthSession = () => {
@@ -83,6 +84,7 @@ export const clearAuthSession = () => {
   clearAuthToken();
   localStorage.removeItem('activeWorkspaceId');
   localStorage.removeItem('user_profile_cache');
+  window.dispatchEvent(new Event('auth-changed'));
 };
 
 export const getAuthHeaders = () => {
