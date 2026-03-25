@@ -9,42 +9,29 @@ export const getGlobalConnections = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Busca todos os usuários que compartilham pelo menos um workspace (como owner ou member) com o usuário atual.
-    // Também busca a lista de workspaces onde eles coexistem e a data de entrada no sistema.
+    // Busca na tabela 'connections' onde o usuário logado seja user_a_id ou user_b_id.
+    // Faz um JOIN com 'users' para pegar os dados do membro conectado.
     const query = `
-      SELECT DISTINCT
+      SELECT 
+        c.id as connection_id,
         u.id as user_id,
         u.name,
         u.email,
+        u.avatar_url,
         u.created_at as joined_at,
-        u.last_active,
-        (
-          SELECT GROUP_CONCAT(w.name SEPARATOR ', ')
-          FROM workspaces w
-          LEFT JOIN workspace_members wm1 ON wm1.workspace_id = w.id
-          LEFT JOIN workspace_members wm2 ON wm2.workspace_id = w.id
-          WHERE (w.owner_id = u.id OR wm1.user_id = u.id)
-            AND (w.owner_id = ? OR wm2.user_id = ?)
-            AND w.id IS NOT NULL
-        ) as shared_workspaces
-      FROM users u
-      WHERE u.id != ?
-        AND EXISTS (
-          SELECT 1
-          FROM workspaces w
-          LEFT JOIN workspace_members wm1 ON wm1.workspace_id = w.id
-          LEFT JOIN workspace_members wm2 ON wm2.workspace_id = w.id
-          WHERE (w.owner_id = u.id OR wm1.user_id = u.id)
-            AND (w.owner_id = ? OR wm2.user_id = ?)
-        )
+        u.last_active
+      FROM connections c
+      JOIN users u ON (u.id = c.user_a_id OR u.id = c.user_b_id) AND u.id != ?
+      WHERE c.user_a_id = ? OR c.user_b_id = ?
     `;
 
-    const [connections] = await pool.query(query, [userId, userId, userId, userId, userId]);
+    const [connections] = await pool.query(query, [userId, userId, userId]);
 
+    // Retorna o array limpo
     res.json(connections);
   } catch (error) {
-    console.error('Erro ao buscar conexões globais:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('[GET /user/connections] Erro detalhado ao buscar conexões:', error);
+    res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
   }
 };
 
@@ -61,14 +48,20 @@ export const breakConnection = async (req, res) => {
       return res.status(400).json({ error: 'ID do usuário alvo é obrigatório' });
     }
 
-    // 1. Achar todos os workspaces que currentUserId é dono e remover targetUserId
+    // 1. Deletar o registro na tabela connections
+    await pool.query(`
+      DELETE FROM connections 
+      WHERE (user_a_id = ? AND user_b_id = ?) 
+         OR (user_a_id = ? AND user_b_id = ?)
+    `, [currentUserId, targetUserId, targetUserId, currentUserId]);
+
+    // 2. Remover de todos os workspace_members onde eles cruzam
     await pool.query(`
       DELETE wm FROM workspace_members wm
       JOIN workspaces w ON w.id = wm.workspace_id
       WHERE w.owner_id = ? AND wm.user_id = ?
     `, [currentUserId, targetUserId]);
 
-    // 2. Achar todos os workspaces que targetUserId é dono e remover currentUserId
     await pool.query(`
       DELETE wm FROM workspace_members wm
       JOIN workspaces w ON w.id = wm.workspace_id
@@ -77,8 +70,8 @@ export const breakConnection = async (req, res) => {
 
     res.json({ success: true, message: 'Conexão quebrada com sucesso' });
   } catch (error) {
-    console.error('Erro ao quebrar conexão:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('[DELETE /user/connections/:userId] Erro detalhado ao quebrar conexão:', error);
+    res.status(500).json({ error: 'Erro interno no servidor', details: error.message });
   }
 };
 
