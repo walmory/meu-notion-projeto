@@ -27,8 +27,18 @@ export const getGlobalConnections = async (req, res) => {
 
     const [connections] = await pool.query(query, [userId, userId, userId]);
 
-    // Retorna o array limpo
-    res.json(connections);
+    // Retorna o array limpo, garantindo que campos novos não quebrem se nulos
+    const formattedConnections = connections.map(conn => ({
+      connection_id: conn.connection_id,
+      user_id: conn.user_id,
+      name: conn.name,
+      email: conn.email,
+      avatar_url: conn.avatar_url || null,
+      joined_at: conn.joined_at,
+      last_active: conn.last_active || null
+    }));
+
+    res.json(formattedConnections);
   } catch (error) {
     console.error('[GET /user/connections] Erro detalhado ao buscar conexões:', error);
     res.status(500).json({ error: 'Erro interno no servidor', details: error.message });

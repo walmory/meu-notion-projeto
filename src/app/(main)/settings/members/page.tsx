@@ -36,12 +36,16 @@ export default function MembersPage() {
     (conn.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const isUserOnline = (lastActive: string | null) => {
+  const isUserOnline = (lastActive: string | null | undefined) => {
     if (!lastActive) return false;
-    const lastActiveDate = new Date(lastActive);
-    const now = new Date();
-    const diffMinutes = (now.getTime() - lastActiveDate.getTime()) / 1000 / 60;
-    return diffMinutes < 15; // Considera online se a última atividade foi há menos de 15 minutos
+    try {
+      const lastActiveDate = new Date(lastActive);
+      const now = new Date();
+      const diffMinutes = (now.getTime() - lastActiveDate.getTime()) / 1000 / 60;
+      return diffMinutes < 15; // Considera online se a última atividade foi há menos de 15 minutos
+    } catch (e) {
+      return false;
+    }
   };
 
   const handleBreakConnection = async () => {
