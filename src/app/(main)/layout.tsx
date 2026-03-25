@@ -42,20 +42,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             localStorage.setItem('activeWorkspaceId', fallbackWorkspaceId);
             window.dispatchEvent(new Event('workspace-changed'));
           }
-          return;
-        }
-
-        if (workspaces.length === 0) {
-          const createdWorkspace = await api.post(
-            '/workspaces',
-            { name: 'Meu Workspace' },
-            { headers, suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
-          );
-          const createdWorkspaceId = createdWorkspace.data?.id ? String(createdWorkspace.data.id) : null;
-          if (createdWorkspaceId && !cancelled) {
-            localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
-            window.dispatchEvent(new Event('workspace-changed'));
-          }
         }
       } catch (error) {
         console.error('Failed to ensure active workspace for logged user', error);

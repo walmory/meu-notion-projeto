@@ -174,7 +174,6 @@ export function Sidebar({
   }, []);
   const [newTeamspaceName, setNewTeamspaceName] = useState('');
   const [isCreatingTeamspace, setIsCreatingTeamspace] = useState(false);
-  const isCreatingDefaultWorkspaceRef = useRef(false);
 
   const { data: workspacesData, isLoading: isWorkspacesLoading, mutate: mutateWorkspaces } = useSWR<Workspace[]>('/workspaces', fetcher);
   const workspaces = useMemo(() => workspacesData || [], [workspacesData]);
@@ -193,42 +192,6 @@ export function Sidebar({
     }
   );
   const hasPendingInvites = Number(pendingInvites?.count || 0) > 0;
-
-  useEffect(() => {
-    if (isWorkspacesLoading || workspaces.length > 0 || isCreatingDefaultWorkspaceRef.current) {
-      return;
-    }
-    const token = getAuthToken();
-    if (!token) {
-      return;
-    }
-
-    isCreatingDefaultWorkspaceRef.current = true;
-
-    const createDefaultWorkspace = async () => {
-      try {
-        const response = await api.post(
-          '/workspaces',
-          { name: 'Meu Workspace' },
-          { headers: getAuthHeaders() }
-        );
-        const createdWorkspaceId = response.data?.id ? String(response.data.id) : null;
-        await mutateWorkspaces();
-        if (createdWorkspaceId) {
-          setSelectedWorkspaceId(createdWorkspaceId);
-          localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
-          window.dispatchEvent(new CustomEvent('mutate-documents'));
-          router.push(`/workspace/${createdWorkspaceId}`);
-        }
-      } catch (error) {
-        console.error('Failed to create default workspace', error);
-      } finally {
-        isCreatingDefaultWorkspaceRef.current = false;
-      }
-    };
-
-    void createDefaultWorkspace();
-  }, [isWorkspacesLoading, workspaces.length, mutateWorkspaces, router]);
 
   useEffect(() => {
     if (isWorkspacesLoading || workspaces.length === 0 || hasValidSelectedWorkspace) {
@@ -263,6 +226,18 @@ export function Sidebar({
     documentsRef.current = documents;
   }, [documents]);
 
+  const persistActiveWorkspace = async (id: string) => {
+    try {
+      await api.post(
+        '/workspaces/active',
+        { workspace_id: id },
+        { headers: getAuthHeaders(), suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
+      );
+    } catch {
+      return;
+    }
+  };
+
   const handleWorkspaceSwitch = (id: string) => {
     const clearAppState = () => {
       globalMutate(
@@ -275,6 +250,7 @@ export function Sidebar({
     clearAppState();
     setSelectedWorkspaceId(id);
     localStorage.setItem('activeWorkspaceId', id);
+    void persistActiveWorkspace(id);
     router.push(`/workspace/${id}`);
   };
 

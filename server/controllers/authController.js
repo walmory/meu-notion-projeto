@@ -6,6 +6,23 @@ import pool from '../config/db.js';
 
 let dynamicInvitesTableReady = false;
 
+const ensureWorkspaceMemberLastAccessColumn = async () => {
+  const [columns] = await pool.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'workspace_members'
+       AND COLUMN_NAME = 'last_accessed_at'
+     LIMIT 1`
+  );
+
+  if (columns.length === 0) {
+    await pool.query(
+      'ALTER TABLE workspace_members ADD COLUMN last_accessed_at DATETIME NULL DEFAULT NULL'
+    );
+  }
+};
+
 const ensureDynamicInvitesTable = async () => {
   if (dynamicInvitesTableReady) return;
   try {
@@ -129,12 +146,18 @@ export const login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    await ensureWorkspaceMemberLastAccessColumn();
+
     // Fetch active workspace
     const [workspaces] = await pool.query(
-      `SELECT w.* FROM workspaces w 
-       LEFT JOIN workspace_members wm ON w.id = wm.workspace_id 
-       WHERE w.owner_id = ? OR wm.user_id = ? LIMIT 1`,
-      [user.id, user.id]
+      `SELECT w.*
+       FROM workspaces w
+       LEFT JOIN workspace_members wm ON w.id = wm.workspace_id AND wm.user_id = ?
+       WHERE (w.owner_id = ? OR wm.user_id = ?)
+         AND (w.is_trash = 0 OR w.is_trash IS NULL)
+       ORDER BY COALESCE(wm.last_accessed_at, w.created_at) DESC
+       LIMIT 1`,
+      [user.id, user.id, user.id]
     );
 
     const workspace = workspaces.length > 0 ? workspaces[0] : null;

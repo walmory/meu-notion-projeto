@@ -169,17 +169,7 @@ export function useDocuments(workspaceId?: string) {
       return firstWorkspaceId;
     }
 
-    const createdWorkspace = await api.post(
-      '/workspaces',
-      { name: 'Meu Workspace' },
-      { headers, suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
-    );
-    const createdWorkspaceId = createdWorkspace.data?.id ? String(createdWorkspace.data.id) : null;
-    if (createdWorkspaceId) {
-      localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
-      window.dispatchEvent(new Event('workspace-changed'));
-    }
-    return createdWorkspaceId;
+    return null;
   };
 
   type CreateDocumentInput = {

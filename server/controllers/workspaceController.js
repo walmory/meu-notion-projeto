@@ -13,6 +13,23 @@ const ensureWorkspaceMembersTable = async () => {
   `);
 };
 
+const ensureWorkspaceMemberLastAccessColumn = async () => {
+  const [columns] = await pool.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'workspace_members'
+       AND COLUMN_NAME = 'last_accessed_at'
+     LIMIT 1`
+  );
+
+  if (columns.length === 0) {
+    await pool.query(
+      'ALTER TABLE workspace_members ADD COLUMN last_accessed_at DATETIME NULL DEFAULT NULL'
+    );
+  }
+};
+
 const ensureWorkspaceInvitationsTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS workspace_invitations (
@@ -75,14 +92,18 @@ export const getWorkspaces = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized: User ID missing' });
     }
 
+    await ensureWorkspaceMembersTable();
+    await ensureWorkspaceMemberLastAccessColumn();
+
     const [workspaces] = await pool.query(
       `SELECT w.*, 
+        wm.last_accessed_at,
         CASE WHEN w.owner_id = ? THEN 'owner' ELSE wm.role END as user_role
        FROM workspaces w 
        LEFT JOIN workspace_members wm ON w.id = wm.workspace_id AND wm.user_id = ?
        WHERE (w.owner_id = ? OR wm.user_id = ?)
          AND (w.is_trash = 0 OR w.is_trash IS NULL)
-       ORDER BY w.created_at ASC`,
+       ORDER BY COALESCE(wm.last_accessed_at, w.created_at) DESC`,
       [userId, userId, userId, userId]
     );
 
@@ -105,6 +126,7 @@ export const createWorkspace = async (req, res) => {
 
   try {
     await ensureWorkspaceMembersTable();
+    await ensureWorkspaceMemberLastAccessColumn();
     await ensureWorkspaceTrashColumn();
     await connection.beginTransaction();
 
@@ -118,7 +140,7 @@ export const createWorkspace = async (req, res) => {
 
     // Ação 2: Insere o dono na tabela de membros (IMEDIATAMENTE)
     await connection.query(
-      'INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)',
+      'INSERT INTO workspace_members (workspace_id, user_id, last_accessed_at) VALUES (?, ?, NOW())',
       [workspaceId, userId]
     );
 
@@ -436,6 +458,8 @@ export const acceptInvite = async (req, res) => {
 
   const connection = await pool.getConnection();
   try {
+    await ensureWorkspaceMembersTable();
+    await ensureWorkspaceMemberLastAccessColumn();
     await connection.beginTransaction();
 
     const [invites] = await connection.query(
@@ -457,7 +481,7 @@ export const acceptInvite = async (req, res) => {
 
     if (existing.length === 0) {
       await connection.query(
-        'INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)',
+        'INSERT INTO workspace_members (workspace_id, user_id, last_accessed_at) VALUES (?, ?, NOW())',
         [invite.workspace_id, userId]
       );
     }
@@ -472,6 +496,56 @@ export const acceptInvite = async (req, res) => {
     return res.status(500).json({ error: 'Failed to accept invite' });
   } finally {
     connection.release();
+  }
+};
+
+export const setActiveWorkspace = async (req, res) => {
+  const userId = req.user_id;
+  const workspaceId = String(req.body?.workspace_id || '').trim();
+
+  if (!workspaceId) {
+    return res.status(400).json({ error: 'workspace_id is required' });
+  }
+
+  try {
+    await ensureWorkspaceMembersTable();
+    await ensureWorkspaceMemberLastAccessColumn();
+    await ensureWorkspaceTrashColumn();
+
+    const [accessRows] = await pool.query(
+      `SELECT w.id
+       FROM workspaces w
+       LEFT JOIN workspace_members wm ON w.id = wm.workspace_id AND wm.user_id = ?
+       WHERE w.id = ?
+         AND (w.owner_id = ? OR wm.user_id = ?)
+         AND (w.is_trash = 0 OR w.is_trash IS NULL)
+       LIMIT 1`,
+      [userId, workspaceId, userId, userId]
+    );
+
+    if (!Array.isArray(accessRows) || accessRows.length === 0) {
+      return res.status(403).json({ error: 'Workspace access denied' });
+    }
+
+    const [updated] = await pool.query(
+      `UPDATE workspace_members
+       SET last_accessed_at = NOW()
+       WHERE workspace_id = ? AND user_id = ?`,
+      [workspaceId, userId]
+    );
+
+    if (Number(updated?.affectedRows || 0) === 0) {
+      await pool.query(
+        `INSERT INTO workspace_members (workspace_id, user_id, last_accessed_at)
+         VALUES (?, ?, NOW())`,
+        [workspaceId, userId]
+      );
+    }
+
+    return res.json({ workspace_id: workspaceId, updated: true });
+  } catch (error) {
+    console.error('Failed to set active workspace:', error);
+    return res.status(500).json({ error: 'Failed to set active workspace', details: error.message });
   }
 };
 

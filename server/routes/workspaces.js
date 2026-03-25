@@ -12,7 +12,8 @@ import {
   acceptInvite,
   declineInvite,
   getWorkspacePendingInvites,
-  cancelWorkspaceInvite
+  cancelWorkspaceInvite,
+  setActiveWorkspace
 } from '../controllers/workspaceController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
@@ -24,6 +25,7 @@ router.use(authMiddleware);
 // Returns all user workspaces (does not require workspace_id)
 router.get('/', getWorkspaces);
 router.post('/', createWorkspace);
+router.post('/active', setActiveWorkspace);
 router.post('/:id/invite', inviteWorkspaceMember);
 router.get('/:id/invites/pending', getWorkspacePendingInvites);
 router.delete('/:id/invites/:inviteId', cancelWorkspaceInvite);
