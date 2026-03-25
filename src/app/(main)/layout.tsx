@@ -1,17 +1,73 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useParams, useRouter } from 'next/navigation';
 import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
+import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const params = useParams();
   const router = useRouter();
   const documentId = params.documentId as string | undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const ensureWorkspaceForLoggedUser = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        return;
+      }
+
+      try {
+        const headers = getAuthHeaders();
+        const response = await api.get('/workspaces', {
+          headers,
+          suppressGlobalErrorLog: true
+        } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean });
+        const workspaces = Array.isArray(response.data) ? response.data : [];
+        const activeWorkspaceId = localStorage.getItem('activeWorkspaceId');
+        const activeWorkspaceIsValid = Boolean(
+          activeWorkspaceId && workspaces.some((workspace: { id?: string }) => String(workspace.id) === String(activeWorkspaceId))
+        );
+
+        if (workspaces.length > 0 && !activeWorkspaceIsValid) {
+          const fallbackWorkspaceId = workspaces[0]?.id ? String(workspaces[0].id) : null;
+          if (fallbackWorkspaceId && !cancelled) {
+            localStorage.setItem('activeWorkspaceId', fallbackWorkspaceId);
+            window.dispatchEvent(new Event('workspace-changed'));
+          }
+          return;
+        }
+
+        if (workspaces.length === 0) {
+          const createdWorkspace = await api.post(
+            '/workspaces',
+            { name: 'Meu Workspace' },
+            { headers, suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
+          );
+          const createdWorkspaceId = createdWorkspace.data?.id ? String(createdWorkspace.data.id) : null;
+          if (createdWorkspaceId && !cancelled) {
+            localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
+            window.dispatchEvent(new Event('workspace-changed'));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to ensure active workspace for logged user', error);
+      }
+    };
+
+    void ensureWorkspaceForLoggedUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <SidePeekProvider>
@@ -37,7 +93,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               title: options?.title ?? '',
               is_shared: isShared,
               parent_id: parentId,
-              workspace_id: null,
               teamspace_id: teamspaceId,
               is_meeting_note: options?.is_meeting_note,
               type: options?.type

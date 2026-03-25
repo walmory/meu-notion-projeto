@@ -134,6 +134,54 @@ export function useDocuments(workspaceId?: string) {
     return activeWorkspaceId ? `/documents/recent?workspace_id=${activeWorkspaceId}` : '/documents/recent';
   };
 
+  const ensureActiveWorkspaceId = async (workspaceIdFromInput?: string | null) => {
+    if (typeof window === 'undefined') {
+      return workspaceIdFromInput ?? null;
+    }
+
+    if (workspaceIdFromInput) {
+      localStorage.setItem('activeWorkspaceId', workspaceIdFromInput);
+      return workspaceIdFromInput;
+    }
+
+    const currentWorkspaceId = localStorage.getItem('activeWorkspaceId');
+    if (currentWorkspaceId) {
+      return currentWorkspaceId;
+    }
+
+    const headers = getAuthHeaders();
+    if (!headers.Authorization) {
+      return null;
+    }
+
+    const response = await api.get('/workspaces', {
+      headers,
+      suppressGlobalErrorLog: true
+    } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean });
+    const workspaces = Array.isArray(response.data) ? response.data : [];
+
+    if (workspaces.length > 0) {
+      const firstWorkspaceId = workspaces[0]?.id ? String(workspaces[0].id) : null;
+      if (firstWorkspaceId) {
+        localStorage.setItem('activeWorkspaceId', firstWorkspaceId);
+        window.dispatchEvent(new Event('workspace-changed'));
+      }
+      return firstWorkspaceId;
+    }
+
+    const createdWorkspace = await api.post(
+      '/workspaces',
+      { name: 'Meu Workspace' },
+      { headers, suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
+    );
+    const createdWorkspaceId = createdWorkspace.data?.id ? String(createdWorkspace.data.id) : null;
+    if (createdWorkspaceId) {
+      localStorage.setItem('activeWorkspaceId', createdWorkspaceId);
+      window.dispatchEvent(new Event('workspace-changed'));
+    }
+    return createdWorkspaceId;
+  };
+
   type CreateDocumentInput = {
     title?: string;
     is_shared?: boolean;
@@ -152,13 +200,10 @@ export function useDocuments(workspaceId?: string) {
     teamspace_id?: string | null
   ): Promise<Document> => {
     try {
-      const activeWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null;
+      const workspaceIdFromInput = workspace_id || (typeof titleOrInput === 'string' ? undefined : titleOrInput.workspace_id);
+      const resolvedWorkspaceId = await ensureActiveWorkspaceId(workspaceIdFromInput);
       const tempId = crypto.randomUUID();
-      const resolvedWorkspaceId = workspace_id
-        || (typeof titleOrInput === 'string' ? undefined : titleOrInput.workspace_id)
-        || activeWorkspaceId;
 
-      // Guard Clause: Prevent document creation if workspace_id is missing
       if (!resolvedWorkspaceId) {
         console.warn('⚠️ Prevented document creation: workspace_id is missing or null.');
         toast.error('Workspace não encontrado. Recarregue a página ou faça login novamente.');
