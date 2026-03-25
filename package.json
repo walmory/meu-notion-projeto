@@ -2,11 +2,29 @@
   "name": "meu-notion",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.victor.opta",
+    "productName": "OPTA",
+    "asar": true,
+    "files": [
+      "main.js",
+      "package.json",
+      "build/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg"],
+      "identity": null,
+      "cscLink": null
+    }
   },
   "dependencies": {
     "@blocknote/code-block": "^0.47.2",
@@ -50,6 +68,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "electron": "^41.0.4",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.0",
     "tailwindcss": "^4",
