@@ -8,6 +8,7 @@ import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
 import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
+import { Header } from '@/components/Header';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
@@ -125,8 +126,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
-          {children}
+        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919] relative">
+          <Header />
+          <div className="flex-1 flex flex-col w-full h-full overflow-y-auto">
+            {children}
+          </div>
         </div>
         <SidePeekDrawer />
         <GlobalWorkspaceInvites />
