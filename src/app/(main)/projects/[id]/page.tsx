@@ -200,27 +200,17 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
           </button>
         )}
         
-        <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button type="button" onPointerDown={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-white/10 text-gray-500 hover:text-gray-300 opacity-0 group-hover/card:opacity-100 transition-opacity outline-none">
-                <MoreHorizontal size={16} />
-              </button>
-            </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-[#1f242d] border border-white/10 rounded-md shadow-xl p-1 min-w-[140px] z-[9999]">
-              <DropdownMenu.Item
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteTask(task.id);
-                }}
-                className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-400 hover:bg-white/5 rounded cursor-pointer outline-none"
-              >
-                <Trash2 size={14} />
-                Delete
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        <button 
+          type="button" 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteTask(task.id);
+          }}
+          className="p-1 rounded hover:bg-white/10 text-gray-500 hover:text-red-400 opacity-0 group-hover/card:opacity-100 transition-opacity outline-none shrink-0"
+          title="Delete task"
+        >
+          <Trash2 size={16} />
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
@@ -330,7 +320,7 @@ function KanbanCard({ task, members, handleUpdateTask, handleDeleteTask, openTas
 function KanbanCardOverlay({ task, members }: { task: Task, members: TeamspaceMember[] }) {
   return (
     <div 
-      className="w-[320px] bg-[#1f242d]/90 backdrop-blur-md text-white rounded-xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col gap-3 rotate-[3deg] scale-[1.05] cursor-grabbing z-[999]"
+      className="w-[320px] bg-[#1f242d] text-gray-200 rounded-xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.8)] border border-[#30363d] flex flex-col gap-3 rotate-[3deg] scale-[1.05] cursor-grabbing z-[999]"
     >
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 font-bold text-white text-[15px] leading-tight break-words">
@@ -465,7 +455,7 @@ function KanbanColumn({
           <Icon size={16} className={config?.color || 'text-gray-500'} />
           <h2 className="text-[14px] font-semibold text-white tracking-wide flex items-center gap-2">
             {STATUS_LABELS[statusGroup]} 
-            <span className="text-white/50 text-xs font-medium ml-1">- {taskCount}</span>
+            <span className="text-white/50 text-xs font-medium ml-1">{taskCount}</span>
           </h2>
         </div>
         <button type="button" className="text-gray-400 hover:text-white transition-colors outline-none">
