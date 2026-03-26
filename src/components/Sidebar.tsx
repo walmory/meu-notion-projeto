@@ -1150,22 +1150,7 @@ export function Sidebar({
                     <button
                       key={doc.id}
                       type="button"
-                      onClick={() => {
-                        const fullDocument = documents.find((document) => String(document.id) === String(doc.id));
-                        if (fullDocument) {
-                          onSelectDocument(fullDocument);
-                          return;
-                        }
-                        onSelectDocument({
-                          id: String(doc.id),
-                          title: doc.title ?? '',
-                          icon: doc.icon,
-                          updated_at: doc.updated_at,
-                          is_trash: doc.is_trash,
-                          is_shared: false,
-                          content: '[]'
-                        });
-                      }}
+                      onClick={() => router.push(`/documents/${doc.id}`)}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${String(selectedDocId) === String(doc.id) ? 'bg-[#2c2c2c] text-white' : 'hover:bg-[#2c2c2c] text-[#a3a3a3]'}`}
                     >
                       <FileText size={14} className="shrink-0 text-[#a3a3a3]" />
