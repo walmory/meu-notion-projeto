@@ -306,6 +306,48 @@ export const initSocket = (httpServer) => {
     });
 
     // ── Presence / collaboration events ──────────────────────────────────
+    socket.on('document:move', async (payload) => {
+      const { documentId, newParentId, targetSpace, workspaceId } = payload || {};
+      if (!documentId || !workspaceId) return;
+
+      try {
+        const [existing] = await pool.query(
+          'SELECT * FROM documents WHERE id = ? AND workspace_id = ? LIMIT 1',
+          [documentId, workspaceId]
+        );
+        if (existing.length === 0) return;
+        const doc = existing[0];
+
+        let finalTeamspaceId = doc.teamspace_id;
+        let finalIsPrivate = doc.is_private;
+
+        if (targetSpace && targetSpace !== 'Private') {
+          finalTeamspaceId = targetSpace;
+          finalIsPrivate = 0;
+        } else if (targetSpace === 'Private') {
+          finalTeamspaceId = null;
+        }
+
+        await pool.query(
+          `UPDATE documents
+           SET parent_id = ?, teamspace_id = ?, is_private = ?, updated_at = NOW(3)
+           WHERE id = ? AND workspace_id = ?`,
+          [newParentId || null, finalTeamspaceId, finalIsPrivate, documentId, workspaceId]
+        );
+
+        ioInstance.to(getWorkspaceRoom(workspaceId)).emit('document:move', {
+          documentId,
+          newParentId: newParentId || null,
+          targetSpace,
+          senderId: socket.id,
+          teamspace_id: finalTeamspaceId,
+          is_private: finalIsPrivate
+        });
+      } catch (err) {
+        console.error('[Socket] Erro ao mover documento:', err);
+      }
+    });
+
     socket.on('document-moving', (payload) => {
       if (!payload?.workspaceId || !payload?.documentId) return;
       socket.volatile
