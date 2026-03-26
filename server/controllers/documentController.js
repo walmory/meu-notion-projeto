@@ -657,7 +657,7 @@ export const updateDocument = async (req, res) => {
       });
     }
     
-    if (teamspace_id !== undefined || parent_id !== undefined || is_private !== undefined || is_meeting_note !== undefined || is_trash !== undefined) {
+    if (teamspace_id !== undefined || parent_id !== undefined || is_private !== undefined || is_meeting_note !== undefined || is_trash !== undefined || is_public !== undefined) {
       emitToWorkspace(workspaceId, 'document_moved', updatedDocument);
     } else {
       emitToWorkspace(workspaceId, 'document_updated', updatedDocument);
@@ -807,7 +807,9 @@ export const deleteDocument = async (req, res) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    return res.status(204).send();
+    emitToWorkspace(workspaceId, 'document_deleted', { id });
+
+    return res.json({ success: true, message: 'Document deleted permanently' });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to delete document', details: error.message });
   }

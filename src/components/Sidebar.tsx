@@ -433,20 +433,26 @@ export function Sidebar({
       }
     });
 
-    socket.on('document_moved', () => {
+    socket.on('document_moved', (doc) => {
+      window.dispatchEvent(new CustomEvent('live-document-update', { detail: doc }));
       refetchRecentDocuments();
-      window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
-    socket.on('document-updated', () => {
+    socket.on('document_updated', (doc) => {
+      window.dispatchEvent(new CustomEvent('live-document-update', { detail: doc }));
       refetchRecentDocuments();
-      window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
-    socket.on('document_updated', () => {
+    socket.on('document_created', (doc) => {
+      window.dispatchEvent(new CustomEvent('live-document-create', { detail: doc }));
       refetchRecentDocuments();
-      window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
-    socket.on('document_deleted', refetchRecentDocuments);
-    socket.on('document_removed', refetchRecentDocuments);
+    socket.on('document_deleted', (docId) => {
+      window.dispatchEvent(new CustomEvent('live-document-delete', { detail: docId }));
+      refetchRecentDocuments();
+    });
+    socket.on('document_removed', (docId) => {
+      window.dispatchEvent(new CustomEvent('live-document-delete', { detail: docId }));
+      refetchRecentDocuments();
+    });
 
     window.addEventListener('recent-documents-invalidated', refetchRecentDocuments);
 
