@@ -110,7 +110,7 @@ interface SidebarProps {
     isShared: boolean,
     parentId?: string | null,
     teamspaceId?: string | null,
-    options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'database'; skipNavigation?: boolean }
+    options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
   ) => Promise<Document | undefined>;
   onDeleteDocument: (id: string) => void;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
@@ -146,7 +146,6 @@ export function Sidebar({
   const [teamspacesExpanded, setTeamspacesExpanded] = useState(true);
   const [sharedExpanded, setSharedExpanded] = useState(true);
   const [privateExpanded, setPrivateExpanded] = useState(true);
-  const [meetingsExpanded, setMeetingsExpanded] = useState(true);
   
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [settingsTeamspace, setSettingsTeamspace] = useState<Teamspace | null>(null);
@@ -512,21 +511,16 @@ export function Sidebar({
     }
   }, [sidebarWidth, isResizing]);
 
-  const isMeetingNoteDoc = useCallback((doc: Document) => doc.is_meeting_note === true || doc.is_meeting_note === 1, []);
   const isActiveDoc = useCallback((doc: Document) => doc.is_trash !== true && doc.is_trash !== 1, []);
 
   const visibleDocuments = useMemo(() => documents.filter((doc) => doc.is_trash !== true && doc.is_trash !== 1), [documents]);
   const privateDocs = useMemo(
-    () => visibleDocuments.filter((doc) => !doc.teamspace_id && !isMeetingNoteDoc(doc) && !doc.is_shared_with_me),
-    [visibleDocuments, isMeetingNoteDoc]
+    () => visibleDocuments.filter((doc) => !doc.teamspace_id && !doc.is_shared_with_me),
+    [visibleDocuments]
   );
   const favoriteDocs = useMemo(
     () => visibleDocuments.filter((doc) => doc.is_favorite),
     [visibleDocuments]
-  );
-  const meetingDocs = useMemo(
-    () => visibleDocuments.filter((doc) => isMeetingNoteDoc(doc) && !doc.is_shared_with_me),
-    [visibleDocuments, isMeetingNoteDoc]
   );
   const sharedWithMeDocs = useMemo(
     () => visibleDocuments.filter((doc) => doc.is_shared_with_me),
@@ -535,7 +529,7 @@ export function Sidebar({
   const documentsByTeamspace = useMemo(() => {
     const grouped = new Map<string, Document[]>();
     visibleDocuments.forEach((doc) => {
-      if (!doc.teamspace_id || isMeetingNoteDoc(doc) || doc.is_shared_with_me) {
+      if (!doc.teamspace_id || doc.is_shared_with_me) {
         return;
       }
       const key = String(doc.teamspace_id);
@@ -547,7 +541,7 @@ export function Sidebar({
       }
     });
     return grouped;
-  }, [visibleDocuments, isMeetingNoteDoc]);
+  }, [visibleDocuments]);
   type RecentDocument = Pick<Document, 'id' | 'title' | 'icon' | 'updated_at' | 'is_trash'>;
 
   const recentFallback = useMemo<RecentDocument[]>(() => {
@@ -599,8 +593,8 @@ export function Sidebar({
     if (!activeDoc) {
       return false;
     }
-    return !activeDoc.teamspace_id && !isMeetingNoteDoc(activeDoc) && !activeDoc.is_shared_with_me;
-  }, [activeDoc, isMeetingNoteDoc]);
+    return !activeDoc.teamspace_id && !activeDoc.is_shared_with_me;
+  }, [activeDoc]);
   const isHoveringTeamspaceSection = overId === 'teamspace-section-drop' || overId === 'section-teamspaces';
   const showTeamspaceSuggestionTooltip = isHoveringTeamspaceSection && isDraggingPrivateDoc && hasTeamspaces;
   const showEmptyTeamspaceDropCard = isHoveringTeamspaceSection && isDraggingPrivateDoc && !hasTeamspaces;
@@ -679,7 +673,6 @@ export function Sidebar({
       const createdTeamspaceId = response.data?.id ? String(response.data.id) : null;
       if (pendingTeamspaceDropDocId && createdTeamspaceId) {
         handleDocumentUpdate(pendingTeamspaceDropDocId, {
-          is_meeting_note: false,
           teamspace_id: createdTeamspaceId,
           parent_id: null,
           is_private: false
@@ -735,7 +728,7 @@ export function Sidebar({
 
     const doc = documents.find(d => d.id === documentId);
     if (!doc) return;
-    const isDraggedFromPrivate = !doc.teamspace_id && !isMeetingNoteDoc(doc) && !doc.is_shared_with_me;
+    const isDraggedFromPrivate = !doc.teamspace_id && !doc.is_shared_with_me;
 
     if (dropTargetId === 'teamspace-section-drop' || dropTargetId === 'section-teamspaces') {
       if (isDraggedFromPrivate && teamspaces.length === 0) {
@@ -752,21 +745,7 @@ export function Sidebar({
       const targetTeamspaceId = String(dropTargetId);
       if (doc.teamspace_id !== targetTeamspaceId || doc.parent_id !== null || doc.is_shared_with_me) {
         handleDocumentUpdate(documentId, { 
-          is_meeting_note: false,
           teamspace_id: targetTeamspaceId, 
-          parent_id: null,
-          is_private: false
-        });
-      }
-      return;
-    }
-
-    // Dropped into Meeting Notes section
-    if (dropTargetId === 'meeting-notes-section') {
-      if (!isMeetingNoteDoc(doc) || doc.teamspace_id || doc.parent_id !== null || doc.is_private) {
-        handleDocumentUpdate(documentId, {
-          is_meeting_note: true,
-          teamspace_id: null,
           parent_id: null,
           is_private: false
         });
@@ -776,9 +755,8 @@ export function Sidebar({
 
     // Dropped into Private section
     if (dropTargetId === 'section-private') {
-      if (doc.teamspace_id || doc.parent_id !== null || isMeetingNoteDoc(doc)) {
+      if (doc.teamspace_id || doc.parent_id !== null) {
         handleDocumentUpdate(documentId, { 
-          is_meeting_note: false,
           teamspace_id: null, 
           parent_id: null,
           is_private: true
@@ -809,8 +787,7 @@ export function Sidebar({
             handleDocumentUpdate(documentId, { 
               parent_id: targetDoc.id,
               teamspace_id: targetDoc.teamspace_id,
-              is_private: targetDoc.teamspace_id ? false : true,
-              is_meeting_note: isMeetingNoteDoc(targetDoc)
+              is_private: targetDoc.teamspace_id ? false : true
             });
             
             // Expand the target folder automatically
@@ -827,8 +804,7 @@ export function Sidebar({
           handleDocumentUpdate(documentId, { 
             parent_id: targetDoc.parent_id,
             teamspace_id: targetDoc.teamspace_id,
-            is_private: targetDoc.teamspace_id ? false : true,
-            is_meeting_note: isMeetingNoteDoc(targetDoc)
+            is_private: targetDoc.teamspace_id ? false : true
           });
         }
       }
@@ -1103,7 +1079,6 @@ export function Sidebar({
               rightElement={<span className="text-[10px] text-[#a3a3a3] border border-[#2c2c2c] rounded px-1.5 py-0.5">⌘ K</span>}
             />
             <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { router.push('/'); onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
-            <SidebarItem icon={<CalendarCheck size={18} className="text-[#a3a3a3]" />} label="Meetings" onClick={() => router.push('/meetings')} active={pathname === '/meetings'} />
             <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => router.push('/projects')} active={pathname.startsWith('/projects')} />
             <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => router.push('/library')} active={pathname === '/library'} />
           </div>
@@ -1240,35 +1215,6 @@ export function Sidebar({
               </div>
             </div>
           )}
-
-          <div className="mt-4 mb-4">
-            <DroppableSection 
-              id="meeting-notes-section"
-              title="Meeting Notes" 
-              expanded={meetingsExpanded} 
-              onToggle={() => setMeetingsExpanded(!meetingsExpanded)}
-              rightElement={
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void onCreateDocument(false, null, null, { title: 'Nova Reunião', is_meeting_note: true, type: 'page' });
-                  }}
-                  className="opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded p-0.5 text-[#a3a3a3] hover:text-white transition-all"
-                >
-                  <Plus size={16} />
-                </button>
-              }
-            />
-            <div className={`grid transition-all duration-200 ease-in-out ${meetingsExpanded ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
-              <div className="overflow-hidden space-y-0.5">
-                {renderDocs(meetingDocs, null, 0, 'draggable')}
-                {meetingDocs.length === 0 && (
-                  <div className="px-6 py-1 text-xs text-gray-500">No meeting notes yet</div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="mt-auto border-t border-white/5 p-2 text-sm">

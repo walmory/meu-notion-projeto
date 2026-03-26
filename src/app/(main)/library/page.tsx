@@ -247,10 +247,6 @@ export default function LibraryPage() {
                 <Lock className="w-4 h-4 mr-2" />
                 Private
               </TabsTrigger>
-              <TabsTrigger value="ai-notes" className="data-[state=active]:bg-[#2c2c2c] data-[state=active]:text-white text-[#9b9b9b] px-3 py-1.5 rounded-md text-sm font-medium transition-colors">
-                <FileText className="w-4 h-4 mr-2" />
-                AI Meeting Notes
-              </TabsTrigger>
             </TabsList>
             
             <div className="relative">
@@ -305,7 +301,7 @@ export default function LibraryPage() {
                   ) : (
                     filteredTeamspaces.map((ts) => {
                       const isExpanded = !!expandedTeamspaces[ts.id];
-                      const tsDocs = documents.filter(doc => doc.teamspace_id === ts.id && !doc.is_trash && doc.parent_id !== 'meetings');
+                      const tsDocs = documents.filter(doc => doc.teamspace_id === ts.id && !doc.is_trash);
 
                       return (
                         <React.Fragment key={ts.id}>
@@ -522,8 +518,8 @@ export default function LibraryPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="private" className="m-0">
-            <div className="w-full">
+          <TabsContent value="private" className="mt-6 m-0 focus-visible:outline-none">
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-white/5 hover:bg-transparent">
@@ -533,7 +529,7 @@ export default function LibraryPage() {
                 </TableHeader>
                 <TableBody className="divide-y divide-white/5">
                   {documents
-                    .filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me && doc.parent_id !== 'meetings')
+                    .filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me)
                     .map(doc => (
                       <TableRow 
                         key={doc.id}
@@ -551,51 +547,10 @@ export default function LibraryPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                  {documents.filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me && doc.parent_id !== 'meetings').length === 0 && (
+                  {documents.filter(doc => !doc.is_trash && !doc.teamspace_id && !doc.is_shared_with_me).length === 0 && (
                     <TableRow className="border-b-0 hover:bg-transparent">
                       <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
-                        No projects found here
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="ai-notes" className="m-0">
-            <div className="w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[#9b9b9b] font-medium w-[40%] py-4">Name</TableHead>
-                    <TableHead className="text-[#9b9b9b] font-medium w-[30%] py-4">Last Edited</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-white/5">
-                  {documents
-                    .filter(doc => !doc.is_trash && doc.parent_id === 'meetings')
-                    .map(doc => (
-                      <TableRow 
-                        key={doc.id}
-                        className="border-b-0 hover:bg-[#2c2c2c] cursor-pointer transition-colors group"
-                        onClick={() => router.push(`/documents/${doc.id}`)}
-                      >
-                        <TableCell className="font-medium py-4 text-white">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-[#9b9b9b]" />
-                            <span className="truncate group-hover:text-white transition-colors">{doc.title || 'Untitled'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-[#9b9b9b] py-4">
-                          {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  {documents.filter(doc => !doc.is_trash && doc.parent_id === 'meetings').length === 0 && (
-                    <TableRow className="border-b-0 hover:bg-transparent">
-                      <TableCell colSpan={2} className="text-center py-8 text-[#9b9b9b]">
-                        No projects found here
+                        No pages found
                       </TableCell>
                     </TableRow>
                   )}

@@ -22,7 +22,6 @@ export interface Document {
   last_edited_by?: string;
   is_private?: boolean;
   is_public?: boolean | 0 | 1;
-  is_meeting_note?: boolean | 0 | 1;
   type?: string;
 }
 
@@ -178,7 +177,6 @@ export function useDocuments(workspaceId?: string) {
     parent_id?: string | null;
     workspace_id?: string | null;
     teamspace_id?: string | null;
-    is_meeting_note?: boolean;
     type?: 'page' | 'database';
   };
 
@@ -202,7 +200,7 @@ export function useDocuments(workspaceId?: string) {
       
       const payload = typeof titleOrInput === 'string'
         ? { id: tempId, title: titleOrInput, is_shared, content: '[]', parent_id, workspace_id: resolvedWorkspaceId, teamspace_id, content_version: 0 }
-        : { id: tempId, title: titleOrInput.title ?? '', is_shared: titleOrInput.is_shared ?? false, content: '[]', parent_id: titleOrInput.parent_id, workspace_id: resolvedWorkspaceId, teamspace_id: titleOrInput.teamspace_id, is_meeting_note: titleOrInput.is_meeting_note, type: titleOrInput.type ?? 'page', content_version: 0 };
+        : { id: tempId, title: titleOrInput.title ?? '', is_shared: titleOrInput.is_shared ?? false, content: '[]', parent_id: titleOrInput.parent_id, workspace_id: resolvedWorkspaceId, teamspace_id: titleOrInput.teamspace_id, type: titleOrInput.type ?? 'page', content_version: 0 };
 
       const optimisticDoc: Document = {
         id: tempId,
@@ -213,7 +211,6 @@ export function useDocuments(workspaceId?: string) {
         teamspace_id: payload.teamspace_id || null,
         is_private: payload.teamspace_id ? false : true,
         is_shared: payload.is_shared,
-        is_meeting_note: payload.is_meeting_note ? true : false,
         is_trash: false,
         is_favorite: false,
         is_shared_with_me: false,

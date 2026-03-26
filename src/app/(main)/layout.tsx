@@ -99,14 +99,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             isShared: boolean,
             parentId?: string | null,
             teamspaceId?: string | null,
-            options?: { title?: string; is_meeting_note?: boolean; type?: 'page' | 'database'; skipNavigation?: boolean }
+            options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
           ) => {
             const newDoc = await createDocument({
               title: options?.title ?? '',
               is_shared: isShared,
               parent_id: parentId,
               teamspace_id: teamspaceId,
-              is_meeting_note: options?.is_meeting_note,
               type: options?.type
             });
             if (newDoc && !options?.skipNavigation) {

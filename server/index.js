@@ -9,7 +9,6 @@ import userRoutes from './routes/user.js';
 import workspaceRoutes from './routes/workspaces.js';
 import teamspaceRoutes from './routes/teamspaces.js';
 import documentRoutes from './routes/documents.js';
-import meetingRoutes from './routes/meetings.js';
 import uploadRoutes from './routes/upload.js';
 import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
@@ -41,7 +40,6 @@ app.use('/workspaces', workspaceRoutes);
 app.use('/workspace', workspaceRoutes); // Alias para a rota usada no frontend
 app.use('/teamspaces', teamspaceRoutes);
 app.use('/documents', documentRoutes);
-app.use('/meetings', meetingRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/projects', projectRoutes);
 app.use('/tasks', taskRoutes);
