@@ -10,16 +10,16 @@ function createWindow() {
     width: 1200,
     height: 800,
     show: false,
-    backgroundColor: '#191919', // Certificando que é escuro desde o instante 0
+    backgroundColor: '#000000', // Certificando que é escuro desde o instante 0
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      partition: 'persist:main'
+      partition: 'persist:opta-session'
     }
   });
 
-  // Mostra a janela APENAS quando a página terminar de carregar
-  mainWindow.webContents.on('did-finish-load', () => {
+  // Mostra a janela APENAS quando estiver pronta
+  mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
 

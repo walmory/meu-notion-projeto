@@ -56,22 +56,8 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
     } else if (quickNotesDoc) {
       // It was deleted
       setQuickNotesDoc(null);
-    } else if (!isCreatingRef.current && documents.length === 0 && !localStorage.getItem('quick_notes_deleted')) {
-      // Only auto-create if it's a brand new workspace
-      isCreatingRef.current = true;
-      const createIt = async () => {
-        try {
-          const newDoc = await createDocument('Rascunhos Rápidos', false);
-          setQuickNotesDoc(newDoc);
-        } catch(e) {
-          console.error('Error creating Quick Notes', e);
-        } finally {
-          isCreatingRef.current = false;
-        }
-      };
-      createIt();
     }
-  }, [documents, createDocument, quickNotesDoc]);
+  }, [documents, quickNotesDoc]);
 
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -240,14 +226,14 @@ export function Dashboard({ documents, onSelectDocument, createDocument, onUpdat
                                   />
                                 ) : (
                                   <h3 className={`font-medium truncate text-[15px] pr-6 ${!doc.title ? 'text-[#a3a3a3]' : 'text-white'}`}>
-                                     {doc.title || 'Untitled'}
-                                  </h3>
-                                )}
-                                <p className="text-xs text-[#737373] mt-1.5">
-                                   Editado em {new Date(doc.updated_at || Date.now()).toLocaleDateString()}
-                                </p>
-                             </div>
+                                 {doc.title || 'Untitled'}
+                              </h3>
+                            )}
+                            <p className="text-xs text-[#737373] mt-1.5">
+                               Editado em {new Date(doc.updated_at || new Date()).toLocaleDateString()}
+                            </p>
                          </div>
+                     </div>
                        </DocumentContextMenu>
                    ))}
                 </div>
