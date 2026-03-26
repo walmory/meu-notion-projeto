@@ -6,11 +6,14 @@ import { useRouter } from 'next/navigation';
 import { EditorSkeleton } from '@/components/EditorSkeleton';
 import { useEffect, useState } from 'react';
 import { getAuthToken } from '@/lib/api';
+import { useTabs } from '@/contexts/TabContext';
+import { Editor } from '@/components/Editor';
 
 export default function Home() {
   const router = useRouter();
   const { documents, createDocument, updateDocument, toggleFavorite, deleteDocument, duplicateDocument, refetch, loading } = useDocuments();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const { activeTabId, addTab } = useTabs();
 
   useEffect(() => {
     let isMounted = true;
@@ -39,11 +42,26 @@ export default function Home() {
     return <EditorSkeleton />;
   }
 
+  if (activeTabId && !activeTabId.startsWith('home')) {
+    const activeDoc = documents?.find(d => d.id === activeTabId) || null;
+    if (activeDoc) {
+      return (
+        <Editor
+          document={activeDoc}
+          onUpdate={refetch}
+          onUpdateDocument={updateDocument}
+        />
+      );
+    }
+  }
+
   return (
     <Dashboard 
       documents={documents || []}
       onSelectDocument={(doc) => {
-        router.push(`/documents/${doc.id}`);
+        if (doc) {
+          addTab({ id: doc.id, title: doc.title || 'Untitled', icon: doc.icon, type: 'document' });
+        }
       }}
       createDocument={createDocument}
       onUpdate={refetch}

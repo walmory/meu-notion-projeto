@@ -1112,7 +1112,7 @@ export function Sidebar({
               onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
               rightElement={<span className="text-[10px] text-[#a3a3a3] border border-[#2c2c2c] rounded px-1.5 py-0.5">⌘ K</span>}
             />
-            <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { router.push('/'); onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
+            <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
             <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => router.push('/projects')} active={pathname.startsWith('/projects')} />
             <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => router.push('/library')} active={pathname === '/library'} />
           </div>
