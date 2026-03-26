@@ -449,7 +449,7 @@ function KanbanColumn({
   const Icon = config?.icon || Circle;
 
   return (
-    <div ref={setNodeRef} className={`flex flex-col min-w-[320px] w-[320px] shrink-0 bg-[#161b22] rounded-[12px] transition-colors duration-200 ${isOver ? 'ring-2 ring-white/20' : ''} h-fit border border-white/5`}>
+    <div ref={setNodeRef} className={`flex flex-col min-w-[320px] w-[320px] shrink-0 bg-[#161b22] rounded-[12px] transition-colors duration-200 ${isOver ? 'ring-2 ring-white/20' : ''} max-h-full overflow-hidden border border-white/5`}>
       <div className={`flex items-center justify-between p-3 shrink-0 ${config.headerBg} border-b border-white/5`}>
         <div className="flex items-center gap-2">
           <Icon size={16} className={config?.color || 'text-gray-500'} />
@@ -462,7 +462,7 @@ function KanbanColumn({
            <MoreHorizontal size={18} />
          </button>
       </div>
-      <div className="flex-1 p-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
         {children}
       </div>
     </div>
@@ -814,7 +814,7 @@ export default function ProjectPage() {
           {activeTab === 'tasks' ? (
             <div className="h-full flex flex-col bg-transparent rounded-2xl">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex gap-6 overflow-auto pb-4 h-full items-start custom-scrollbar">
+                <div className="flex gap-6 overflow-x-auto pb-4 h-full items-start custom-scrollbar">
                   {STATUS_ORDER.map((statusGroup) => {
                     const groupTasks = groupedTasks[statusGroup];
                     return (
