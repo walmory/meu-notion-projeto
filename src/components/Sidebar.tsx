@@ -433,24 +433,6 @@ export function Sidebar({
       }
     });
 
-    socket.on('document:move', (payload: { documentId: string; newParentId: string | null; targetSpace: string; teamspace_id?: string | null; is_private?: boolean }) => {
-      const cacheKey = activeWorkspaceId ? `/documents?workspace_id=${activeWorkspaceId}` : '/documents';
-      globalMutate(
-        cacheKey,
-        (current: Document[] | undefined) => {
-          if (!current) return [];
-          return current.map(d => String(d.id) === payload.documentId ? { 
-            ...d, 
-            parent_id: payload.newParentId, 
-            teamspace_id: payload.teamspace_id ?? (payload.targetSpace !== 'Private' ? payload.targetSpace : null),
-            is_private: payload.is_private ?? (payload.targetSpace === 'Private')
-          } : d);
-        },
-        false
-      );
-      refetchRecentDocuments();
-    });
-
     socket.on('document_moved', () => {
       refetchRecentDocuments();
       window.dispatchEvent(new CustomEvent('mutate-documents'));
@@ -470,7 +452,6 @@ export function Sidebar({
 
     return () => {
       socket.off('document:update-title');
-      socket.off('document:move');
       socket.off('document_moved');
       socket.off('document-updated');
       socket.off('document_updated');
@@ -791,34 +772,17 @@ export function Sidebar({
       return;
     }
 
-    const applyOptimisticMove = (newParentId: string | null, newTeamspaceId: string | null, newIsPrivate: boolean) => {
-      const cacheKey = activeWorkspaceId ? `/documents?workspace_id=${activeWorkspaceId}` : '/documents';
-      globalMutate(
-        cacheKey,
-        (current: Document[] | undefined) => {
-          if (!current) return [];
-          return current.map(d => String(d.id) === documentId ? { ...d, parent_id: newParentId, teamspace_id: newTeamspaceId, is_private: newIsPrivate } : d);
-        },
-        false
-      );
-
-      if (socketRef.current && activeWorkspaceId) {
-        socketRef.current.emit('document:move', {
-          workspaceId: activeWorkspaceId,
-          documentId,
-          newParentId,
-          targetSpace: newTeamspaceId || 'Private'
-        });
-      }
-    };
-
     const isTeamspaceDropTarget = over.data.current?.type === 'teamspace' || teamspaceIdSet.has(String(dropTargetId));
     
     // Dropped onto Teamspace
     if (isTeamspaceDropTarget) {
       const targetTeamspaceId = String(dropTargetId);
       if (doc.teamspace_id !== targetTeamspaceId || doc.parent_id !== null || doc.is_shared_with_me) {
-        applyOptimisticMove(null, targetTeamspaceId, false);
+        handleDocumentUpdate(documentId, { 
+          teamspace_id: targetTeamspaceId, 
+          parent_id: null,
+          is_private: false
+        });
       }
       return;
     }
@@ -826,7 +790,11 @@ export function Sidebar({
     // Dropped into Private section
     if (dropTargetId === 'section-private') {
       if (doc.teamspace_id || doc.parent_id !== null) {
-        applyOptimisticMove(null, null, true);
+        handleDocumentUpdate(documentId, { 
+          teamspace_id: null, 
+          parent_id: null,
+          is_private: true
+        });
       }
       return;
     }
@@ -850,7 +818,11 @@ export function Sidebar({
           }
 
           if (!isCyclic) {
-            applyOptimisticMove(targetDoc.id, targetDoc.teamspace_id || null, targetDoc.teamspace_id ? false : true);
+            handleDocumentUpdate(documentId, { 
+              parent_id: targetDoc.id,
+              teamspace_id: targetDoc.teamspace_id,
+              is_private: targetDoc.teamspace_id ? false : true
+            });
             
             // Expand the target folder automatically
             setExpandedFolders(prev => {
@@ -863,7 +835,11 @@ export function Sidebar({
           }
         } else {
           // If dropped on a page/database, drop it alongside (same parent)
-          applyOptimisticMove(targetDoc.parent_id || null, targetDoc.teamspace_id || null, targetDoc.teamspace_id ? false : true);
+          handleDocumentUpdate(documentId, { 
+            parent_id: targetDoc.parent_id,
+            teamspace_id: targetDoc.teamspace_id,
+            is_private: targetDoc.teamspace_id ? false : true
+          });
         }
       }
     }
