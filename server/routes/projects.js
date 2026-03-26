@@ -2,11 +2,13 @@ import express from 'express';
 import pool from '../config/db.js';
 import crypto from 'crypto';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
 import { emitToWorkspace } from '../socket.js';
 
 const router = express.Router();
 
 router.use(authMiddleware);
+router.use(workspaceMiddleware);
 
 export const updateTask = async (req, res) => {
   try {
@@ -57,15 +59,10 @@ export const updateTask = async (req, res) => {
 // Get all projects for a user
 router.get('/', async (req, res) => {
   try {
-    const workspaceId = req.query.workspace_id || req.headers['x-workspace-id'];
+    const workspaceId = req.workspace_id;
     const teamspaceId = req.query.teamspace_id;
-    let query = 'SELECT * FROM projects WHERE owner_id = ?';
-    let params = [req.user.id];
-    
-    if (workspaceId) {
-      query += ' AND workspace_id = ?';
-      params.push(workspaceId);
-    }
+    let query = 'SELECT * FROM projects WHERE workspace_id = ?';
+    let params = [workspaceId];
 
     if (teamspaceId) {
       query += ' AND teamspace_id = ?';
@@ -85,12 +82,13 @@ router.get('/', async (req, res) => {
 // Create a project
 router.post('/', async (req, res) => {
   try {
-    const { name, color, workspace_id, teamspace_id, id } = req.body;
+    const { name, color, teamspace_id, id } = req.body;
+    const workspace_id = req.workspace_id;
     const projectId = id || crypto.randomUUID();
     
     await pool.query(
       'INSERT INTO projects (id, name, owner_id, workspace_id, teamspace_id, color) VALUES (?, ?, ?, ?, ?, ?)',
-      [projectId, name, req.user.id, workspace_id || null, teamspace_id || null, color || 'blue']
+      [projectId, name, req.user.id, workspace_id, teamspace_id || null, color || 'blue']
     );
     
     const [newProject] = await pool.query('SELECT * FROM projects WHERE id = ?', [projectId]);
@@ -140,6 +138,7 @@ router.patch('/tasks/:taskId', updateTask);
 router.patch('/:id', async (req, res) => {
   try {
     const { name, color } = req.body;
+    const workspace_id = req.workspace_id;
     
     let updateFields = [];
     let values = [];
@@ -149,9 +148,9 @@ router.patch('/:id', async (req, res) => {
     
     if (updateFields.length > 0) {
       values.push(req.params.id);
-      values.push(req.user.id);
+      values.push(workspace_id);
       await pool.query(
-        `UPDATE projects SET ${updateFields.join(', ')} WHERE id = ? AND owner_id = ?`,
+        `UPDATE projects SET ${updateFields.join(', ')} WHERE id = ? AND workspace_id = ?`,
         values
       );
     }
@@ -166,9 +165,10 @@ router.patch('/:id', async (req, res) => {
 // Delete a project
 router.delete('/:id', async (req, res) => {
   try {
+    const workspace_id = req.workspace_id;
     // Delete project tasks first (in case ON DELETE CASCADE constraint is not set)
     await pool.query('DELETE FROM tasks WHERE project_id = ?', [req.params.id]);
-    await pool.query('DELETE FROM projects WHERE id = ? AND owner_id = ?', [req.params.id, req.user.id]);
+    await pool.query('DELETE FROM projects WHERE id = ? AND workspace_id = ?', [req.params.id, workspace_id]);
     res.status(204).end();
   } catch (err) {
     console.error(err);
