@@ -54,7 +54,25 @@ export const useGlobalSocket = () => {
     };
   }, [token]);
 
-  return { socket, isConnected };
+  const emitKanbanMove = (cardId: string, sourceColumn: string, destColumn: string, newIndex: number) => {
+    if (socket && isConnected) {
+      const workspaceId = localStorage.getItem('activeWorkspaceId');
+      if (workspaceId) {
+        socket.emit('kanban:move', { workspaceId, cardId, sourceColumn, destColumn, newIndex });
+      }
+    }
+  };
+
+  const emitCardProgress = (cardId: string, newProgress: number) => {
+    if (socket && isConnected) {
+      const workspaceId = localStorage.getItem('activeWorkspaceId');
+      if (workspaceId) {
+        socket.emit('card:progress', { workspaceId, cardId, newProgress });
+      }
+    }
+  };
+
+  return { socket, isConnected, emitKanbanMove, emitCardProgress };
 };
 
 export const useSocket = (docId: string) => {

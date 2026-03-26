@@ -333,6 +333,32 @@ export const initSocket = (httpServer) => {
     });
 
     // ── Presence / collaboration events ──────────────────────────────────
+    socket.on('kanban:move', (payload) => {
+      const { workspaceId, cardId, sourceColumn, destColumn, newIndex } = payload || {};
+      if (!workspaceId || !cardId) return;
+      const workspaceRoom = getWorkspaceRoom(workspaceId);
+      if (!socket.rooms.has(workspaceRoom)) return;
+      socket.broadcast.to(workspaceRoom).emit('kanban:move', {
+        senderId: socket.id,
+        cardId,
+        sourceColumn,
+        destColumn,
+        newIndex,
+      });
+    });
+
+    socket.on('card:progress', (payload) => {
+      const { workspaceId, cardId, newProgress } = payload || {};
+      if (!workspaceId || !cardId) return;
+      const workspaceRoom = getWorkspaceRoom(workspaceId);
+      if (!socket.rooms.has(workspaceRoom)) return;
+      socket.broadcast.to(workspaceRoom).emit('card:progress', {
+        senderId: socket.id,
+        cardId,
+        newProgress,
+      });
+    });
+
     socket.on('document-moving', (payload) => {
       if (!payload?.workspaceId || !payload?.documentId) return;
       socket.volatile
