@@ -395,6 +395,12 @@ export function Sidebar({
   // Socket instance para PRESENCE
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const socketRef = useRef<any>(null);
+  const refetchRecentDocuments = useCallback(() => {
+    void globalMutate((key) => typeof key === 'string' && key.startsWith('/documents/recent'));
+    if (activeWorkspaceId) {
+      void globalMutate(`/documents/recent?workspace_id=${activeWorkspaceId}`);
+    }
+  }, [activeWorkspaceId, globalMutate]);
 
   useEffect(() => {
     const token = getAuthToken();
@@ -428,24 +434,34 @@ export function Sidebar({
     });
 
     socket.on('document_moved', () => {
+      refetchRecentDocuments();
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
     socket.on('document-updated', () => {
+      refetchRecentDocuments();
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
     socket.on('document_updated', () => {
+      refetchRecentDocuments();
       window.dispatchEvent(new CustomEvent('mutate-documents'));
     });
+    socket.on('document_deleted', refetchRecentDocuments);
+    socket.on('document_removed', refetchRecentDocuments);
+
+    window.addEventListener('recent-documents-invalidated', refetchRecentDocuments);
 
     return () => {
       socket.off('document:update-title');
       socket.off('document_moved');
       socket.off('document-updated');
       socket.off('document_updated');
+      socket.off('document_deleted', refetchRecentDocuments);
+      socket.off('document_removed', refetchRecentDocuments);
+      window.removeEventListener('recent-documents-invalidated', refetchRecentDocuments);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeWorkspaceId, applyLiveTitleSync]);
+  }, [activeWorkspaceId, applyLiveTitleSync, refetchRecentDocuments]);
 
   // Resizing state
   const [isResizing, setIsResizing] = useState(false);
@@ -566,13 +582,31 @@ export function Sidebar({
   const recentFetcher = useCallback(async (url: string) => {
     try {
       const data = await fetcher(url);
-      return Array.isArray(data) ? data.filter(doc => doc.is_trash !== true && doc.is_trash !== 1) : [];
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   }, []);
-  const { data: recentDocsData } = useSWR<RecentDocument[]>(recentKey, recentFetcher, { fallbackData: recentFallback });
-  const recentDocs = (recentDocsData || recentFallback).filter(doc => doc.is_trash !== true && doc.is_trash !== 1);
+  const { data: recentDocsData } = useSWR<RecentDocument[]>(
+    recentKey,
+    recentFetcher,
+    {
+      fallbackData: recentFallback,
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
+      revalidateOnReconnect: true,
+      refreshInterval: 15000,
+      dedupingInterval: 1000
+    }
+  );
+  const recentDocs = useMemo(() => {
+    const source = recentDocsData || recentFallback;
+    const activeDocumentIds = new Set(visibleDocuments.map((doc) => String(doc.id)));
+    return source
+      .filter((doc) => activeDocumentIds.has(String(doc.id)))
+      .filter((doc) => doc.is_trash !== true && doc.is_trash !== 1)
+      .slice(0, 5);
+  }, [recentDocsData, recentFallback, visibleDocuments]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

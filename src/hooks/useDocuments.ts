@@ -133,6 +133,15 @@ export function useDocuments(workspaceId?: string) {
     return activeWorkspaceId ? `/documents/recent?workspace_id=${activeWorkspaceId}` : '/documents/recent';
   };
 
+  const invalidateRecentDocumentsQueries = useCallback(() => {
+    void mutateGlobal(
+      (key) => typeof key === 'string' && key.startsWith('/documents/recent'),
+      undefined,
+      { revalidate: true }
+    );
+    window.dispatchEvent(new CustomEvent('recent-documents-invalidated'));
+  }, [mutateGlobal]);
+
   const ensureActiveWorkspaceId = async (workspaceIdFromInput?: string | null) => {
     if (typeof window === 'undefined') {
       return workspaceIdFromInput ?? null;
@@ -335,6 +344,7 @@ export function useDocuments(workspaceId?: string) {
       },
       false
     );
+    invalidateRecentDocumentsQueries();
 
     try {
       await api.patch(
@@ -342,8 +352,7 @@ export function useDocuments(workspaceId?: string) {
         { is_trash: 1 },
         { headers: getAuthHeaders(), suppressGlobalErrorLog: true } as { headers: Record<string, string>; suppressGlobalErrorLog: boolean }
       );
-      // Removed re-fetch to maintain optimistic state smoothly
-      // await mutate();
+      invalidateRecentDocumentsQueries();
     } catch (error) {
       console.error('Error deleting document', error);
       toast.error('Failed to delete. Please try again.');
@@ -359,6 +368,7 @@ export function useDocuments(workspaceId?: string) {
           // no-op
         }
       }
+      invalidateRecentDocumentsQueries();
     }
   };
 
