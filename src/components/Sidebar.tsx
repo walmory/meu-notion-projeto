@@ -566,13 +566,13 @@ export function Sidebar({
   const recentFetcher = useCallback(async (url: string) => {
     try {
       const data = await fetcher(url);
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? data.filter(doc => doc.is_trash !== true && doc.is_trash !== 1) : [];
     } catch {
       return [];
     }
   }, []);
   const { data: recentDocsData } = useSWR<RecentDocument[]>(recentKey, recentFetcher, { fallbackData: recentFallback });
-  const recentDocs = recentDocsData || recentFallback;
+  const recentDocs = (recentDocsData || recentFallback).filter(doc => doc.is_trash !== true && doc.is_trash !== 1);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
