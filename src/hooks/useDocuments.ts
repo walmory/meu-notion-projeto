@@ -100,46 +100,6 @@ export function useDocuments(workspaceId?: string) {
     }
   }, [getDocumentsCacheKey, mutate]);
 
-  // LIVE SOCKET UPDATES
-  useEffect(() => {
-    const handleLiveUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<Document>;
-      const updatedDoc = customEvent.detail;
-      mutate((current = []) => {
-        return current.map(doc => doc.id === updatedDoc.id ? { ...doc, ...updatedDoc } : doc);
-      }, { revalidate: false });
-    };
-
-    const handleLiveCreate = (e: Event) => {
-      const customEvent = e as CustomEvent<Document>;
-      const newDoc = customEvent.detail;
-      mutate((current = []) => {
-        const exists = current.find(d => d.id === newDoc.id);
-        if (exists) return current;
-        return [...current, newDoc];
-      }, { revalidate: false });
-    };
-
-    const handleLiveDelete = (e: Event) => {
-      const customEvent = e as CustomEvent<string | { id: string }>;
-      const detail = customEvent.detail;
-      const deletedId = typeof detail === 'string' ? detail : detail.id;
-      mutate((current = []) => {
-        return current.filter(doc => doc.id !== deletedId);
-      }, { revalidate: false });
-    };
-
-    window.addEventListener('live-document-update', handleLiveUpdate);
-    window.addEventListener('live-document-create', handleLiveCreate);
-    window.addEventListener('live-document-delete', handleLiveDelete);
-
-    return () => {
-      window.removeEventListener('live-document-update', handleLiveUpdate);
-      window.removeEventListener('live-document-create', handleLiveCreate);
-      window.removeEventListener('live-document-delete', handleLiveDelete);
-    };
-  }, [mutate]);
-
   useEffect(() => {
     const handleMutateDocuments = () => {
       mutate();
