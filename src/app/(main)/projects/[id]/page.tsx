@@ -21,7 +21,7 @@ import {
 import useSWR from 'swr';
 import { api, getAuthHeaders, getUserFromToken } from '@/lib/api';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { io } from 'socket.io-client';
+import { useGlobalSocket } from '@/hooks/useSocket';
 
 import {
   DndContext,
@@ -483,6 +483,7 @@ export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
+  const { socket, emitKanbanMove } = useGlobalSocket();
   
   const [userName] = useState(() => {
     const user = getUserFromToken();
@@ -565,6 +566,8 @@ export default function ProjectPage() {
       { revalidate: false }
     );
 
+    emitKanbanMove(activeId, activeTask.status, destinationStatus, nextPosition);
+
     try {
       await api.patch(`/tasks/${activeId}`, {
         status: destinationStatus,
@@ -603,16 +606,9 @@ export default function ProjectPage() {
   }));
 
   useEffect(() => {
-    if (!project?.workspace_id) return;
+    if (!socket || !project?.workspace_id) return;
     
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin.replace('3000', '3001') : 'http://localhost:3001');
-    const socket = io(socketUrl, {
-      transports: ['websocket'],
-      upgrade: false
-    });
-    socket.emit('join-workspace', project.workspace_id);
-    
-    socket.on('task-updated', (updatedTask: Task) => {
+    const handleTaskUpdated = (updatedTask: Task) => {
       if (updatedTask.project_id === projectId) {
         mutateTasks((currentTasks = []) => {
           const exists = currentTasks.find(t => t.id === updatedTask.id);
@@ -623,12 +619,27 @@ export default function ProjectPage() {
           }
         }, { revalidate: false });
       }
-    });
+    };
+
+    const handleKanbanMove = (payload: { cardId: string, sourceColumn: string, destColumn: string, newIndex: number }) => {
+      mutateTasks((currentTasks = []) => {
+        return currentTasks.map(t => {
+          if (t.id === payload.cardId) {
+            return { ...t, status: payload.destColumn as Task['status'], position: payload.newIndex };
+          }
+          return t;
+        });
+      }, { revalidate: false });
+    };
+
+    socket.on('task-updated', handleTaskUpdated);
+    socket.on('kanban:move', handleKanbanMove);
 
     return () => {
-      socket.disconnect();
+      socket.off('task-updated', handleTaskUpdated);
+      socket.off('kanban:move', handleKanbanMove);
     };
-  }, [project?.workspace_id, projectId, mutateTasks]);
+  }, [socket, project?.workspace_id, projectId, mutateTasks]);
 
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
