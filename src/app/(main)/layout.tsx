@@ -8,12 +8,9 @@ import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
 import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
-import { useTabs } from '@/contexts/TabContext';
-import { TabBarHeader } from '@/components/TabBarHeader';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
-  const { activeTabId, addTab, removeTab, setActiveTabId } = useTabs();
   const params = useParams();
   const router = useRouter();
   const documentId = params.documentId as string | undefined;
@@ -87,49 +84,48 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <SidePeekProvider>
       <div className="flex flex-row h-screen w-full bg-[#191919] text-white">
-          <Sidebar 
-            documents={documents || []}
-            selectedDocId={activeTabId.startsWith('home') ? undefined : activeTabId}
-            onSelectDocument={(doc) => {
-              if (doc) {
-                addTab({ id: doc.id, title: doc.title || 'Untitled', icon: doc.icon, type: 'document' });
-                router.push('/');
-              }
-              else {
-                addTab({ id: 'home', title: 'Home', type: 'home' });
-                router.push('/');
-              }
-            }}
-            onCreateDocument={async (
-              isShared: boolean,
-              parentId?: string | null,
-              teamspaceId?: string | null,
-              options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
-            ) => {
-              const newDoc = await createDocument({
-                title: options?.title ?? '',
-                is_shared: isShared,
-                parent_id: parentId,
-                teamspace_id: teamspaceId,
-                type: options?.type
-              });
-              if (newDoc && !options?.skipNavigation) {
-                addTab({ id: newDoc.id, title: newDoc.title || 'Untitled', icon: newDoc.icon, type: 'document' });
-                router.push('/');
-              }
-              return newDoc;
-            }}
+        <Sidebar 
+          documents={documents || []}
+          selectedDocId={documentId}
+          onSelectDocument={(doc) => {
+            if (doc) {
+              const targetPath = `/documents/${doc.id}`;
+              router.prefetch(targetPath);
+              router.push(targetPath);
+            }
+            else router.push('/');
+          }}
+          onCreateDocument={async (
+            isShared: boolean,
+            parentId?: string | null,
+            teamspaceId?: string | null,
+            options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
+          ) => {
+            const newDoc = await createDocument({
+              title: options?.title ?? '',
+              is_shared: isShared,
+              parent_id: parentId,
+              teamspace_id: teamspaceId,
+              type: options?.type
+            });
+            if (newDoc && !options?.skipNavigation) {
+              const targetPath = `/documents/${newDoc.id}`;
+              router.prefetch(targetPath);
+              router.push(targetPath);
+            }
+            return newDoc;
+          }}
           onDeleteDocument={async (id) => {
-              deleteDocument(id);
-              removeTab(id);
+            deleteDocument(id);
+            if (documentId === id) {
               router.push('/');
-            }}
+            }
+          }}
           onUpdateDocument={updateDocument}
           onToggleFavorite={toggleFavorite}
           onDuplicateDocument={duplicateDocument}
         />
         <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
-          <TabBarHeader />
           {children}
         </div>
         <SidePeekDrawer />

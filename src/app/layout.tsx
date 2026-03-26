@@ -15,7 +15,6 @@ const geistMono = Geist_Mono({
 });
 
 import { UserProvider } from "@/contexts/UserContext";
-import { TabProvider } from "@/contexts/TabContext";
 
 export const metadata: Metadata = {
   title: "OPTA Workspace",
@@ -40,11 +39,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#191919] text-white" suppressHydrationWarning>
         <UserProvider>
-          <TabProvider>
-            {children}
-            <CommandPalette />
-            <Toaster theme="dark" position="bottom-right" />
-          </TabProvider>
+          {children}
+          <CommandPalette />
+          <Toaster theme="dark" position="bottom-right" />
         </UserProvider>
       </body>
     </html>
