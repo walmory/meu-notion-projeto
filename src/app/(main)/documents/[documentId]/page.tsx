@@ -73,7 +73,7 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#191919] text-white overflow-hidden">
+    <div className="flex h-full min-h-0 w-full bg-[#191919] text-white overflow-hidden">
       <Editor 
         document={editorDocument} 
         onUpdate={() => {
