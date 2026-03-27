@@ -20,7 +20,6 @@ import { Mention } from './Mention';
 import { SuggestionMenuController, getDefaultReactSlashMenuItems, DefaultReactSuggestionItem } from '@blocknote/react';
 import { getAuthHeaders, getUserFromToken } from '@/lib/api';
 import { useSWRConfig } from 'swr';
-import { useTabs } from '@/contexts/TabsContext';
 
 function debounce<T extends (...args: Parameters<T>) => void>(func: T, wait: number) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -87,13 +86,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   onUpdateRef.current = onUpdate;
   const [isFullWidth, setIsFullWidth] = useState(false);
   const { mutate: mutateGlobal } = useSWRConfig();
-  const { tabs, activeTabId, updateTabTitle } = useTabs();
   const titleRef = useRef(title);
-  
-  // Local Typing State to prevent Remote Overwrites (Cursor Jumping)
-  const isTyping = useRef(false);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Atomic Sequence: seq increments every keystroke; lastSentSeq / lastAckedSeq
   // track sync state without race conditions.
   const seqRef = useRef(0);
@@ -103,18 +96,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   const lastSentPayloadKeyRef = useRef<string>('');
   const mentionSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mentionSearchResolveRef = useRef<((value: DefaultReactSuggestionItem[]) => void) | null>(null);
-  const currentDocumentPath = document?.id ? `/documents/${document.id}` : null;
-  const breadcrumbTitle = useMemo(() => {
-    if (!currentDocumentPath) {
-      return '';
-    }
-    const activeTitle = tabs.find((tab) => tab.id === activeTabId)?.title;
-    if (activeTabId === currentDocumentPath && activeTitle) {
-      return activeTitle;
-    }
-    const currentTitle = tabs.find((tab) => tab.id === currentDocumentPath)?.title;
-    return currentTitle || title || 'Untitled';
-  }, [activeTabId, currentDocumentPath, tabs, title]);
 
   const prevDocId = useRef(document?.id);
   const controls = useAnimation();
@@ -207,15 +188,11 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
 
   useEffect(() => {
     titleRef.current = title;
-    if (document) {
-      updateTabTitle(document.id, title);
-    }
-  }, [title, document, updateTabTitle]);
+  }, [title]);
 
   const syncSharedTitle = useCallback((docId: string, nextTitle: string) => {
     titleRef.current = nextTitle;
     setTitle(nextTitle);
-    updateTabTitle(docId, nextTitle);
     mutateGlobal(
       '/documents',
       (current: Document[] | undefined) => {
@@ -239,7 +216,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       (current: Document | null | undefined) => current ? { ...current, title: nextTitle } : current,
       false
     );
-  }, [mutateGlobal, updateTabTitle]);
+  }, [mutateGlobal]);
 
   const syncSharedVisual = useCallback((docId: string, updates: Pick<Document, 'icon' | 'cover'>) => {
     if (updates.cover !== undefined) {
@@ -278,7 +255,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     socket.on('title-change', (payload: { senderId?: string; docId?: string; title?: string }) => {
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
-      if (isTyping.current) return;
       if (typeof payload.title !== 'string') return;
       if (payload.title === titleRef.current) return;
       syncSharedTitle(currentDocumentId, payload.title);
@@ -287,7 +263,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     socket.on('document:update-title', (payload: { senderId?: string; docId?: string; newTitle?: string }) => {
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
-      if (isTyping.current) return;
       if (typeof payload.newTitle !== 'string') return;
       // Bloqueio de Race Condition: Ignora se o usuário está digitando ativamente um novo título local.
       if (isUpdatingContent.current) return;
@@ -311,7 +286,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on('content-update', (payload: { senderId?: string; content?: any[]; contentVersion?: number; title?: string; icon?: string | null; cover?: string | null } | any[]) => {
-      if (isTyping.current) return;
       if (socket.id && typeof payload === 'object' && payload !== null && 'senderId' in payload) {
         if (payload.senderId === socket.id) {
           return;
@@ -486,19 +460,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     const newTitle = e.target.value;
     setTitle(newTitle);
     titleRef.current = newTitle;
-    
-    // Update typing status to prevent remote overwrites
-    isTyping.current = true;
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    typingTimeoutRef.current = setTimeout(() => {
-      isTyping.current = false;
-    }, 2000);
-
-    if (document) {
-      updateTabTitle(document.id, newTitle);
-    }
     isUpdatingContent.current = true;
     
     // Atualização Visual Imediata
@@ -513,13 +474,18 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         emitContentViaSocketInstant(document.id, editor.document, newTitle, seqRef.current);
       }
       
-      persistTitleDebounced(document.id, newTitle);
+      // 3. Salva no banco debounced (600ms)
+      if (onUpdateDocument) {
+        onUpdateDocument(document.id, { title: newTitle });
+      } else {
+        saveContentDebounced(document.id, editor.document, newTitle);
+      }
     }
 
     // Libera a flag de race condition após curto intervalo para permitir recebimento novamente
     setTimeout(() => {
       isUpdatingContent.current = false;
-    }, 520);
+    }, 600);
   };
 
   const queueLocalTitleSync = useCallback(
@@ -582,23 +548,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     [socket, documentIcon, document?.cover]
   );
 
-  const persistTitleDebounced = useMemo(
-    () =>
-      debounce(async (id: string, nextTitle: string) => {
-        if (onUpdateDocument) {
-          onUpdateDocument(id, { title: nextTitle });
-          return;
-        }
-        try {
-          await api.patch(`/documents/${id}`, { title: nextTitle });
-        } catch (error) {
-          console.error('Failed to save title:', error);
-        }
-      }, 1000),
-    [onUpdateDocument]
-  );
-
-  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (1000ms)
+  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (600ms)
   const saveContentDebounced = useMemo(
     () =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -609,7 +559,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         } catch (error) {
           console.error('Failed to save document:', error);
         }
-      }, 1000),
+      }, 600),
     []
   );
 
@@ -672,16 +622,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       if (!document || isUpdatingContent.current) {
         return;
       }
-      
-      // Update typing status to prevent remote overwrites
-      isTyping.current = true;
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      typingTimeoutRef.current = setTimeout(() => {
-        isTyping.current = false;
-      }, 2000);
-
       if (socket && isConnected) {
         seqRef.current += 1;
         emitContentViaSocketInstant(document.id, editor.document, titleRef.current, seqRef.current);
@@ -1135,16 +1075,6 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
                 accept="image/*"
               />
             </div>
-          )}
-
-          {!hideHeader && (
-            document ? (
-              <div className="mb-3 flex items-center gap-2 text-xs text-[#8a8a8a]">
-                <span>Workspace</span>
-                <span>/</span>
-                <span className="max-w-full truncate text-[#d4d4d4]">{breadcrumbTitle || 'Untitled'}</span>
-              </div>
-            ) : null
           )}
 
           {!hideHeader && (
