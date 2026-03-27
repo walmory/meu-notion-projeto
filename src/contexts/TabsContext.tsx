@@ -24,14 +24,26 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
-  // Sync active tab with pathname
+  // Derived active tab
+  const activeTabId = pathname && tabs.some(tab => tab.id === pathname) ? pathname : null;
+
+  // Listen to live title updates
   useEffect(() => {
-    if (pathname && tabs.some(tab => tab.id === pathname)) {
-      setActiveTabId(pathname);
-    }
-  }, [pathname, tabs]);
+    const handleLiveTitleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ docId: string; title: string }>;
+      const { docId, title } = customEvent.detail;
+      const targetPath = `/documents/${docId}`;
+      setTabs(prev => 
+        prev.map(tab => 
+          tab.id === targetPath ? { ...tab, title: title || 'Untitled' } : tab
+        )
+      );
+    };
+
+    window.addEventListener('live-title-update', handleLiveTitleUpdate);
+    return () => window.removeEventListener('live-title-update', handleLiveTitleUpdate);
+  }, []);
 
   const addTab = (tab: Tab) => {
     setTabs(prev => {
@@ -40,7 +52,6 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       }
       return prev;
     });
-    setActiveTabId(tab.id);
     if (pathname !== tab.id) {
       router.push(tab.id);
     }
@@ -54,10 +65,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         const index = prev.findIndex(t => t.id === id);
         const nextTab = newTabs[Math.max(0, index - 1)];
         if (nextTab) {
-          setActiveTabId(nextTab.id);
           router.push(nextTab.id);
         } else {
-          setActiveTabId(null);
           router.push('/');
         }
       }
@@ -66,7 +75,6 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   };
 
   const setActiveTab = (id: string) => {
-    setActiveTabId(id);
     if (pathname !== id) {
       router.push(id);
     }

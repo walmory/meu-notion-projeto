@@ -216,6 +216,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       (current: Document | null | undefined) => current ? { ...current, title: nextTitle } : current,
       false
     );
+    window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId, title: nextTitle } }));
   }, [mutateGlobal]);
 
   const syncSharedVisual = useCallback((docId: string, updates: Pick<Document, 'icon' | 'cover'>) => {
@@ -509,6 +510,8 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         },
         false
       );
+      
+      window.dispatchEvent(new CustomEvent('live-title-update', { detail: { docId: id, title: nextTitle } }));
     },
     [mutateGlobal]
   );
