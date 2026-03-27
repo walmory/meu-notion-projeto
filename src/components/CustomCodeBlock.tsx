@@ -12,12 +12,17 @@ import 'prismjs/components/prism-markup'; // HTML
 import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-json';
 import 'prismjs/themes/prism-okaidia.css'; // Dark theme (Monokai-like)
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Sparkles, Loader2 } from 'lucide-react';
+import { CodeDiffViewer } from './CodeDiffViewer';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CodeBlockRenderer = (props: { block: any; editor: any }) => {
   const { block, editor } = props;
   const [copied, setCopied] = useState(false);
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiModifiedCode, setAiModifiedCode] = useState<string | null>(null);
 
   const handleCodeChange = (newCode: string) => {
     editor.updateBlock(block, {
@@ -48,6 +53,59 @@ const CodeBlockRenderer = (props: { block: any; editor: any }) => {
     return Prism.highlight(code, grammar, lang);
   };
 
+  const handleAiSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiPrompt.trim()) return;
+    
+    setIsGenerating(true);
+    // Simulate AI generation delay
+    setTimeout(() => {
+      const promptLower = aiPrompt.toLowerCase();
+      let generated = block.props.code;
+      
+      // Simple mockup logic for demonstration
+      if (promptLower.includes('refactor') || promptLower.includes('clean')) {
+        generated = `// Refactored by AI\n${block.props.code}\n\n// Added some cleanups...`;
+      } else if (promptLower.includes('comment') || promptLower.includes('explain')) {
+        generated = `/**\n * AI Generated Explanation\n * This code does something awesome.\n */\n${block.props.code}`;
+      } else {
+        generated = `${block.props.code}\n\n// AI suggested changes based on: "${aiPrompt}"\nconsole.log("Hello from AI!");`;
+      }
+
+      setAiModifiedCode(generated);
+      setIsGenerating(false);
+    }, 1500);
+  };
+
+  const acceptAiChanges = () => {
+    if (aiModifiedCode) {
+      handleCodeChange(aiModifiedCode);
+    }
+    setAiModifiedCode(null);
+    setIsAiMode(false);
+    setAiPrompt('');
+  };
+
+  const rejectAiChanges = () => {
+    setAiModifiedCode(null);
+    setIsAiMode(false);
+    setAiPrompt('');
+  };
+
+  if (aiModifiedCode) {
+    return (
+      <div className="my-4 w-full">
+        <CodeDiffViewer
+          original={block.props.code}
+          modified={aiModifiedCode}
+          language={block.props.language}
+          onAccept={acceptAiChanges}
+          onReject={rejectAiChanges}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="group relative my-4 rounded-lg bg-[#1e1e1e] p-4 border border-[#333] w-full max-w-full overflow-hidden box-border">
       {/* Top Bar: Language Selector & Copy Button */}
@@ -68,16 +126,49 @@ const CodeBlockRenderer = (props: { block: any; editor: any }) => {
           <option value="text">Plain Text</option>
         </select>
 
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1 bg-[#2d2d2d] hover:bg-[#3f3f3f] text-[#a3a3a3] hover:text-white text-xs px-2 py-1 rounded transition-colors cursor-pointer"
-          contentEditable={false}
-          type="button"
-        >
-          {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-          {copied ? 'Copied!' : 'Copy Code'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAiMode(!isAiMode)}
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors cursor-pointer border ${isAiMode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-[#2d2d2d] hover:bg-[#3f3f3f] text-[#a3a3a3] hover:text-white border-transparent'}`}
+            contentEditable={false}
+            type="button"
+          >
+            <Sparkles size={14} />
+            Ask AI
+          </button>
+          
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 bg-[#2d2d2d] hover:bg-[#3f3f3f] text-[#a3a3a3] hover:text-white text-xs px-2 py-1 rounded transition-colors cursor-pointer border border-transparent"
+            contentEditable={false}
+            type="button"
+          >
+            {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+            {copied ? 'Copied!' : 'Copy Code'}
+          </button>
+        </div>
       </div>
+
+      {/* AI Prompt Input */}
+      {isAiMode && (
+        <form onSubmit={handleAiSubmit} className="mb-3 flex items-center gap-2" contentEditable={false}>
+          <input
+            type="text"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="Ask AI to edit this code..."
+            className="flex-1 bg-[#2d2d2d] border border-[#3f3f3f] text-sm text-white px-3 py-1.5 rounded outline-none focus:border-purple-500/50 transition-colors"
+            disabled={isGenerating}
+          />
+          <button
+            type="submit"
+            disabled={!aiPrompt.trim() || isGenerating}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isGenerating ? <Loader2 size={16} className="animate-spin" /> : 'Generate'}
+          </button>
+        </form>
+      )}
 
       {/* Code Editor */}
       <div className="text-sm font-mono text-white overflow-x-auto w-full box-border">
