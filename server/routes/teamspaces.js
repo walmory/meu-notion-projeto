@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTeamspaces, createTeamspace, deleteTeamspace, getTeamspaceMembers } from '../controllers/teamspaceController.js';
+import { getTeamspaces, createTeamspace, updateTeamspace, deleteTeamspace, getTeamspaceMembers } from '../controllers/teamspaceController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { workspaceMiddleware } from '../middleware/workspaceMiddleware.js';
 
@@ -10,6 +10,8 @@ router.use(workspaceMiddleware);
 
 router.post('/', createTeamspace);
 router.get('/', getTeamspaces);
+router.patch('/:id', updateTeamspace);
+router.put('/:id', updateTeamspace);
 router.delete('/:id', deleteTeamspace);
 router.get('/:id/members', getTeamspaceMembers);
 

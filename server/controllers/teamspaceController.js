@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import { emitToWorkspace } from '../socket.js';
 
 const ensureTeamspaceTrashColumn = async () => {
   const [columns] = await pool.query(
@@ -92,6 +93,58 @@ export const createTeamspace = async (req, res) => {
   } catch (error) {
     console.error('Error creating teamspace:', error);
     return res.status(500).json({ error: 'Failed to create teamspace', details: error.message });
+  }
+};
+
+export const updateTeamspace = async (req, res) => {
+  const workspaceId = req.workspace_id;
+  const { id } = req.params;
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+
+  if (!id) {
+    return res.status(400).json({ error: 'id is required' });
+  }
+
+  if (!workspaceId) {
+    return res.status(400).json({ error: 'workspace_id is required' });
+  }
+
+  if (!name) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+
+  try {
+    await ensureTeamspaceTrashColumn();
+
+    const [existingRows] = await pool.query(
+      `SELECT id
+       FROM teamspaces
+       WHERE id = ? AND workspace_id = ?
+       LIMIT 1`,
+      [id, workspaceId]
+    );
+
+    if (existingRows.length === 0) {
+      return res.status(404).json({ error: 'Teamspace not found or unauthorized' });
+    }
+
+    await pool.query(
+      'UPDATE teamspaces SET name = ? WHERE id = ? AND workspace_id = ?',
+      [name, id, workspaceId]
+    );
+
+    const [updatedRows] = await pool.query(
+      'SELECT id, workspace_id, name, created_by, invite_code, description, icon, is_trash FROM teamspaces WHERE id = ? AND workspace_id = ? LIMIT 1',
+      [id, workspaceId]
+    );
+
+    const updatedTeamspace = updatedRows[0];
+    emitToWorkspace(workspaceId, 'teamspace:update', updatedTeamspace);
+
+    return res.status(200).json(updatedTeamspace);
+  } catch (error) {
+    console.error('Error updating teamspace:', error);
+    return res.status(500).json({ error: 'Failed to update teamspace', details: error.message });
   }
 };
 

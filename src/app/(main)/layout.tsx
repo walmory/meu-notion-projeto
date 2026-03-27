@@ -110,7 +110,15 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                 teamspaceId?: string | null,
                 options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
               ) => {
+                const optimisticId = crypto.randomUUID();
+                const targetPath = `/documents/${optimisticId}`;
+                if (!options?.skipNavigation) {
+                  addTab({ id: targetPath, title: options?.title ?? 'Untitled', icon: undefined });
+                  router.prefetch(targetPath);
+                  router.push(targetPath);
+                }
                 const newDoc = await createDocument({
+                  id: optimisticId,
                   title: options?.title ?? '',
                   is_shared: isShared,
                   parent_id: parentId,
@@ -118,10 +126,13 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                   type: options?.type
                 });
                 if (newDoc && !options?.skipNavigation) {
-                  const targetPath = `/documents/${newDoc.id}`;
-                  addTab({ id: targetPath, title: newDoc.title || 'Untitled', icon: newDoc.icon || undefined });
-                  router.prefetch(targetPath);
-                  router.push(targetPath);
+                  const resolvedPath = `/documents/${newDoc.id}`;
+                  if (resolvedPath !== targetPath) {
+                    closeTab(targetPath);
+                    addTab({ id: resolvedPath, title: newDoc.title || 'Untitled', icon: newDoc.icon || undefined });
+                    router.prefetch(resolvedPath);
+                    router.replace(resolvedPath);
+                  }
                 }
                 return newDoc;
               }}

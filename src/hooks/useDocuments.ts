@@ -181,6 +181,7 @@ export function useDocuments(workspaceId?: string) {
   };
 
   type CreateDocumentInput = {
+    id?: string;
     title?: string;
     is_shared?: boolean;
     parent_id?: string | null;
@@ -199,7 +200,9 @@ export function useDocuments(workspaceId?: string) {
     try {
       const workspaceIdFromInput = workspace_id || (typeof titleOrInput === 'string' ? undefined : titleOrInput.workspace_id);
       const resolvedWorkspaceId = await ensureActiveWorkspaceId(workspaceIdFromInput);
-      const tempId = crypto.randomUUID();
+      const tempId = typeof titleOrInput === 'string'
+        ? crypto.randomUUID()
+        : (titleOrInput.id || crypto.randomUUID());
 
       if (!resolvedWorkspaceId) {
         console.warn('⚠️ Prevented document creation: workspace_id is missing or null.');

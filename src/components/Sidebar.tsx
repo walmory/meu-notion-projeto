@@ -449,6 +449,23 @@ export function Sidebar({
     });
     socket.on('document_deleted', refetchRecentDocuments);
     socket.on('document_removed', refetchRecentDocuments);
+    socket.on('teamspace:update', (payload: Teamspace) => {
+      if (!payload?.id) {
+        return;
+      }
+      mutateTeamspaces((current) => {
+        const list = Array.isArray(current) ? current : [];
+        const exists = list.some((teamspace) => String(teamspace.id) === String(payload.id));
+        if (!exists) {
+          return list;
+        }
+        return list.map((teamspace) =>
+          String(teamspace.id) === String(payload.id)
+            ? { ...teamspace, ...payload }
+            : teamspace
+        );
+      }, { revalidate: false });
+    });
 
     window.addEventListener('recent-documents-invalidated', refetchRecentDocuments);
 
@@ -459,11 +476,12 @@ export function Sidebar({
       socket.off('document_updated');
       socket.off('document_deleted', refetchRecentDocuments);
       socket.off('document_removed', refetchRecentDocuments);
+      socket.off('teamspace:update');
       window.removeEventListener('recent-documents-invalidated', refetchRecentDocuments);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeWorkspaceId, applyLiveTitleSync, refetchRecentDocuments]);
+  }, [activeWorkspaceId, applyLiveTitleSync, mutateTeamspaces, refetchRecentDocuments]);
 
   // Resizing state
   const [isResizing, setIsResizing] = useState(false);
