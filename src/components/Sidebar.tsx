@@ -937,25 +937,29 @@ export function Sidebar({
           <div className={`h-full w-[2px] transition-colors ${isResizing ? 'bg-[#4f4f4f]' : 'bg-transparent group-hover/resizer:bg-[#4f4f4f]'}`} />
         </button>
         
-        <div className="group/switcher absolute top-[-34px] left-0 z-40 flex h-[34px] w-full items-center px-2">
+        <div className="relative group/switcher m-2 pt-2 pb-5">
           <DropdownMenu.Root open={isWorkspaceMenuOpen} onOpenChange={setIsWorkspaceMenuOpen}>
             <DropdownMenu.Trigger asChild>
-              <button type="button" className="flex h-7 w-full items-center justify-between rounded-md border-none bg-transparent px-2 text-left text-[#d4d4d4] transition hover:bg-[#2c2c2c]">
+              <button type="button" className="flex items-center justify-between p-2 hover:bg-[#2c2c2c] transition outline-none rounded-md cursor-pointer w-full border-none bg-transparent text-left">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gray-600 text-xs font-semibold shrink-0 text-white">
                     {mounted ? (user?.name ? user.name.charAt(0).toUpperCase() : 'U') : null}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="flex flex-col min-w-0 flex-1">
                     {mounted ? (
-                      <span className="truncate font-semibold text-white text-[13px]">
+                      <span className="truncate font-semibold text-white text-[13px] leading-tight">
                         {user?.name || 'User'}
                       </span>
                     ) : (
                       <span className="h-3 w-20 rounded bg-[#2c2c2c] inline-block" />
                     )}
+                    <span className="truncate text-[11px] text-[#8a8a8a] leading-tight mt-0.5">
+                      {workspaceDisplayName}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 opacity-0 group-hover/switcher:opacity-100 transition-opacity shrink-0">
+                  <div className="w-6 h-6" /> {/* Spacer for Settings button */}
                   <div className="p-1 rounded text-[#8a8a8a] transition-colors cursor-pointer">
                     <ChevronsUpDown size={14} />
                   </div>
@@ -1095,7 +1099,7 @@ export function Sidebar({
               e.stopPropagation();
               setIsWorkspaceSettingsOpen(true);
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#8a8a8a] transition-colors hover:bg-[#3f3f3f] hover:text-white" 
+            className="absolute right-7 top-1/2 -translate-y-1/2 p-1 hover:bg-[#3f3f3f] rounded text-[#8a8a8a] hover:text-white transition-colors cursor-pointer border-none bg-transparent opacity-0 group-hover/switcher:opacity-100 z-10" 
             title="Settings"
           >
             <Settings size={14} />
