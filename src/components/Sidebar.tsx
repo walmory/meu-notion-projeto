@@ -937,7 +937,7 @@ export function Sidebar({
           <div className={`h-full w-[2px] transition-colors ${isResizing ? 'bg-[#4f4f4f]' : 'bg-transparent group-hover/resizer:bg-[#4f4f4f]'}`} />
         </button>
         
-        <div className="relative group/switcher m-2 pt-8 pb-5">
+        <div className="relative group/switcher m-2 pt-2 pb-5">
           <DropdownMenu.Root open={isWorkspaceMenuOpen} onOpenChange={setIsWorkspaceMenuOpen}>
             <DropdownMenu.Trigger asChild>
               <button type="button" className="flex items-center justify-between p-2 hover:bg-[#2c2c2c] transition outline-none rounded-md cursor-pointer w-full border-none bg-transparent text-left">

@@ -10,6 +10,8 @@ function createWindow() {
     width: 1200,
     height: 800,
     show: false,
+    frame: true,
+    titleBarStyle: 'hiddenInset',
     backgroundColor: '#000000', // Certificando que é escuro desde o instante 0
     webPreferences: {
       nodeIntegration: false,
