@@ -125,12 +125,12 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                 }
                 return newDoc;
               }}
-              onDeleteDocument={async (id) => {
-                await deleteDocument(id);
+              onDeleteDocument={(id) => {
                 closeTab(`/documents/${id}`);
                 if (documentId === id) {
                   router.push('/');
                 }
+                void deleteDocument(id);
               }}
               onUpdateDocument={updateDocument}
               onToggleFavorite={toggleFavorite}
