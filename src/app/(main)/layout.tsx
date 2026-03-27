@@ -17,7 +17,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const documentId = params.documentId as string | undefined;
-  const { addTab } = useTabs();
+  const { addTab, closeTab } = useTabs();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -126,7 +126,8 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                 return newDoc;
               }}
               onDeleteDocument={async (id) => {
-                deleteDocument(id);
+                await deleteDocument(id);
+                closeTab(`/documents/${id}`);
                 if (documentId === id) {
                   router.push('/');
                 }
