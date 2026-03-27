@@ -89,6 +89,11 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   const { mutate: mutateGlobal } = useSWRConfig();
   const { tabs, activeTabId, updateTabTitle } = useTabs();
   const titleRef = useRef(title);
+  
+  // Local Typing State to prevent Remote Overwrites (Cursor Jumping)
+  const isTyping = useRef(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Atomic Sequence: seq increments every keystroke; lastSentSeq / lastAckedSeq
   // track sync state without race conditions.
   const seqRef = useRef(0);
@@ -202,7 +207,10 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
 
   useEffect(() => {
     titleRef.current = title;
-  }, [title]);
+    if (document) {
+      updateTabTitle(document.id, title);
+    }
+  }, [title, document, updateTabTitle]);
 
   const syncSharedTitle = useCallback((docId: string, nextTitle: string) => {
     titleRef.current = nextTitle;
@@ -270,6 +278,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     socket.on('title-change', (payload: { senderId?: string; docId?: string; title?: string }) => {
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
+      if (isTyping.current) return;
       if (typeof payload.title !== 'string') return;
       if (payload.title === titleRef.current) return;
       syncSharedTitle(currentDocumentId, payload.title);
@@ -278,6 +287,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     socket.on('document:update-title', (payload: { senderId?: string; docId?: string; newTitle?: string }) => {
       if (!payload?.docId || String(payload.docId) !== String(currentDocumentId)) return;
       if (payload.senderId && socket.id && payload.senderId === socket.id) return;
+      if (isTyping.current) return;
       if (typeof payload.newTitle !== 'string') return;
       // Bloqueio de Race Condition: Ignora se o usuário está digitando ativamente um novo título local.
       if (isUpdatingContent.current) return;
@@ -301,6 +311,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on('content-update', (payload: { senderId?: string; content?: any[]; contentVersion?: number; title?: string; icon?: string | null; cover?: string | null } | any[]) => {
+      if (isTyping.current) return;
       if (socket.id && typeof payload === 'object' && payload !== null && 'senderId' in payload) {
         if (payload.senderId === socket.id) {
           return;
@@ -475,6 +486,16 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     const newTitle = e.target.value;
     setTitle(newTitle);
     titleRef.current = newTitle;
+    
+    // Update typing status to prevent remote overwrites
+    isTyping.current = true;
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      isTyping.current = false;
+    }, 2000);
+
     if (document) {
       updateTabTitle(document.id, newTitle);
     }
@@ -573,11 +594,11 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         } catch (error) {
           console.error('Failed to save title:', error);
         }
-      }, 500),
+      }, 1000),
     [onUpdateDocument]
   );
 
-  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (500ms)
+  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (1000ms)
   const saveContentDebounced = useMemo(
     () =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -588,7 +609,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         } catch (error) {
           console.error('Failed to save document:', error);
         }
-      }, 500),
+      }, 1000),
     []
   );
 
@@ -651,6 +672,16 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       if (!document || isUpdatingContent.current) {
         return;
       }
+      
+      // Update typing status to prevent remote overwrites
+      isTyping.current = true;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        isTyping.current = false;
+      }, 2000);
+
       if (socket && isConnected) {
         seqRef.current += 1;
         emitContentViaSocketInstant(document.id, editor.document, titleRef.current, seqRef.current);
