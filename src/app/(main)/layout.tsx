@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useDocuments } from '@/hooks/useDocuments';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
@@ -15,6 +15,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const documentId = params.documentId as string | undefined;
   const { addTab } = useTabs();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
