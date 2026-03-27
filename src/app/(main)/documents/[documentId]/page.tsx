@@ -6,12 +6,14 @@ import { Editor } from '@/components/Editor';
 import { useDocuments, Document } from '@/hooks/useDocuments';
 import { EditorSkeleton } from '@/components/EditorSkeleton';
 import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
+import { useTabs } from '@/contexts/TabsContext';
 import useSWR from 'swr';
 
 export default function DocumentPage() {
   const router = useRouter();
   const params = useParams<{ documentId: string }>();
   const documentId = params.documentId;
+  const { addTab } = useTabs();
   
   const { documents, loading, refetch, updateDocument, deleteDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const [isAuthChecking] = useState(() => {
@@ -63,6 +65,17 @@ export default function DocumentPage() {
       router.push('/');
     }
   }, [loading, isDocumentLoading, data, selectedDocument, isAuthChecking, router]);
+
+  // Sync tab title when document data is loaded
+  useEffect(() => {
+    if (editorDocument && documentId) {
+      addTab({
+        id: `/documents/${documentId}`,
+        title: editorDocument.title || 'Untitled',
+        icon: editorDocument.icon || undefined
+      });
+    }
+  }, [editorDocument, documentId, addTab]);
 
   if (isAuthChecking || isDocumentLoading || !data || (loading && !selectedDocument)) {
     return <EditorSkeleton />;
