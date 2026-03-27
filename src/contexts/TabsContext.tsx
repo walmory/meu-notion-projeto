@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 export interface Tab {
@@ -15,6 +15,7 @@ interface TabsContextType {
   addTab: (tab: Tab) => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
+  updateTabTitle: (docId: string, newTitle: string) => void;
 }
 
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
@@ -24,23 +25,26 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
-
-  // Sync active tab with pathname
-  useEffect(() => {
-    if (pathname && tabs.some(tab => tab.id === pathname)) {
-      setActiveTabId(pathname);
+  const [manualActiveTabId, setManualActiveTabId] = useState<string | null>(null);
+  const activeTabId = useMemo(() => {
+    if (pathname && tabs.some((tab) => tab.id === pathname)) {
+      return pathname;
     }
-  }, [pathname, tabs]);
+    return manualActiveTabId;
+  }, [pathname, tabs, manualActiveTabId]);
 
   const addTab = (tab: Tab) => {
     setTabs(prev => {
-      if (!prev.find(t => t.id === tab.id)) {
+      const existingTab = prev.find(t => t.id === tab.id);
+      if (!existingTab) {
         return [...prev, tab];
+      }
+      if (existingTab.title !== tab.title || existingTab.icon !== tab.icon) {
+        return prev.map((currentTab) => currentTab.id === tab.id ? { ...currentTab, ...tab } : currentTab);
       }
       return prev;
     });
-    setActiveTabId(tab.id);
+    setManualActiveTabId(tab.id);
     if (pathname !== tab.id) {
       router.push(tab.id);
     }
@@ -54,10 +58,10 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         const index = prev.findIndex(t => t.id === id);
         const nextTab = newTabs[Math.max(0, index - 1)];
         if (nextTab) {
-          setActiveTabId(nextTab.id);
+          setManualActiveTabId(nextTab.id);
           router.push(nextTab.id);
         } else {
-          setActiveTabId(null);
+          setManualActiveTabId(null);
           router.push('/');
         }
       }
@@ -66,14 +70,25 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   };
 
   const setActiveTab = (id: string) => {
-    setActiveTabId(id);
+    setManualActiveTabId(id);
     if (pathname !== id) {
       router.push(id);
     }
   };
 
+  const updateTabTitle = (docId: string, newTitle: string) => {
+    const targetTabId = docId.startsWith('/documents/') ? docId : `/documents/${docId}`;
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === targetTabId
+          ? { ...tab, title: newTitle || 'Untitled' }
+          : tab
+      )
+    );
+  };
+
   return (
-    <TabsContext.Provider value={{ tabs, activeTabId, addTab, closeTab, setActiveTab }}>
+    <TabsContext.Provider value={{ tabs, activeTabId, addTab, closeTab, setActiveTab, updateTabTitle }}>
       {children}
     </TabsContext.Provider>
   );

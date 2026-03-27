@@ -20,6 +20,7 @@ import { Mention } from './Mention';
 import { SuggestionMenuController, getDefaultReactSlashMenuItems, DefaultReactSuggestionItem } from '@blocknote/react';
 import { getAuthHeaders, getUserFromToken } from '@/lib/api';
 import { useSWRConfig } from 'swr';
+import { useTabs } from '@/contexts/TabsContext';
 
 function debounce<T extends (...args: Parameters<T>) => void>(func: T, wait: number) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -86,6 +87,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   onUpdateRef.current = onUpdate;
   const [isFullWidth, setIsFullWidth] = useState(false);
   const { mutate: mutateGlobal } = useSWRConfig();
+  const { tabs, activeTabId, updateTabTitle } = useTabs();
   const titleRef = useRef(title);
   // Atomic Sequence: seq increments every keystroke; lastSentSeq / lastAckedSeq
   // track sync state without race conditions.
@@ -96,6 +98,18 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   const lastSentPayloadKeyRef = useRef<string>('');
   const mentionSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mentionSearchResolveRef = useRef<((value: DefaultReactSuggestionItem[]) => void) | null>(null);
+  const currentDocumentPath = document?.id ? `/documents/${document.id}` : null;
+  const breadcrumbTitle = useMemo(() => {
+    if (!currentDocumentPath) {
+      return '';
+    }
+    const activeTitle = tabs.find((tab) => tab.id === activeTabId)?.title;
+    if (activeTabId === currentDocumentPath && activeTitle) {
+      return activeTitle;
+    }
+    const currentTitle = tabs.find((tab) => tab.id === currentDocumentPath)?.title;
+    return currentTitle || title || 'Untitled';
+  }, [activeTabId, currentDocumentPath, tabs, title]);
 
   const prevDocId = useRef(document?.id);
   const controls = useAnimation();
@@ -193,6 +207,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
   const syncSharedTitle = useCallback((docId: string, nextTitle: string) => {
     titleRef.current = nextTitle;
     setTitle(nextTitle);
+    updateTabTitle(docId, nextTitle);
     mutateGlobal(
       '/documents',
       (current: Document[] | undefined) => {
@@ -216,7 +231,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
       (current: Document | null | undefined) => current ? { ...current, title: nextTitle } : current,
       false
     );
-  }, [mutateGlobal]);
+  }, [mutateGlobal, updateTabTitle]);
 
   const syncSharedVisual = useCallback((docId: string, updates: Pick<Document, 'icon' | 'cover'>) => {
     if (updates.cover !== undefined) {
@@ -460,6 +475,9 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     const newTitle = e.target.value;
     setTitle(newTitle);
     titleRef.current = newTitle;
+    if (document) {
+      updateTabTitle(document.id, newTitle);
+    }
     isUpdatingContent.current = true;
     
     // Atualização Visual Imediata
@@ -474,18 +492,13 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         emitContentViaSocketInstant(document.id, editor.document, newTitle, seqRef.current);
       }
       
-      // 3. Salva no banco debounced (600ms)
-      if (onUpdateDocument) {
-        onUpdateDocument(document.id, { title: newTitle });
-      } else {
-        saveContentDebounced(document.id, editor.document, newTitle);
-      }
+      persistTitleDebounced(document.id, newTitle);
     }
 
     // Libera a flag de race condition após curto intervalo para permitir recebimento novamente
     setTimeout(() => {
       isUpdatingContent.current = false;
-    }, 600);
+    }, 520);
   };
 
   const queueLocalTitleSync = useCallback(
@@ -548,7 +561,23 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
     [socket, documentIcon, document?.cover]
   );
 
-  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (600ms)
+  const persistTitleDebounced = useMemo(
+    () =>
+      debounce(async (id: string, nextTitle: string) => {
+        if (onUpdateDocument) {
+          onUpdateDocument(id, { title: nextTitle });
+          return;
+        }
+        try {
+          await api.patch(`/documents/${id}`, { title: nextTitle });
+        } catch (error) {
+          console.error('Failed to save title:', error);
+        }
+      }, 500),
+    [onUpdateDocument]
+  );
+
+  // Debounced emit: salva de verdade no Banco/API apenas quando para de digitar (500ms)
   const saveContentDebounced = useMemo(
     () =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -559,7 +588,7 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
         } catch (error) {
           console.error('Failed to save document:', error);
         }
-      }, 600),
+      }, 500),
     []
   );
 
@@ -1075,6 +1104,16 @@ export function Editor({ document, onUpdate, onUpdateDocument, hideHeader = fals
                 accept="image/*"
               />
             </div>
+          )}
+
+          {!hideHeader && (
+            document ? (
+              <div className="mb-3 flex items-center gap-2 text-xs text-[#8a8a8a]">
+                <span>Workspace</span>
+                <span>/</span>
+                <span className="max-w-full truncate text-[#d4d4d4]">{breadcrumbTitle || 'Untitled'}</span>
+              </div>
+            ) : null
           )}
 
           {!hideHeader && (
