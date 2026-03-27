@@ -3,18 +3,23 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useDocuments } from '@/hooks/useDocuments';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { SidePeekProvider } from '@/contexts/SidePeekContext';
 import { SidePeekDrawer } from '@/components/SidePeekDrawer';
 import { GlobalWorkspaceInvites } from '@/components/GlobalWorkspaceInvites';
 import { api, getAuthHeaders, getAuthToken } from '@/lib/api';
+import { TabsProvider, useTabs } from '@/contexts/TabsContext';
+import { Header } from '@/components/Header';
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const { documents, createDocument, deleteDocument, updateDocument, toggleFavorite, duplicateDocument } = useDocuments();
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const documentId = params.documentId as string | undefined;
+  const { addTab } = useTabs();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,53 +89,68 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <SidePeekProvider>
       <div className="flex flex-row h-screen w-full bg-[#191919] text-white">
-        <Sidebar 
-          documents={documents || []}
-          selectedDocId={documentId}
-          onSelectDocument={(doc) => {
-            if (doc) {
-              const targetPath = `/documents/${doc.id}`;
-              router.prefetch(targetPath);
-              router.push(targetPath);
-            }
-            else router.push('/');
-          }}
-          onCreateDocument={async (
-            isShared: boolean,
-            parentId?: string | null,
-            teamspaceId?: string | null,
-            options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
-          ) => {
-            const newDoc = await createDocument({
-              title: options?.title ?? '',
-              is_shared: isShared,
-              parent_id: parentId,
-              teamspace_id: teamspaceId,
-              type: options?.type
-            });
-            if (newDoc && !options?.skipNavigation) {
-              const targetPath = `/documents/${newDoc.id}`;
-              router.prefetch(targetPath);
-              router.push(targetPath);
-            }
-            return newDoc;
-          }}
-          onDeleteDocument={async (id) => {
-            deleteDocument(id);
-            if (documentId === id) {
-              router.push('/');
-            }
-          }}
-          onUpdateDocument={updateDocument}
-          onToggleFavorite={toggleFavorite}
-          onDuplicateDocument={duplicateDocument}
-        />
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
-          {children}
+        {!isSidebarCollapsed && (
+          <Sidebar 
+            documents={documents || []}
+            selectedDocId={documentId}
+            onSelectDocument={(doc) => {
+              if (doc) {
+                const targetPath = `/documents/${doc.id}`;
+                addTab({ id: targetPath, title: doc.title || 'Untitled', icon: doc.icon || undefined });
+                router.prefetch(targetPath);
+                router.push(targetPath);
+              }
+              else router.push('/');
+            }}
+            onCreateDocument={async (
+              isShared: boolean,
+              parentId?: string | null,
+              teamspaceId?: string | null,
+              options?: { title?: string; type?: 'page' | 'database'; skipNavigation?: boolean }
+            ) => {
+              const newDoc = await createDocument({
+                title: options?.title ?? '',
+                is_shared: isShared,
+                parent_id: parentId,
+                teamspace_id: teamspaceId,
+                type: options?.type
+              });
+              if (newDoc && !options?.skipNavigation) {
+                const targetPath = `/documents/${newDoc.id}`;
+                addTab({ id: targetPath, title: newDoc.title || 'Untitled', icon: newDoc.icon || undefined });
+                router.prefetch(targetPath);
+                router.push(targetPath);
+              }
+              return newDoc;
+            }}
+            onDeleteDocument={async (id) => {
+              deleteDocument(id);
+              if (documentId === id) {
+                router.push('/');
+              }
+            }}
+            onUpdateDocument={updateDocument}
+            onToggleFavorite={toggleFavorite}
+            onDuplicateDocument={duplicateDocument}
+          />
+        )}
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#191919]">
+          <Header onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+          <div className="flex-1 overflow-y-auto">
+            {children}
+          </div>
         </div>
         <SidePeekDrawer />
         <GlobalWorkspaceInvites />
       </div>
     </SidePeekProvider>
+  );
+}
+
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <TabsProvider>
+      <MainLayoutInner>{children}</MainLayoutInner>
+    </TabsProvider>
   );
 }

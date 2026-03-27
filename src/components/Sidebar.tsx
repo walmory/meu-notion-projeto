@@ -127,6 +127,7 @@ import { WorkspaceInviteModal } from './WorkspaceInviteModal';
 import { WorkspaceSettingsModal } from './WorkspaceSettingsModal';
 import { WorkspaceCreateModal } from './WorkspaceCreateModal';
 import { useUser } from '@/contexts/UserContext';
+import { useTabs } from '@/contexts/TabsContext';
 
 export function Sidebar({ 
   documents, 
@@ -140,6 +141,7 @@ export function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { addTab } = useTabs();
   const { mutate: globalMutate } = useSWRConfig();
   const [favoritesExpanded, setFavoritesExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(false);
@@ -988,7 +990,7 @@ export function Sidebar({
 
                   <DropdownMenu.Item 
                     className="flex items-center gap-2 p-2 mb-2 w-full text-left rounded-md hover:bg-[#333333] transition-colors outline-none cursor-pointer text-[#d4d4d4]"
-                    onClick={() => router.push('/connections')}
+                    onClick={() => { addTab({ id: '/connections', title: 'Connections' }); router.push('/connections'); }}
                   >
                     <LucideIcons.Users size={16} className="text-[#a3a3a3]" />
                     <span>Connections</span>
@@ -1069,7 +1071,7 @@ export function Sidebar({
                 {/* Bloco 3: Contas & Logout */}
                 <div className="p-1">
                   <DropdownMenu.Item 
-                    onClick={() => router.push('/profile')}
+                    onClick={() => { addTab({ id: '/profile', title: 'Profile' }); router.push('/profile'); }}
                     className="flex items-center px-2 py-1.5 cursor-pointer outline-none hover:bg-[#2c2c2c] rounded-md focus:bg-[#2c2c2c] text-[13px] text-[#8a8a8a] hover:text-white transition-colors"
                   >
                     Profile & Password
@@ -1112,9 +1114,9 @@ export function Sidebar({
               onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
               rightElement={<span className="text-[10px] text-[#a3a3a3] border border-[#2c2c2c] rounded px-1.5 py-0.5">⌘ K</span>}
             />
-            <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { router.push('/'); onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
-            <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => router.push('/projects')} active={pathname.startsWith('/projects')} />
-            <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => router.push('/library')} active={pathname === '/library'} />
+            <SidebarItem icon={<Home size={18} className="text-[#a3a3a3]" />} label="Home" onClick={() => { addTab({ id: '/', title: 'Home' }); router.push('/'); onSelectDocument(null); }} active={pathname === '/' && !selectedDocId} />
+            <SidebarItem icon={<Briefcase size={18} className="text-[#a3a3a3]" />} label="Projects" onClick={() => { addTab({ id: '/projects', title: 'Projects' }); router.push('/projects'); }} active={pathname.startsWith('/projects')} />
+            <SidebarItem icon={<Book size={18} className="text-[#a3a3a3]" />} label="Library" onClick={() => { addTab({ id: '/library', title: 'Library' }); router.push('/library'); }} active={pathname === '/library'} />
           </div>
 
           <div className="mt-4">
@@ -1150,7 +1152,10 @@ export function Sidebar({
                     <button
                       key={doc.id}
                       type="button"
-                      onClick={() => router.push(`/documents/${doc.id}`)}
+                      onClick={() => {
+                        addTab({ id: `/documents/${doc.id}`, title: doc.title || 'Untitled', icon: doc.icon || undefined });
+                        router.push(`/documents/${doc.id}`);
+                      }}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${String(selectedDocId) === String(doc.id) ? 'bg-[#2c2c2c] text-white' : 'hover:bg-[#2c2c2c] text-[#a3a3a3]'}`}
                     >
                       <FileText size={14} className="shrink-0 text-[#a3a3a3]" />
@@ -1257,8 +1262,8 @@ export function Sidebar({
             label="Trash" 
             onClick={() => setIsTrashOpen(true)}
           />
-          <SidebarItem icon={<Users size={16} className="text-[#a3a3a3]" />} label="Members" onClick={() => router.push('/settings/members')} active={pathname === '/settings/members'} />
-          <SidebarItem icon={<Link size={16} className="text-[#a3a3a3]" />} label="Connections" onClick={() => router.push('/connections')} active={pathname === '/connections'} />
+          <SidebarItem icon={<Users size={16} className="text-[#a3a3a3]" />} label="Members" onClick={() => { addTab({ id: '/settings/members', title: 'Members' }); router.push('/settings/members'); }} active={pathname === '/settings/members'} />
+          <SidebarItem icon={<Link size={16} className="text-[#a3a3a3]" />} label="Connections" onClick={() => { addTab({ id: '/connections', title: 'Connections' }); router.push('/connections'); }} active={pathname === '/connections'} />
         </div>
       </aside>
       
